@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.26)
+project(ascend_docker_cli C)
+set(CMAKE_C_STANDARD 11)
+aux_source_directory(. SRC)
+add_executable(ascend_docker_cli ${SRC})
