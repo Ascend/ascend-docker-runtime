@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+ * Description: ascend-docker-hook工具，配置容器挂载Ascend NPU设备
+ */
 package main
 
 import (
@@ -21,12 +25,15 @@ const (
 	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
 	ascendDockerCli        = "ascend-docker-cli"
 	defaultAscendDockerCli = "/usr/local/bin/ascend-docker-cli"
+
+	borderNum  = 2
+	kvPairSize = 2
 )
 
 type containerConfig struct {
 	Pid    int
 	Rootfs string
-	Env []string
+	Env    []string
 }
 
 func removeDuplication(devices []int) []int {
@@ -52,7 +59,7 @@ func parseDevices(visibleDevices string) ([]int, error) {
 		d = strings.TrimSpace(d)
 		if strings.Contains(d, "-") {
 			borders := strings.Split(d, "-")
-			if len(borders) < 2 {
+			if len(borders) < borderNum {
 				return nil, fmt.Errorf("invalid device range: %s", d)
 			}
 
@@ -130,7 +137,7 @@ func getContainerConfig() (*containerConfig, error) {
 	ret := &containerConfig{
 		Pid:    state.Pid,
 		Rootfs: ociSpec.Root.Path,
-		Env: ociSpec.Process.Env,
+		Env:    ociSpec.Process.Env,
 	}
 
 	return ret, nil
@@ -139,7 +146,7 @@ func getContainerConfig() (*containerConfig, error) {
 func getValueByKey(data []string, key string) string {
 	for _, s := range data {
 		p := strings.SplitN(s, "=", 2)
-		if len(p) != 2 {
+		if len(p) != kvPairSize {
 			log.Panicln("environment error")
 		}
 
@@ -171,7 +178,7 @@ func doPrestartHook() error {
 	if err != nil {
 		_, err = os.Stat(defaultAscendDockerCli)
 		if err != nil {
-			return fmt.Errorf("could not found ascend docker cli\n")
+			return fmt.Errorf("could not found ascend docker cli")
 		}
 
 		cliPath = defaultAscendDockerCli
@@ -183,7 +190,7 @@ func doPrestartHook() error {
 		"--rootfs", containerConfig.Rootfs)
 
 	if err := syscall.Exec(cliPath, args, os.Environ()); err != nil {
-		return fmt.Errorf("failed to exec ascend-docker-cli %v: %w\n", args, err)
+		return fmt.Errorf("failed to exec ascend-docker-cli %v: %w", args, err)
 	}
 
 	return nil

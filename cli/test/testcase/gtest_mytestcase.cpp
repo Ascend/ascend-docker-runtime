@@ -1,12 +1,13 @@
-// Demo.cpp : Defines the entry point for the console application.
-//
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+ * Description: 测试集
+*/
 #include <string>
 #include <iostream>
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 
 using namespace std;
-//建议这样引用，避免下面用关键字时需要加前缀 testing::
 using namespace testing;
 
 extern "C" int IsStrEqual(const char *s1, const char *s2);  
@@ -16,11 +17,10 @@ extern "C" int EnterNsByFd(int fd, int nsType);
 
 int stub_setns(int fd, int nstype)
 {
-     return 0;
+    return 0;
 }
 
-class Test_Fhho : public Test
-{
+class Test_Fhho : public Test {
 protected:
     static void SetUpTestCase()
     {
@@ -40,7 +40,7 @@ protected:
         cout << "TestSuite测试用例事件：在每个testcase之后执行" << endl;
     }
 };
-  
+
 TEST_F(Test_Fhho, ClassEQ1)
 {
     EXPECT_EQ(1, IsStrEqual("", ""));
@@ -48,13 +48,13 @@ TEST_F(Test_Fhho, ClassEQ1)
 
 #if 0
 TEST_F(Test_Fhho, ClassEQ2)
-{   
-   int pid = 1;
-   char* nsType = "mnt";
-   char buf[100] = {0x0}; 
-   int bufSize = 100;
-   int ret = GetNsPath(pid, nsType, buf, 100);
-   EXPECT_EQ(1, ret);
+{
+    int pid = 1;
+    char* nsType = "mnt";
+    char buf[100] = {0x0}; 
+    int bufSize = 100;
+    int ret = GetNsPath(pid, nsType, buf, 100);
+    EXPECT_EQ(1, ret);
 }
 
 TEST_F(Test_Fhho, ClassEQ3)

@@ -41,6 +41,12 @@ struct CmdArgs {
     int  pid;
 };
 
+struct ParsedConfig {
+    char containerNsPath[BUF_SIZE];
+    char cgroupPath[BUF_SIZE];
+    int  originNsFd;
+};
+
 static inline bool IsCmdArgsValid(struct CmdArgs *args)
 {
     return (args->devices != NULL) && (args->rootfs != NULL) && (args->pid > 0);
@@ -148,7 +154,7 @@ static int MountDevice(const char *rootfs, const int serialNumber)
     return 0;
 }
 
-static int DoMount(const char *rootfs, const char *devicesList)
+static int DoDeviceMounting(const char *rootfs, const char *devicesList)
 {
     static const char *sep = ",";
     char list[BUF_SIZE] = {0};
@@ -281,7 +287,7 @@ static int MountFiles(const char *rootfs, const char *file, unsigned long reMoun
     return 0;
 }
 
-static int DoMountFiles(const char *rootfs)
+static int DoCtrlDeviceMounting(const char *rootfs)
 {
     /* device */
     unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
@@ -303,6 +309,25 @@ static int DoMountFiles(const char *rootfs)
     return 0;
 }
 
+static int DoMounting(const struct CmdArgs *args)
+{
+    int ret;
+
+    ret = DoDeviceMounting(args->rootfs, args->devices);
+    if (ret < 0) {
+        fprintf(stderr, "error: failed to do mounts\n");
+        return -1;
+    }
+
+    ret = DoCtrlDeviceMounting(args->rootfs);
+    if (ret < 0) {
+        fprintf(stderr, "error: failed to do mount files\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 typedef char *(*ParseFileLine)(char *, const char *);
 
 int IsStrEqual(const char *s1, const char *s2)
@@ -315,11 +340,17 @@ int StrHasPrefix(const char *str, const char *prefix)
     return (!strncmp(str, prefix, strlen(prefix)));
 }
 
+static bool IsCgroupLineArgsValid(const char *rootDir, const char *mountPoint, const char* fsType, const char* substr)
+{
+    return ((rootDir != NULL && mountPoint != NULL && fsType != NULL && substr != NULL) &&
+           (*rootDir != '\0' && *mountPoint != '\0' && *fsType != '\0' && *substr != '\0'));
+}
+
 char *GetCgroupMount(char *line, const char *subsys)
 {
     int i;
-    char *rootDir = NULL;
 
+    char *rootDir = NULL;
     for (i = 0; i < ROOT_GAP; ++i) {
         /* root is substr before gap, line is substr after gap */
         rootDir = strsep(&line, " ");
@@ -328,6 +359,7 @@ char *GetCgroupMount(char *line, const char *subsys)
     char *mountPoint = NULL;
     mountPoint = strsep(&line, " ");
     line = strchr(line, '-');
+
     char* fsType = NULL;
     for (i = 0; i < FSTYPE_GAP; ++i) {
         fsType = strsep(&line, " ");
@@ -338,27 +370,23 @@ char *GetCgroupMount(char *line, const char *subsys)
         substr = strsep(&line, " ");
     }
 
-    if (rootDir == NULL || mountPoint == NULL || fsType == NULL || substr == NULL) {
-        return (NULL);
-    }
-
-    if (*rootDir == '\0' || *mountPoint == '\0' || *fsType == '\0' || *substr == '\0') {
-        return (NULL);
+    if (!IsCgroupLineArgsValid(rootDir, mountPoint, fsType, substr)) {
+        return NULL;
     }
 
     if (strlen(rootDir) >= BUF_SIZE || StrHasPrefix(rootDir, "/..")) {
-        return (NULL);
+        return NULL;
     }
 
     if (strstr(substr, subsys) == NULL) {
-        return (NULL);
+        return NULL;
     }
 
     if (!IsStrEqual(fsType, "cgroup")) {
-        return (NULL);
+        return NULL;
     }
 
-    return (mountPoint);
+    return mountPoint;
 }
 
 char *GetCgroupRoot(char *line, const char *subSystem)
@@ -548,89 +576,96 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
     return 0;
 }
 
-static int SetupMounts(struct CmdArgs *args)
+static int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 {
     int ret;
-    char cgroupPath[BUF_SIZE] = {0};
 
-    char containerNsPath[BUF_SIZE] = {0};
-    ret = GetNsPath(args->pid, "mnt", containerNsPath, BUF_SIZE);
+    ret = GetNsPath(args->pid, "mnt", config->containerNsPath, BUF_SIZE);
     if (ret < 0) {
         fprintf(stderr, "error: failed to get container mnt ns path: pid(%d)\n", args->pid);
-        return ret;
+        return -1;
+    }
+
+    ret = GetCgroupPath(args, config->cgroupPath, BUF_SIZE);
+    if (ret < 0) {
+        fprintf(stderr, "error: failed to get cgroup path\n");
+        return -1;
     }
 
     char originNsPath[BUF_SIZE] = {0};
     ret = GetSelfNsPath("mnt", originNsPath, BUF_SIZE);
     if (ret < 0) {
         fprintf(stderr, "error: failed to get self ns path\n");
-        return ret;
+        return -1;
     }
 
-    int originNsFd = open((const char *)originNsPath, O_RDONLY);
-    if (originNsFd < 0) {
+    config->originNsFd = open((const char *)originNsPath, O_RDONLY);
+    if (config->originNsFd < 0) {
         fprintf(stderr, "error: failed to get self ns fd: %s\n", originNsPath);
         return -1;
     }
 
-    ret = GetCgroupPath(args, cgroupPath, BUF_SIZE);
+    return 0;
+}
+
+static int SetupMounts(struct CmdArgs *args)
+{
+    int ret;
+    struct ParsedConfig config;
+
+    ret = DoPrepare(args, &config);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to get cgroup path\n");
+        fprintf(stderr, "error: failed to prepare nesessary config\n");
         return -1;
     }
 
     // enter container's mount namespace
-    ret = EnterNsByPath((const char *) containerNsPath, CLONE_NEWNS);
+    ret = EnterNsByPath((const char *)config.containerNsPath, CLONE_NEWNS);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to set to container ns: %s\n", containerNsPath);
-        close(originNsFd);
+        fprintf(stderr, "error: failed to set to container ns: %s\n", config.containerNsPath);
+        close(config.originNsFd);
         return -1;
     }
 
-    ret = DoMount(args->rootfs, args->devices);
+    ret = DoMounting(args);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to do mounts\n");
-        close(originNsFd);
+        fprintf(stderr, "error: failed to do mounting\n");
+        close(config.originNsFd);
         return -1;
     }
 
-    ret = DoMountFiles(args->rootfs);
-    if (ret < 0) {
-        fprintf(stderr, "error: failed to do mount files\n");
-        close(originNsFd);
-        return -1;
-    }
-
-    ret = SetupCgroup(args, (const char *)cgroupPath);
+    ret = SetupCgroup(args, (const char *)config.cgroupPath);
     if (ret < 0) {
         fprintf(stderr, "error: failed to set up cgroup\n");
-        close(originNsFd);
+        close(config.originNsFd);
         return -1;
     }
 
     // back to original namespace
-    ret = EnterNsByFd(originNsFd, CLONE_NEWNS);
+    ret = EnterNsByFd(config.originNsFd, CLONE_NEWNS);
     if (ret < 0) {
         fprintf(stderr, "error: failed to set ns back\n");
-        close(originNsFd);
+        close(config.originNsFd);
         return -1;
     }
 
-    close(originNsFd);
+    close(config.originNsFd);
     return 0;
 }
 
 #ifdef gtest
-int _main(int argc, char **argv) {
+int _main(int argc, char **argv)
+{
 #else
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 #endif
     int c;
     int optionIndex;
     struct CmdArgs args = {
-            .devices = NULL,
-            .rootfs  = NULL,
-            .pid     = -1
+        .devices = NULL,
+        .rootfs  = NULL,
+        .pid     = -1
     };
 
     while ((c = getopt_long(argc, argv, "d:p:r", g_opts, &optionIndex)) != -1) {
