@@ -55,7 +55,7 @@ struct CmdArgs {
 
 int stub_setns(int fd, int nstype)
 {
-     return 0;
+    return 0;
 }
 
 int Stub_EnterNsByFd_Success(int fd, int nsType)
@@ -69,7 +69,7 @@ int stub_open(const char *path, int flags)
 }
 
 int stub_mount_success(const char *source, const char *target,
-          const char *filesystemtype, unsigned long mountflags, const void *data)
+                       const char *filesystemtype, unsigned long mountflags, const void *data)
 {
     return 0;
 }
@@ -120,8 +120,7 @@ int Stub_SetupDriverCgroup_Fail(FILE *cgroupAllow)
     return 0;
 }
 
-class Test_Fhho : public Test
-{
+class Test_Fhho : public Test {
 protected:
     static void SetUpTestCase()
     {
@@ -217,7 +216,7 @@ TEST_F(Test_Fhho, GetNsPath)
 {
     char containerNsPath[BUF_SIZE] = {0};
     int containerPid = 1;
-    EXPECT_LE(0, GetNsPath(containerPid,"mnt", containerNsPath, BUF_SIZE));
+    EXPECT_LE(0, GetNsPath(containerPid, "mnt", containerNsPath, BUF_SIZE));
 }
 
 TEST_F(Test_Fhho, GetSelfNsPath)

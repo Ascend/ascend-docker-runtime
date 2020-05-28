@@ -696,9 +696,11 @@ int Process(int argc, char **argv)
 }
 
 #ifdef gtest
-int _main(int argc, char **argv) {
+int _main(int argc, char **argv)
+{
 #else
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 #endif
     int ret = Process(argc, argv);
     return ret;
