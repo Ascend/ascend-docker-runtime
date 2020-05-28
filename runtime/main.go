@@ -45,7 +45,7 @@ func getArgs() (*args, error) {
 	return args, nil
 }
 
-func execRunc() error {
+var execRunc = func() error {
 	runcPath, err := exec.LookPath("docker-runc")
 	if err != nil {
 		runcPath, err = exec.LookPath("runc")
