@@ -52,7 +52,7 @@ static inline bool IsCmdArgsValid(struct CmdArgs *args)
     return (args->devices != NULL) && (args->rootfs != NULL) && (args->pid > 0);
 }
 
-static void FreeCmdArgs(struct CmdArgs *args)
+void FreeCmdArgs(struct CmdArgs *args)
 {
     if (args->devices != NULL) {
         free(args->devices);
@@ -67,19 +67,19 @@ static void FreeCmdArgs(struct CmdArgs *args)
     args->pid = -1;
 }
 
-static int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize)
+int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize)
 {
     static const char *fmtStr = "/proc/%d/ns/%s";
     return snprintf(buf, bufSize, fmtStr, pid, nsType);
 }
 
-static int GetSelfNsPath(const char *nsType, char *buf, size_t bufSize)
+int GetSelfNsPath(const char *nsType, char *buf, size_t bufSize)
 {
     static const char *fmtStr = "/proc/self/ns/%s";
     return snprintf(buf, bufSize, fmtStr, nsType);
 }
 
-static int EnterNsByFd(int fd, int nsType)
+int EnterNsByFd(int fd, int nsType)
 {
     int ret = setns(fd, nsType);
     if (ret < 0) {
@@ -90,7 +90,7 @@ static int EnterNsByFd(int fd, int nsType)
     return 0;
 }
 
-static int EnterNsByPath(const char *path, int nsType)
+int EnterNsByPath(const char *path, int nsType)
 {
     int fd;
     int ret;
@@ -111,14 +111,14 @@ static int EnterNsByPath(const char *path, int nsType)
     return 0;
 }
 
-static unsigned int GetNextSerialNum()
+unsigned int GetNextSerialNum()
 {
     static unsigned int index = 0;
 
     return index++;
 }
 
-static int MountDevice(const char *rootfs, const int serialNumber)
+int MountDevice(const char *rootfs, const int serialNumber)
 {
     int ret;
     char src[BUF_SIZE] = {0};
@@ -154,7 +154,7 @@ static int MountDevice(const char *rootfs, const int serialNumber)
     return 0;
 }
 
-static int DoDeviceMounting(const char *rootfs, const char *devicesList)
+int DoDeviceMounting(const char *rootfs, const char *devicesList)
 {
     static const char *sep = ",";
     char list[BUF_SIZE] = {0};
@@ -175,7 +175,7 @@ static int DoDeviceMounting(const char *rootfs, const char *devicesList)
     return 0;
 }
 
-static int CheckDirExists(char *dir, int len)
+int CheckDirExists(char *dir, int len)
 {
     if (len < 0) {
         fprintf(stderr, "length of path is %d\n", len);
@@ -192,7 +192,7 @@ static int CheckDirExists(char *dir, int len)
     }
 }
 
-static int GetParentPathStr(const char *path, int lenOfPath, char *parent)
+int GetParentPathStr(const char *path, int lenOfPath, char *parent)
 {
     if (lenOfPath < 0) {
         return -1;
@@ -209,7 +209,7 @@ static int GetParentPathStr(const char *path, int lenOfPath, char *parent)
     return 0;
 }
 
-static int MakeParentDir(char *path, mode_t mode)
+int MakeParentDir(char *path, mode_t mode)
 {
     if (*path == '\0' || *path == '.') {
         return 0;
@@ -233,7 +233,7 @@ static int MakeParentDir(char *path, mode_t mode)
     }
 }
 
-static int MountFiles(const char *rootfs, const char *file, unsigned long reMountRwFlag)
+int MountFiles(const char *rootfs, const char *file, unsigned long reMountRwFlag)
 {
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
@@ -287,7 +287,7 @@ static int MountFiles(const char *rootfs, const char *file, unsigned long reMoun
     return 0;
 }
 
-static int DoCtrlDeviceMounting(const char *rootfs)
+int DoCtrlDeviceMounting(const char *rootfs)
 {
     /* device */
     unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
@@ -309,7 +309,7 @@ static int DoCtrlDeviceMounting(const char *rootfs)
     return 0;
 }
 
-static int DoMounting(const struct CmdArgs *args)
+int DoMounting(const struct CmdArgs *args)
 {
     int ret;
 
@@ -412,7 +412,7 @@ char *GetCgroupRoot(char *line, const char *subSystem)
     return (rootDir);
 }
 
-static int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* filepath)
+int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* filepath)
 {
     FILE *fp;
     char *line = NULL;
@@ -440,7 +440,7 @@ static int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const 
     return 0;
 }
 
-static int SetupDeviceCgroup(FILE *cgroupAllow, const char *devPath)
+int SetupDeviceCgroup(FILE *cgroupAllow, const char *devPath)
 {
     int ret;
     struct stat devStat;
@@ -460,7 +460,7 @@ static int SetupDeviceCgroup(FILE *cgroupAllow, const char *devPath)
     return 0; 
 }
 
-static int SetupDriverCgroup(FILE *cgroupAllow)
+int SetupDriverCgroup(FILE *cgroupAllow)
 {
     int ret;
 
@@ -485,7 +485,7 @@ static int SetupDriverCgroup(FILE *cgroupAllow)
     return 0;
 }
 
-static int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSize)
+int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSize)
 {
     int ret;
     char mountPath[BUF_SIZE] = {0x0};
@@ -608,7 +608,7 @@ static int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
     return 0;
 }
 
-static int SetupMounts(struct CmdArgs *args)
+int SetupMounts(struct CmdArgs *args)
 {
     int ret;
     struct ParsedConfig config;
@@ -653,13 +653,8 @@ static int SetupMounts(struct CmdArgs *args)
     return 0;
 }
 
-#ifdef gtest
-int _main(int argc, char **argv)
+int Process(int argc, char **argv)
 {
-#else
-int main(int argc, char **argv)
-{
-#endif
     int c;
     int optionIndex;
     struct CmdArgs args = {
@@ -698,4 +693,15 @@ int main(int argc, char **argv)
 
     FreeCmdArgs(&args);
     return 0;
+}
+
+#ifdef gtest
+int _main(int argc, char **argv)
+{
+#else
+int main(int argc, char **argv)
+{
+#endif
+    int ret = Process(argc, argv);
+    return ret;
 }
