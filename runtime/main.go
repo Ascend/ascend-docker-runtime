@@ -21,6 +21,15 @@ const (
 	loggingPrefix       = "ascend-docker-runtime"
 	hookCli             = "ascend-docker-hook"
 	hookDefaultFilePath = "/usr/local/bin/ascend-docker-hook"
+	dockerRuncFile      = "docker-runc"
+	runcFile            = "runc"
+)
+
+var (
+	hookCliPath         = hookCli
+	hookDefaultFile     = hookDefaultFilePath
+	dockerRuncName      = dockerRuncFile
+	runcName            = runcFile
 )
 
 type args struct {
@@ -46,9 +55,9 @@ func getArgs() (*args, error) {
 }
 
 var execRunc = func() error {
-	runcPath, err := exec.LookPath("docker-runc")
+	runcPath, err := exec.LookPath(dockerRuncName)
 	if err != nil {
-		runcPath, err = exec.LookPath("runc")
+		runcPath, err = exec.LookPath(runcName)
 		if err != nil {
 			return fmt.Errorf("failed to find the path of runc: %w", err)
 		}
@@ -62,9 +71,9 @@ var execRunc = func() error {
 }
 
 func addHook(spec *specs.Spec) error {
-	path, err := exec.LookPath(hookCli)
+	path, err := exec.LookPath(hookCliPath)
 	if err != nil {
-		path = hookDefaultFilePath
+		path = hookDefaultFile
 		if _, err = os.Stat(path); err != nil {
 			return fmt.Errorf("cannot find the hook")
 		}
