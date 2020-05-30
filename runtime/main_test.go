@@ -116,7 +116,7 @@ func TestModifySpecFile(t *testing.T) {
 }
 
 func TestModifySpecFileCase1(t *testing.T) {
-	var file string = "./test"
+	file := "./test"
 	if err := os.Mkdir("./test", 0400); err != nil {
 
 	}
@@ -130,7 +130,7 @@ func TestModifySpecFileCase1(t *testing.T) {
 }
 
 func TestModifySpecFileCase2(t *testing.T) {
-	var file string = "./test.json"
+	file := "./test.json"
 	f, err := os.Create(file)
 	defer f.Close()
 	if err != nil {
@@ -146,7 +146,7 @@ func TestModifySpecFileCase2(t *testing.T) {
 }
 
 func TestModifySpecFileCase3(t *testing.T) {
-	var file string = "./test_spec.json"
+	file := "./test_spec.json"
 	if err := modifySpecFile(file); err != nil {
 		t.Log("run modifySpecFile failed")
 	}
@@ -177,8 +177,8 @@ func TestAddHookCase2(t *testing.T) {
 }
 
 func TestAddHookCase3(t *testing.T) {
-	var file string = "/usr/local/bin/ascend-docker-hook"
-	var filenew string = "/usr/local/bin/ascend-docker-hook-1"
+	file := "/usr/local/bin/ascend-docker-hook"
+	filenew := "/usr/local/bin/ascend-docker-hook-1"
 
 	if err := os.Rename(file, filenew); err != nil {
 		t.Log("rename ", file)

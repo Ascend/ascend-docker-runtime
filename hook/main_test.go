@@ -12,6 +12,10 @@ import (
 	"testing"
 )
 
+const (
+	pidSample = 123
+)
+
 func TestRemoveDuplication(t *testing.T) {
 	originList := []int{1, 2, 2, 4, 5, 5, 5, 6, 8, 8}
 	targetList := []int{1, 2, 4, 5, 6, 8}
@@ -30,7 +34,7 @@ func TestDoPrestartHookCase1(t *testing.T) {
 
 func TestDoPrestartHookCase2(t *testing.T) {
 	conCfg := containerConfig{
-		Pid:    123,
+		Pid:    pidSample,
 		Rootfs: ".",
 		Env:    []string{"ASCEND_VISIBLE_DEVICES=0l-3,5,7"},
 	}
@@ -43,7 +47,7 @@ func TestDoPrestartHookCase2(t *testing.T) {
 
 func TestDoPrestartHookCase3(t *testing.T) {
 	conCfg := containerConfig{
-		Pid:    123,
+		Pid:    pidSample,
 		Rootfs: ".",
 		Env:    []string{"ASCEND_VISIBLE_DEVICE=0-3,5,7"},
 	}
@@ -56,14 +60,14 @@ func TestDoPrestartHookCase3(t *testing.T) {
 
 func TestDoPrestartHookCase4(t *testing.T) {
 	conCfg := containerConfig{
-		Pid:    123,
+		Pid:    pidSample,
 		Rootfs: ".",
 		Env:    []string{"ASCEND_VISIBLE_DEVICES=0-3,5,7"},
 	}
 	stub := gostub.StubFunc(&getContainerConfig, &conCfg, nil)
 	defer stub.Reset()
 	stub.Stub(&ascendDockerCliName, "")
-	stub.StubFunc(&sysCallExec, nil)
+	stub.StubFunc(&doExec, nil)
 	if err := doPrestartHook(); err != nil {
 		t.Log("failed")
 	}
@@ -76,7 +80,7 @@ func TestDoPrestartHookCase5(t *testing.T) {
 		}
 	}()
 	conCfg := containerConfig{
-		Pid:    123,
+		Pid:    pidSample,
 		Rootfs: ".",
 		Env:    []string{"ASCEND_VISIBLE_DEVICES=0-3,5,7"},
 	}
@@ -84,7 +88,7 @@ func TestDoPrestartHookCase5(t *testing.T) {
 	defer stub.Reset()
 	stub.Stub(&ascendDockerCliName, "clii")
 	stub.Stub(&defaultAscendDockerCliName, "clii")
-	stub.StubFunc(&sysCallExec, nil)
+	stub.StubFunc(&doExec, nil)
 	if err := doPrestartHook(); err != nil {
 		t.Log("failed")
 	}
@@ -92,9 +96,9 @@ func TestDoPrestartHookCase5(t *testing.T) {
 
 func TestGetValueByKeyCase1(t *testing.T) {
 	data := []string{"ASCEND_VISIBLE_DEVICES=0-3,5,7"}
-	key := "ASCEND_VISIBLE_DEVICES"
+	kWord := "ASCEND_VISIBLE_DEVICES"
 	expectVal := "0-3,5,7"
-	actualVal := getValueByKey(data, key)
+	actualVal := getValueByKey(data, kWord)
 	if actualVal != expectVal {
 		t.Fail()
 	}
@@ -102,14 +106,14 @@ func TestGetValueByKeyCase1(t *testing.T) {
 
 func TestGetValueByKeyCase2(t *testing.T) {
 	data := []string{"ASCEND_VISIBLE_DEVICES"}
-	key := "ASCEND_VISIBLE_DEVICES"
+	kWord := "ASCEND_VISIBLE_DEVICES"
 	expectVal := ""
 	defer func() {
 		if err := recover(); err != nil {
 			t.Log("exception occur")
 		}
 	}()
-	actualVal := getValueByKey(data, key)
+	actualVal := getValueByKey(data, kWord)
 	if actualVal != expectVal {
 		t.Fail()
 	}
@@ -117,9 +121,9 @@ func TestGetValueByKeyCase2(t *testing.T) {
 
 func TestGetValueByKeyCase3(t *testing.T) {
 	data := []string{"ASCEND_VISIBLE_DEVICES=0-3,5,7"}
-	key := "ASCEND_VISIBLE_DEVICE"
+	kWord := "ASCEND_VISIBLE_DEVICE"
 	expectVal := ""
-	actualVal := getValueByKey(data, key)
+	actualVal := getValueByKey(data, kWord)
 	if actualVal != expectVal {
 		t.Fail()
 	}
@@ -235,7 +239,7 @@ func TestGetContainerConfig(t *testing.T) {
 	}
 	defer stateFile.Close()
 
-	stub := gostub.Stub(&stdIn, stateFile)
+	stub := gostub.Stub(&containerConfigInputStream, stateFile)
 	defer stub.Reset()
 
 	getContainerConfig()

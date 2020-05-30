@@ -31,10 +31,10 @@ const (
 )
 
 var (
-	stdIn                       = os.Stdin
-	sysCallExec                 = syscall.Exec
-	ascendDockerCliName         = ascendDockerCli
-	defaultAscendDockerCliName  = defaultAscendDockerCli
+	containerConfigInputStream = os.Stdin
+	doExec                     = syscall.Exec
+	ascendDockerCliName        = ascendDockerCli
+	defaultAscendDockerCliName = defaultAscendDockerCli
 )
 
 type containerConfig struct {
@@ -129,7 +129,7 @@ func parseOciSpecFile(file string) (*specs.Spec, error) {
 
 var getContainerConfig = func () (*containerConfig, error) {
 	state := new(specs.State)
-	decoder := json.NewDecoder(stdIn)
+	decoder := json.NewDecoder(containerConfigInputStream)
 
 	if err := decoder.Decode(state); err != nil {
 		return nil, fmt.Errorf("failed to parse the container's state")
@@ -196,7 +196,7 @@ func doPrestartHook() error {
 		"--pid", fmt.Sprintf("%d", containerConfig.Pid),
 		"--rootfs", containerConfig.Rootfs)
 
-	if err := sysCallExec(cliPath, args, os.Environ()); err != nil {
+	if err := doExec(cliPath, args, os.Environ()); err != nil {
 		return fmt.Errorf("failed to exec ascend-docker-cli %v: %w", args, err)
 	}
 
