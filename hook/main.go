@@ -30,6 +30,13 @@ const (
 	kvPairSize = 2
 )
 
+var (
+	containerConfigInputStream = os.Stdin
+	doExec                     = syscall.Exec
+	ascendDockerCliName        = ascendDockerCli
+	defaultAscendDockerCliName = defaultAscendDockerCli
+)
+
 type containerConfig struct {
 	Pid    int
 	Rootfs string
@@ -120,9 +127,9 @@ func parseOciSpecFile(file string) (*specs.Spec, error) {
 	return spec, nil
 }
 
-func getContainerConfig() (*containerConfig, error) {
+var getContainerConfig = func () (*containerConfig, error) {
 	state := new(specs.State)
-	decoder := json.NewDecoder(os.Stdin)
+	decoder := json.NewDecoder(containerConfigInputStream)
 
 	if err := decoder.Decode(state); err != nil {
 		return nil, fmt.Errorf("failed to parse the container's state")
@@ -174,14 +181,14 @@ func doPrestartHook() error {
 		return fmt.Errorf("failed to parse device setting: %w", err)
 	}
 
-	cliPath, err := exec.LookPath(ascendDockerCli)
+	cliPath, err := exec.LookPath(ascendDockerCliName)
 	if err != nil {
-		_, err = os.Stat(defaultAscendDockerCli)
+		_, err = os.Stat(defaultAscendDockerCliName)
 		if err != nil {
 			return fmt.Errorf("could not found ascend docker cli")
 		}
 
-		cliPath = defaultAscendDockerCli
+		cliPath = defaultAscendDockerCliName
 	}
 
 	args := append([]string{cliPath},
@@ -189,7 +196,7 @@ func doPrestartHook() error {
 		"--pid", fmt.Sprintf("%d", containerConfig.Pid),
 		"--rootfs", containerConfig.Rootfs)
 
-	if err := syscall.Exec(cliPath, args, os.Environ()); err != nil {
+	if err := doExec(cliPath, args, os.Environ()); err != nil {
 		return fmt.Errorf("failed to exec ascend-docker-cli %v: %w", args, err)
 	}
 
