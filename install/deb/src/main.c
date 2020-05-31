@@ -1,7 +1,6 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
  * Description: ascend_docker_install工具，用于辅助用户安装ascend_docker
- * auther: z00378930 zhang ou aka snake
 */
 #include "cJSON.h"
 #include <stdio.h>
@@ -10,16 +9,17 @@
 
 #define MAX_JSON_FILE_SIZE 65535
 #define NUM_ARGS 3
-#define FINAL_INDEX 1
-#define TENP_INDEX 2
+#define FINAL_FILE_INDEX 1
+#define TEMP_FILE_INDEX 2
 
-void JsonFileRead(const FILE *pf, char *text, int maxBufferSize)
+void ReadJsonFile(const FILE *pf, char *text, int maxBufferSize)
 {
     fseek(pf, 0, SEEK_END);
 
     int size = (int)ftell(pf);
     if (size >= maxBufferSize) {
         fprintf(stderr, "file size too large\n");
+        return;
     }
     
     fseek(pf, 0, SEEK_SET);
@@ -82,7 +82,7 @@ cJSON *CreateContent()
 cJSON *InsertContent(const FILE *pf)
 {
     char jsonStr[MAX_JSON_FILE_SIZE] = {0x0};
-    JsonFileRead(pf, &jsonStr[0], MAX_JSON_FILE_SIZE);
+    ReadJsonFile(pf, &jsonStr[0], MAX_JSON_FILE_SIZE);
     cJSON *root = NULL;
     root = cJSON_Parse(jsonStr);
     if (!root) {
@@ -114,7 +114,7 @@ int DetectAndCreateJsonFile(const char *filePath, const char *tempPath)
         root = CreateContent();
     } else {
         root = InsertContent(pf);
-		fclose(pf);
+        fclose(pf);
     }
 
     if (root == NULL) {
@@ -142,5 +142,5 @@ int main(int argc, char *argv[])
     if (argc != NUM_ARGS) {
         return -1;
     }
-    return DetectAndCreateJsonFile(argv[1], argv[2]);    
+    return DetectAndCreateJsonFile(argv[FINAL_FILE_INDEX], argv[TEMP_FILE_INDEX]);    
 }
