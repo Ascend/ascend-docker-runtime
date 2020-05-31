@@ -1,0 +1,6 @@
+Package: ascenddockertool 
+Maintainer: zhanou 
+Architecture: all
+Version: 1.0.0
+Description: asenddockertool.
+ The asend docker tool help usr to modify a customed deamon.json.

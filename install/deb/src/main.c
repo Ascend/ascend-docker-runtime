@@ -9,9 +9,9 @@
 #include <unistd.h>
 
 #define MAX_JSON_FILE_SIZE 65535
-#define JSON_FILE_PATH "/etc/docker/daemon.json"
-#define TEMP_PATH "/etc/docker/daemon.json.back"
-#define PATH_VALUE "/usr/local/bin/ascend-docker-runtime"
+#define NUM_ARGS 3
+#define FINAL_INDEX 1
+#define TENP_INDEX 2
 
 void JsonFileRead(const FILE *pf, char *text, int maxBufferSize)
 {
@@ -114,9 +114,8 @@ int DetectAndCreateJsonFile(const char *filePath, const char *tempPath)
         root = CreateContent();
     } else {
         root = InsertContent(pf);
-        fclose(pf);
+		fclose(pf);
     }
-
 
     if (root == NULL) {
         fprintf(stderr, "error: failed to create json\n");
@@ -138,7 +137,10 @@ int DetectAndCreateJsonFile(const char *filePath, const char *tempPath)
 }
 
 /* 该函数只负责生成json.bak文件，由调用者进行覆盖操作 */
-int main()
+int main(int argc, char *argv[])
 {
-    return DetectAndCreateJsonFile(JSON_FILE_PATH, TEMP_PATH);    
+    if (argc != NUM_ARGS) {
+        return -1;
+    }
+    return DetectAndCreateJsonFile(argv[1], argv[2]);    
 }
