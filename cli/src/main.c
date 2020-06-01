@@ -210,7 +210,7 @@ int GetParentPathStr(const char *path, int lenOfPath, char *parent)
     return 0;
 }
 
-int MakeDir(char * dir, int mode)
+int MakeDir(char *dir, int mode)
 {
     return mkdir(dir, mode);
 }

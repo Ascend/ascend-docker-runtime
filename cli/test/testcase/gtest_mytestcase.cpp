@@ -23,7 +23,7 @@ extern "C" int stat(const char *file_name, struct stat *buf);
 extern "C" int mount(const char *source, const char *target,
                      const char *filesystemtype, unsigned long mountflags, const void *data);
 extern "C" int rmdir(const char *pathname);
-extern "C" int MakeDir(char * dir, int mode);
+extern "C" int MakeDir(char *dir, int mode);
 extern "C" int EnterNsByFd(int fd, int nsType);
 extern "C" int StrHasPrefix(const char *str, const char *prefix);
 extern "C" int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize);
@@ -87,12 +87,12 @@ int stub_close_success(int fd)
     return 0;
 }
 
-int stub_MakeDir_success(char * dir, int mode)
+int stub_MakeDir_success(char *dir, int mode)
 {
     return 0;
 }
 
-int stub_MakeDir_failed(char * dir, int mode)
+int stub_MakeDir_failed(char *dir, int mode)
 {
     return -1;
 }
@@ -104,7 +104,7 @@ int stub_mount_success(const char *source, const char *target,
 }
 
 int stub_mount_failed(const char *source, const char *target,
-                       const char *filesystemtype, unsigned long mountflags, const void *data)
+                      const char *filesystemtype, unsigned long mountflags, const void *data)
 {
     return -1;
 }
