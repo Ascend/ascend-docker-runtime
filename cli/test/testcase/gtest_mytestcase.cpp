@@ -46,6 +46,7 @@ extern "C" int SetupCgroup(struct CmdArgs *args, const char *cgroupPath);
 extern "C" int SetupMounts(struct CmdArgs *args);
 extern "C" void FreeCmdArgs(struct CmdArgs *args);
 extern "C" int Process(int argc, char **argv);
+extern "C" int DoMounting(const struct CmdArgs *args);
 
 struct CmdArgs {
     char *devices;
@@ -101,6 +102,11 @@ int Stub_DoDeviceMounting_Success(const char *rootfs, const char *devicesList)
 }
 
 int Stub_DoCtrlDeviceMounting_Success(const char *rootfs)
+{
+    return 0;
+}
+
+int Stub_DoMounting_Success(const struct CmdArgs *args)
 {
     return 0;
 }
@@ -643,6 +649,22 @@ TEST(SetupMounts, Status6)
     MOCKER(EnterNsByPath).stubs().will(invoke(Stub_EnterNsByPath_Success));
     MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
     MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Success));
+    MOCKER(SetupCgroup).stubs().will(invoke(Stub_SetupCgroup_Success));
+    MOCKER(EnterNsByFd).stubs().will(invoke(Stub_EnterNsByFd_Success));
+    int ret = SetupMounts(&args);
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST(SetupMounts, Status7)
+{
+    struct CmdArgs args = {
+            .devices = "1,2",
+            .rootfs  = "/home",
+            .pid     = 1
+    };
+    MOCKER(EnterNsByPath).stubs().will(invoke(Stub_EnterNsByPath_Success));
+    MOCKER(DoMounting).stubs().will(invoke(Stub_DoMounting_Success));
     MOCKER(SetupCgroup).stubs().will(invoke(Stub_SetupCgroup_Success));
     MOCKER(EnterNsByFd).stubs().will(invoke(Stub_EnterNsByFd_Success));
     int ret = SetupMounts(&args);
