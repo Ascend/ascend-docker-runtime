@@ -210,6 +210,11 @@ int GetParentPathStr(const char *path, int lenOfPath, char *parent)
     return 0;
 }
 
+int MakeDir(char * dir, int mode)
+{
+    return mkdir(dir, mode);
+}
+
 int MakeParentDir(char *path, mode_t mode)
 {
     if (*path == '\0' || *path == '.') {
@@ -227,11 +232,9 @@ int MakeParentDir(char *path, mode_t mode)
     int ret = stat(path, &s);
     if (ret < 0) {
         fprintf(stderr, "error: failed to stat path: %s\n", path);
-        return (mkdir(path, mode));
+        return (MakeDir(path, mode));
     }
-    if (S_ISDIR(s.st_mode)) {
-        return 0;
-    }
+    return 0;
 }
 
 int MountFiles(const char *rootfs, const char *file, unsigned long reMountRwFlag)
@@ -262,7 +265,7 @@ int MountFiles(const char *rootfs, const char *file, unsigned long reMountRwFlag
         }
         if (CheckDirExists(dst, strlen(dst)) < 0) {
             const mode_t curMode = srcStat.st_mode;
-            ret = mkdir(dst, curMode);
+            ret = MakeDir(dst, curMode);
             if (ret < 0) {
                 fprintf(stderr, "error: failed to make dir: %s\n", dst);
                 return -1;
@@ -595,7 +598,7 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
     return 0;
 }
 
-static int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
+int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 {
     int ret;
 

@@ -23,6 +23,7 @@ extern "C" int stat(const char *file_name, struct stat *buf);
 extern "C" int mount(const char *source, const char *target,
                      const char *filesystemtype, unsigned long mountflags, const void *data);
 extern "C" int rmdir(const char *pathname);
+extern "C" int MakeDir(char * dir, int mode);
 extern "C" int EnterNsByFd(int fd, int nsType);
 extern "C" int StrHasPrefix(const char *str, const char *prefix);
 extern "C" int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize);
@@ -47,6 +48,8 @@ extern "C" int SetupMounts(struct CmdArgs *args);
 extern "C" void FreeCmdArgs(struct CmdArgs *args);
 extern "C" int Process(int argc, char **argv);
 extern "C" int DoMounting(const struct CmdArgs *args);
+extern "C" int DoDirectoryMounting(const char *rootfs);
+extern "C" int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config);
 
 struct CmdArgs {
     char *devices;
@@ -64,9 +67,34 @@ int Stub_EnterNsByFd_Success(int fd, int nsType)
     return 0;
 }
 
-int stub_open(const char *path, int flags)
+int Stub_EnterNsByFd_Failed(int fd, int nsType)
+{
+    return -1;
+}
+
+int stub_open_success(const char *path, int flags)
 {
     return 0;
+}
+
+int stub_open_failed(const char *path, int flags)
+{
+    return -1;
+}
+
+int stub_close_success(int fd)
+{
+    return 0;
+}
+
+int stub_MakeDir_success(char * dir, int mode)
+{
+    return 0;
+}
+
+int stub_MakeDir_failed(char * dir, int mode)
+{
+    return -1;
 }
 
 int stub_mount_success(const char *source, const char *target,
@@ -75,18 +103,58 @@ int stub_mount_success(const char *source, const char *target,
     return 0;
 }
 
-int stub_MountDevice(const char *rootfs, const int serialNumber)
+int stub_mount_failed(const char *source, const char *target,
+                       const char *filesystemtype, unsigned long mountflags, const void *data)
+{
+    return -1;
+}
+
+int stub_stat_success(const char *file_name, struct stat *buf)
 {
     return 0;
 }
 
-int stub_MountFiles_success(const char *rootfs, const char *file, unsigned long reMountRwFlag)
+int stub_stat_failed(const char *file_name, struct stat *buf)
+{
+    return -1;
+}
+
+int Stub_MountDevice_Success(const char *rootfs, const int serialNumber)
 {
     return 0;
 }
 
+int Stub_MountDevice_Failed(const char *rootfs, const int serialNumber)
+{
+    return -1;
+}
 
-int stub_CheckDirExists_fail(char *dir, int len)
+int Stub_MountFiles_Success(const char *rootfs, const char *file, unsigned long reMountRwFlag)
+{
+    return 0;
+}
+
+int Stub_MountFiles_Failed(const char *rootfs, const char *file, unsigned long reMountRwFlag)
+{
+    return -1;
+}
+
+int Stub_CheckDirExists_Success(char *dir, int len)
+{
+    return 0;
+}
+
+int Stub_MakeParentDir_Success(char *path, mode_t mode)
+{
+    return 0;
+}
+
+int Stub_MakeParentDir_Failed(char *path, mode_t mode)
+{
+    return -1;
+}
+
+int Stub_CheckDirExists_Failed(char *dir, int len)
 {
     return -1;
 }
@@ -96,9 +164,19 @@ int Stub_EnterNsByPath_Success(const char *path, int nsType)
     return 0;
 }
 
+int Stub_EnterNsByPath_Failed(const char *path, int nsType)
+{
+    return 0;
+}
+
 int Stub_DoDeviceMounting_Success(const char *rootfs, const char *devicesList)
 {
     return 0;
+}
+
+int Stub_DoDeviceMounting_Failed(const char *rootfs, const char *devicesList)
+{
+    return -1;
 }
 
 int Stub_DoCtrlDeviceMounting_Success(const char *rootfs)
@@ -106,12 +184,37 @@ int Stub_DoCtrlDeviceMounting_Success(const char *rootfs)
     return 0;
 }
 
+int Stub_DoCtrlDeviceMounting_Failed(const char *rootfs)
+{
+    return -1;
+}
+
+int Stub_DoDirectoryMounting_Success(const char *rootfs)
+{
+    return 0;
+}
+
+int Stub_DoDirectoryMounting_Failed(const char *rootfs)
+{
+    return -1;
+}
+
 int Stub_DoMounting_Success(const struct CmdArgs *args)
 {
     return 0;
 }
 
+int Stub_DoMounting_Failed(const struct CmdArgs *args)
+{
+    return -1;
+}
+
 int Stub_SetupCgroup_Success(struct CmdArgs *args, const char *cgroupPath)
+{
+    return 0;
+}
+
+int Stub_SetupCgroup_Failed(struct CmdArgs *args, const char *cgroupPath)
 {
     return 0;
 }
@@ -121,7 +224,32 @@ int Stub_SetupMounts_Success(struct CmdArgs *args)
     return 0;
 }
 
+int Stub_SetupDeviceCgroup_Success(FILE *cgroupAllow, const char *devPath)
+{
+    return 0;
+}
+
+int Stub_SetupDeviceCgroup_Failed(FILE *cgroupAllow, const char *devPath)
+{
+    return -1;
+}
+
 int Stub_SetupDriverCgroup_Fail(FILE *cgroupAllow)
+{
+    return -1;
+}
+
+int Stub_SetupDriverCgroup_Success(FILE *cgroupAllow)
+{
+    return 0;
+}
+
+int Stub_DoPrepare_Failed(const struct CmdArgs *args, struct ParsedConfig *config)
+{
+    return -1;
+}
+
+int Stub_DoPrepare_Success(const struct CmdArgs *args, struct ParsedConfig *config)
 {
     return 0;
 }
@@ -186,9 +314,7 @@ TEST(EnterNsByPath, Status1)
 {
     char containerNsPath[BUF_SIZE] = {0};
     int nsType = 1;
-    MOCKER(open)
-    .stubs()
-    .will(invoke(stub_open));
+    MOCKER(open).stubs().will(invoke(stub_open_success));
     int ret = EnterNsByPath(containerNsPath, nsType);
     GlobalMockObject::verify();
     EXPECT_LE(-1, ret);
@@ -242,30 +368,45 @@ TEST(MountDevice, Status1)
 {
     char *rootfs="/home";
     MOCKER(mount).stubs().will(invoke(stub_mount_success));
+    MOCKER(stat).stubs().will(invoke(stub_stat_success));
+    MOCKER(close).stubs().will(invoke(stub_close_success));
+    MOCKER(open).stubs().will(invoke(stub_open_success));
     int serialNumber = 0;
+    EXPECT_EQ(0, MountDevice(rootfs, serialNumber));
     GlobalMockObject::verify();
-    EXPECT_EQ(-1, MountDevice(rootfs, serialNumber));
 }
-TEST(MountDevice, Status11)
+TEST(MountDevice, Status2)
 {
     char *rootfs="/home/notexists";
     int serialNumber = 0;
     EXPECT_EQ(-1, MountDevice(rootfs, serialNumber));
 }
 
-TEST(MountDevice, Status2)
+TEST(MountDevice, Status3)
 {
-    char *rootfs="../testcase/data";
-//    char *rootfs="/home/zhouhongyu/DT/ascend-docker-cli/test/build/testcase/data";
+    char *rootfs="/home";
+    MOCKER(stat).stubs().will(invoke(stub_stat_success));
+    MOCKER(close).stubs().will(invoke(stub_close_success));
+    MOCKER(open).stubs().will(invoke(stub_open_success));
+    MOCKER(mount).stubs().will(invoke(stub_mount_failed));
     int serialNumber = 0;
+    EXPECT_EQ(-1, MountDevice(rootfs, serialNumber));
+    GlobalMockObject::verify();
+}
+
+TEST(MountDevice, Status4)
+{
+    char *rootfs="/home";
+    MOCKER(mount).stubs().will(invoke(stub_mount_success));
+    MOCKER(stat).stubs().will(invoke(stub_stat_failed));
+    int serialNumber = 0;
+    GlobalMockObject::verify();
     EXPECT_EQ(-1, MountDevice(rootfs, serialNumber));
 }
 
 TEST(DoDeviceMounting, Status1)
 {
-    MOCKER(MountDevice)
-        .stubs()
-        .will(invoke(stub_MountDevice));
+    MOCKER(MountDevice).stubs().will(invoke(Stub_MountDevice_Success));
     char *rootfs = "/home";
     char *devicesList = "1,2";
     int ret = DoDeviceMounting(rootfs, devicesList);
@@ -273,12 +414,106 @@ TEST(DoDeviceMounting, Status1)
     EXPECT_EQ(0, ret);
 }
 
+TEST(DoDeviceMounting, Status2)
+{
+    MOCKER(MountDevice).stubs().will(invoke(Stub_MountDevice_Failed));
+    char *rootfs = "/home";
+    char *devicesList = "1,2";
+    int ret = DoDeviceMounting(rootfs, devicesList);
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST(DoDirectoryMounting, Status1)
+{
+    MOCKER(MountFiles).stubs().will(invoke(Stub_MountFiles_Failed));
+    char *rootfs = "/home";
+    int ret = DoDirectoryMounting(rootfs);
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST(DoDirectoryMounting, Status2)
+{
+    MOCKER(MountFiles).stubs().will(invoke(Stub_MountFiles_Success));
+    char *rootfs = "/home";
+    int ret = DoDirectoryMounting(rootfs);
+    GlobalMockObject::verify();
+    EXPECT_EQ(0, ret);
+}
+
+TEST(DoMounting, Status1)
+{
+    MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Failed));
+    struct CmdArgs args = {
+            .devices = "1,2",
+            .rootfs  = "/home",
+            .pid     = 1
+    };
+    int ret = DoMounting(&args);
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST(DoMounting, Status2)
+{
+    MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
+    MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Failed));
+    struct CmdArgs args = {
+            .devices = "1,2",
+            .rootfs  = "/home",
+            .pid     = 1
+    };
+    int ret = DoMounting(&args);
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST(DoMounting, Status3)
+{
+    MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
+    MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Success));
+    MOCKER(DoDirectoryMounting).stubs().will(invoke(Stub_DoDirectoryMounting_Failed));
+    struct CmdArgs args = {
+            .devices = "1,2",
+            .rootfs  = "/home",
+            .pid     = 1
+    };
+    int ret = DoMounting(&args);
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST(DoMounting, Status4)
+{
+    MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
+    MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Success));
+    MOCKER(DoDirectoryMounting).stubs().will(invoke(Stub_DoDirectoryMounting_Success));
+    struct CmdArgs args = {
+            .devices = "1,2",
+            .rootfs  = "/home",
+            .pid     = 1
+    };
+    int ret = DoMounting(&args);
+    GlobalMockObject::verify();
+    EXPECT_EQ(0, ret);
+}
+
+
 TEST(CheckDirExists, Status1)
 {
     char *dir = "/home";
     int len = strlen(dir);
     int ret = CheckDirExists(dir, len);
     EXPECT_EQ(0, ret);
+}
+
+TEST(CheckDirExists, Status2)
+{
+    char *dir = "/home/notexist";
+    int len = strlen(dir);
+    int ret = CheckDirExists(dir, len);
+    EXPECT_EQ(-1, ret);
 }
 
 TEST(GetParentPathStr, Status1)
@@ -292,7 +527,6 @@ TEST(GetParentPathStr, Status1)
 
 TEST(MakeParentDir, Status1)
 {
-    char *path = "/home/test1/test2";
     mode_t mode = 0755;
     char parentDir[BUF_SIZE] = {0};
     int ret = MakeParentDir(parentDir, mode);
@@ -301,126 +535,97 @@ TEST(MakeParentDir, Status1)
 
 TEST(MakeParentDir, Status2)
 {
-    char *pathData = "/home/zhouhongyu/DT/ascend-docker-cli/test/build/abc/abcd";
     mode_t mode = 0755;
-    char *path = NULL;
-    path = strdup(pathData);
-    int ret = MakeParentDir(path, mode);
-    rmdir(path);
-    rmdir("/home/zhouhongyu/DT/ascend-docker-cli/test/build/abc/");
+    char parentDir[BUF_SIZE] = {0};
+    MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Success));
+    int ret = MakeParentDir(parentDir, mode);
+    GlobalMockObject::verify();
     EXPECT_EQ(0, ret);
 }
 
 TEST(MakeParentDir, Status3)
 {
-    char *pathData = "/home/zhouhongyu/DT/ascend-docker-cli/test/build/abc/abcd";
+    char *pathData = "/path/abc/abcd";
     mode_t mode = 0755;
     char *path = NULL;
     path = strdup(pathData);
+    MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
+    MOCKER(stat).stubs().will(invoke(stub_stat_success));
     int ret = MakeParentDir(path, mode);
     ret = MakeParentDir(path, mode);
-    rmdir(path);
-    rmdir("/home/zhouhongyu/DT/ascend-docker-cli/test/build/abc/");
+    GlobalMockObject::verify();
     EXPECT_EQ(0, ret);
 }
 
 TEST(MountFiles, Status1)
 {
-    MOCKER(MountDevice)
-    .stubs()
-    .will(invoke(stub_MountDevice));
-    MOCKER(mount).stubs().will(invoke(stub_mount_success));
-    char *rootfs = "../testcase/data/dev";
+    MOCKER(stat).stubs().will(invoke(stub_stat_failed));
+    char *rootfs = "/dev";
     unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
     int ret = MountFiles(rootfs, DAVINCI_MANAGER_PATH, reMountRwFlag);
-    umount("../testcase/data/dev" DAVINCI_MANAGER_PATH);
-    rmdir("../testcase/data/dev" DAVINCI_MANAGER_PATH);
     GlobalMockObject::verify();
-    EXPECT_EQ(0, ret);
-}
-
-TEST(MountFiles, Status11)
-{
-    char *rootfs = "../testcase/data/dev";
-    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
-    int ret = MountFiles(rootfs, DAVINCI_MANAGER_PATH, reMountRwFlag);
-    umount("../testcase/data/dev" DAVINCI_MANAGER_PATH);
-    rmdir("../testcase/data/dev" DAVINCI_MANAGER_PATH);
     EXPECT_EQ(-1, ret);
 }
 
 TEST(MountFiles, Status2)
 {
-    char *rootfsData = "/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/dev";
-    char *rootfs = NULL;
-    rootfs = strdup(rootfsData);
-    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT;
-    int ret = MountFiles(rootfs, DAVINCI_MANAGER_PATH, reMountRwFlag);
-    umount("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/dev" DAVINCI_MANAGER_PATH);
-    rmdir("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/dev" DAVINCI_MANAGER_PATH);
+    MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
+    MOCKER(MakeParentDir).stubs().will(invoke(Stub_MakeParentDir_Failed));
+    char *rootfs = "/rootfs";
+    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
+    int ret = MountFiles(rootfs, "/home", reMountRwFlag);
+    GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
 }
 
 TEST(MountFiles, Status3)
 {
-    char *rootfsData = "/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr";
-    char *rootfs = NULL;
-    rootfs = strdup(rootfsData);
-    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT;
-    int ret = MountFiles(rootfs, "/usr", reMountRwFlag);
-    umount("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr");
-    rmdir("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr");
+    MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
+    MOCKER(MakeDir).stubs().will(invoke(stub_MakeDir_failed));
+    char *rootfs = "/rootfs";
+    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
+    int ret = MountFiles(rootfs, "/home", reMountRwFlag);
+    GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
 }
 
 TEST(MountFiles, Status4)
 {
-    char *rootfsData = "/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr";
-    char *rootfs = NULL;
-    rootfs = strdup(rootfsData);
-    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT;
-    int ret = MountFiles(rootfs, "/notexist1/notexist2", reMountRwFlag);
-    umount("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr");
-    rmdir("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr");
+    MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
+    MOCKER(MakeParentDir).stubs().will(invoke(Stub_MakeParentDir_Success));
+    MOCKER(mount).stubs().will(invoke(stub_mount_failed));
+    char *rootfs = "/rootfs";
+    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
+    int ret = MountFiles(rootfs, "/home", reMountRwFlag);
+    GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
 }
 
 TEST(MountFiles, Status5)
 {
-    char *rootfsData = "/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr";
-    char *rootfs = NULL;
-    rootfs = strdup(rootfsData);
-    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT;
-    int ret = MountFiles(rootfs, "/notexist2", reMountRwFlag);
-    umount("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr");
-    rmdir("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr");
-    EXPECT_EQ(-1, ret);
-}
-
-TEST(MountFiles, Status6)
-{
-    MOCKER(CheckDirExists).stubs().will(invoke(stub_CheckDirExists_fail));
-    char *rootfsData = "/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr1";
-    char *rootfs = NULL;
-    rootfs = strdup(rootfsData);
-    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT;
-    int ret = MountFiles(rootfs, "/usr", reMountRwFlag);
-    umount("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr");
-    rmdir("/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/usr");
+    MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
+    MOCKER(open).stubs().will(invoke(stub_open_success));
+    MOCKER(close).stubs().will(invoke(stub_close_success));
+    MOCKER(mount).stubs().will(invoke(stub_mount_success));
+    char *rootfs = "/rootfs";
+    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
+    int ret = MountFiles(rootfs, "/dev/random", reMountRwFlag);
     GlobalMockObject::verify();
-    EXPECT_EQ(-1, ret);
+    EXPECT_EQ(0, ret);
 }
 
 TEST(DoCtrlDeviceMounting, Status1)
 {
     char *rootfs = "/home";
+    MOCKER(MountFiles).stubs().will(invoke(Stub_MountFiles_Failed));
     int ret = DoCtrlDeviceMounting(rootfs);
+    GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
 }
 
 TEST(DoCtrlDeviceMounting, Status2)
 {
-    MOCKER(MountFiles).stubs().will(invoke(stub_MountFiles_success));
+    MOCKER(MountFiles).stubs().will(invoke(Stub_MountFiles_Success));
     char *rootfs = "/home";
     int ret = DoCtrlDeviceMounting(rootfs);
     GlobalMockObject::verify();
@@ -451,7 +656,7 @@ TEST(GetCgroupRoot, Status1)
 
 TEST(CatFileContent, Status1)
 {
-    char *mountPath= "./data/mountinfo.txt";
+    char *mountPath= "/not_exist_dir/mountinfo.txt";
     char mount[BUF_SIZE] = {0x0};
     int ret = CatFileContent(mount, BUF_SIZE, GetCgroupMount, mountPath);
     EXPECT_EQ(-1, ret);
@@ -459,46 +664,61 @@ TEST(CatFileContent, Status1)
 
 TEST(SetupDeviceCgroup, Status1)
 {
-    char *cgroupPathData = "../testcase/data/devices.allow";
+    char *cgroupPathData = "devices.allow";
     char *cgroupPath = NULL;
     cgroupPath = strdup(cgroupPathData);
     FILE *cgroupAllow = NULL;
     cgroupAllow = fopen(cgroupPath, "a");
+    MOCKER(stat).stubs().will(invoke(stub_stat_failed));
     int ret = SetupDeviceCgroup(cgroupAllow, cgroupPath);
-    fclose(cgroupAllow);
-    EXPECT_EQ(0, ret);
+    if (cgroupAllow != NULL) {
+        fclose(cgroupAllow);
+    }
+    EXPECT_EQ(-1, ret);
 }
 
 TEST(SetupDeviceCgroup, Status2)
 {
-    char *cgroupPathData = "../testcase/data/devices1.allow";
+    char *cgroupPathData = "/not_exist_dir/devices1.allow";
     char *cgroupPath = NULL;
     cgroupPath = strdup(cgroupPathData);
     FILE *cgroupAllow = NULL;
     cgroupAllow = fopen(cgroupPath, "a");
+    MOCKER(stat).stubs().will(invoke(stub_stat_success));
     int ret = SetupDeviceCgroup(cgroupAllow, cgroupPath);
-    fclose(cgroupAllow);
-    EXPECT_EQ(0, ret);
+    if (cgroupAllow != NULL) {
+        fclose(cgroupAllow);
+    }
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
 }
 
 TEST(SetupDriverCgroup, Status1)
 {
-    char *cgroupPath = "../testcase/data/devices.allow";
+    char *cgroupPath = "devices.allow";
     FILE *cgroupAllow = NULL;
     cgroupAllow = fopen(cgroupPath, "a");
+    MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Success));
     int ret = SetupDriverCgroup(cgroupAllow);
-    fclose(cgroupAllow);
+    if (cgroupAllow != NULL) {
+        fclose(cgroupAllow);
+    }
+    GlobalMockObject::verify();
     EXPECT_EQ(0, ret);
 }
 
 TEST(SetupDriverCgroup, Status2)
 {
-    char *cgroupPath = "../testcase/data/devices1.allow";
+    char *cgroupPath = "devices1.allow";
     FILE *cgroupAllow = NULL;
     cgroupAllow = fopen(cgroupPath, "a");
+    MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Failed));
     int ret = SetupDriverCgroup(cgroupAllow);
-    fclose(cgroupAllow);
-    EXPECT_EQ(0, ret);
+    if (cgroupAllow != NULL) {
+        fclose(cgroupAllow);
+    }
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
 }
 
 TEST(GetCgroupPath, Status1)
@@ -521,8 +741,9 @@ TEST(SetupCgroup, Status1)
             .rootfs  = "/home",
             .pid     = 1
     };
-
-    char cgroupPath[BUF_SIZE] = {0};
+    char *cgroupPathData = "/not_exist_dir/cgroup_path";
+    char *cgroupPath = NULL;
+    cgroupPath = strdup(cgroupPathData);
     int ret = SetupCgroup(&args, cgroupPath);
     EXPECT_EQ(-1, ret);
 }
@@ -534,10 +755,12 @@ TEST(SetupCgroup, Status2)
             .rootfs  = "/home",
             .pid     = 1
     };
-    char *cgroupPathData = "/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/data/devices.allow";
+    char *cgroupPathData = "devices.allow";
     char *cgroupPath = strdup(cgroupPathData);
+    MOCKER(SetupDriverCgroup).stubs().will(invoke(Stub_SetupDriverCgroup_Fail));
     int ret = SetupCgroup(&args, cgroupPath);
-    EXPECT_EQ(0, ret);
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
 }
 
 TEST(SetupCgroup, Status3)
@@ -547,27 +770,29 @@ TEST(SetupCgroup, Status3)
             .rootfs  = "/home",
             .pid     = 1
     };
-    char *cgroupPathData = "/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/";
+    char *cgroupPathData = "devices.allow";
     char *cgroupPath = strdup(cgroupPathData);
+    MOCKER(SetupDriverCgroup).stubs().will(invoke(Stub_SetupDriverCgroup_Success));
+    MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Failed));
     int ret = SetupCgroup(&args, cgroupPath);
+    GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
 }
 
 TEST(SetupCgroup, Status4)
 {
-    MOCKER(SetupDriverCgroup)
-    .stubs()
-    .will(invoke(Stub_SetupDriverCgroup_Fail));
+    MOCKER(SetupDriverCgroup).stubs().will(invoke(Stub_SetupDriverCgroup_Success));
+    MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Success));
     struct CmdArgs args = {
             .devices = "1,2",
             .rootfs  = "/home",
             .pid     = 1
     };
-    char *cgroupPathData = "/home/zhouhongyu/DT/ascend-docker-cli/test/testcase/";
+    char *cgroupPathData = "devices.allow";
     char *cgroupPath = strdup(cgroupPathData);
     int ret = SetupCgroup(&args, cgroupPath);
     GlobalMockObject::verify();
-    EXPECT_EQ(-1, ret);
+    EXPECT_EQ(0, ret);
 }
 
 TEST(SetupMounts, Status1)
@@ -577,7 +802,9 @@ TEST(SetupMounts, Status1)
             .rootfs  = "/home",
             .pid     = 1
     };
+    MOCKER(DoPrepare).stubs().will(invoke(Stub_DoPrepare_Failed));
     int ret = SetupMounts(&args);
+    GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
 }
 
@@ -588,7 +815,8 @@ TEST(SetupMounts, Status2)
             .rootfs  = "/home",
             .pid     = 1
     };
-    MOCKER(EnterNsByPath).stubs().will(invoke(Stub_EnterNsByPath_Success));
+    MOCKER(DoPrepare).stubs().will(invoke(Stub_DoPrepare_Success));
+    MOCKER(EnterNsByPath).stubs().will(invoke(Stub_EnterNsByPath_Failed));
     int ret = SetupMounts(&args);
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
@@ -601,8 +829,9 @@ TEST(SetupMounts, Status3)
             .rootfs  = "/home",
             .pid     = 1
     };
+    MOCKER(DoPrepare).stubs().will(invoke(Stub_DoPrepare_Success));
     MOCKER(EnterNsByPath).stubs().will(invoke(Stub_EnterNsByPath_Success));
-    MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
+    MOCKER(DoMounting).stubs().will(invoke(Stub_DoMounting_Failed));
     int ret = SetupMounts(&args);
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
@@ -615,9 +844,10 @@ TEST(SetupMounts, Status4)
             .rootfs  = "/home",
             .pid     = 1
     };
+    MOCKER(DoPrepare).stubs().will(invoke(Stub_DoPrepare_Success));
     MOCKER(EnterNsByPath).stubs().will(invoke(Stub_EnterNsByPath_Success));
-    MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
-    MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Success));
+    MOCKER(DoMounting).stubs().will(invoke(Stub_DoMounting_Success));
+    MOCKER(SetupCgroup).stubs().will(invoke(Stub_SetupCgroup_Failed));
     int ret = SetupMounts(&args);
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
@@ -630,10 +860,11 @@ TEST(SetupMounts, Status5)
             .rootfs  = "/home",
             .pid     = 1
     };
+    MOCKER(DoPrepare).stubs().will(invoke(Stub_DoPrepare_Success));
     MOCKER(EnterNsByPath).stubs().will(invoke(Stub_EnterNsByPath_Success));
-    MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
-    MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Success));
+    MOCKER(DoMounting).stubs().will(invoke(Stub_DoMounting_Success));
     MOCKER(SetupCgroup).stubs().will(invoke(Stub_SetupCgroup_Success));
+    MOCKER(EnterNsByFd).stubs().will(invoke(Stub_EnterNsByFd_Failed));
     int ret = SetupMounts(&args);
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
@@ -646,23 +877,7 @@ TEST(SetupMounts, Status6)
             .rootfs  = "/home",
             .pid     = 1
     };
-    MOCKER(EnterNsByPath).stubs().will(invoke(Stub_EnterNsByPath_Success));
-    MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
-    MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Success));
-    MOCKER(SetupCgroup).stubs().will(invoke(Stub_SetupCgroup_Success));
-    MOCKER(EnterNsByFd).stubs().will(invoke(Stub_EnterNsByFd_Success));
-    int ret = SetupMounts(&args);
-    GlobalMockObject::verify();
-    EXPECT_EQ(-1, ret);
-}
-
-TEST(SetupMounts, Status7)
-{
-    struct CmdArgs args = {
-            .devices = "1,2",
-            .rootfs  = "/home",
-            .pid     = 1
-    };
+    MOCKER(DoPrepare).stubs().will(invoke(Stub_DoPrepare_Success));
     MOCKER(EnterNsByPath).stubs().will(invoke(Stub_EnterNsByPath_Success));
     MOCKER(DoMounting).stubs().will(invoke(Stub_DoMounting_Success));
     MOCKER(SetupCgroup).stubs().will(invoke(Stub_SetupCgroup_Success));
