@@ -1,8 +1,9 @@
-#! /bin/bash
+#!/bin/bash
 DIR=/etc/docker
 SRC="${DIR}/daemon.json.${PPID}"
 DST="${DIR}/daemon.json"
-${DIR}/ascend-docker-plugin-install-helper ${DST} ${SRC}
+BINDIR=/usr/local/bin
+${BINDIR}/ascend-docker-plugin-install-helper ${DST} ${SRC}
 if [ "$?" != "0" ]; then
 echo "create damon.json failed\n"
 exit 1
