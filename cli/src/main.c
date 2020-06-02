@@ -20,6 +20,7 @@
 #define DAVINCI_MANAGER_PATH        "/dev/davinci_manager"
 #define DEVMM_SVM_PATH              "/dev/devmm_svm"
 #define HISI_HDC_PATH               "/dev/hisi_hdc"
+#define ASCEND_DRIVER_PATH          "/usr/local/Ascend/driver"
 #define DEFAULT_DIR_MODE 0755
 #define BUF_SIZE 1024
 #define ALLOW_PATH "/devices.allow"
@@ -209,6 +210,11 @@ int GetParentPathStr(const char *path, int lenOfPath, char *parent)
     return 0;
 }
 
+int MakeDir(char *dir, int mode)
+{
+    return mkdir(dir, mode);
+}
+
 int MakeParentDir(char *path, mode_t mode)
 {
     if (*path == '\0' || *path == '.') {
@@ -226,11 +232,9 @@ int MakeParentDir(char *path, mode_t mode)
     int ret = stat(path, &s);
     if (ret < 0) {
         fprintf(stderr, "error: failed to stat path: %s\n", path);
-        return (mkdir(path, mode));
+        return (MakeDir(path, mode));
     }
-    if (S_ISDIR(s.st_mode)) {
-        return 0;
-    }
+    return 0;
 }
 
 int MountFiles(const char *rootfs, const char *file, unsigned long reMountRwFlag)
@@ -261,7 +265,7 @@ int MountFiles(const char *rootfs, const char *file, unsigned long reMountRwFlag
         }
         if (CheckDirExists(dst, strlen(dst)) < 0) {
             const mode_t curMode = srcStat.st_mode;
-            ret = mkdir(dst, curMode);
+            ret = MakeDir(dst, curMode);
             if (ret < 0) {
                 fprintf(stderr, "error: failed to make dir: %s\n", dst);
                 return -1;
@@ -309,6 +313,18 @@ int DoCtrlDeviceMounting(const char *rootfs)
     return 0;
 }
 
+int DoDirectoryMounting(const char *rootfs)
+{
+    /* directory */
+    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NODEV | MS_NOSUID;
+    int ret = MountFiles(rootfs, ASCEND_DRIVER_PATH, reMountRwFlag);
+    if (ret < 0) {
+        fprintf(stderr, "error: failed to do mount %s\n", ASCEND_DRIVER_PATH);
+        return -1;
+    }
+    return 0;
+}
+
 int DoMounting(const struct CmdArgs *args)
 {
     int ret;
@@ -322,6 +338,12 @@ int DoMounting(const struct CmdArgs *args)
     ret = DoCtrlDeviceMounting(args->rootfs);
     if (ret < 0) {
         fprintf(stderr, "error: failed to do mount files\n");
+        return -1;
+    }
+
+    ret = DoDirectoryMounting(args->rootfs);
+    if (ret < 0) {
+        fprintf(stderr, "error: failed to do mount directory\n");
         return -1;
     }
 
@@ -576,7 +598,7 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
     return 0;
 }
 
-static int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
+int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 {
     int ret;
 
