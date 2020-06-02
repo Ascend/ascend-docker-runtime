@@ -66,7 +66,7 @@ func parseDevices(visibleDevices string) ([]int, error) {
 		d = strings.TrimSpace(d)
 		if strings.Contains(d, "-") {
 			borders := strings.Split(d, "-")
-			if len(borders) < borderNum {
+			if len(borders) != borderNum {
 				return nil, fmt.Errorf("invalid device range: %s", d)
 			}
 
