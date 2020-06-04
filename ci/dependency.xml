@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+        <artifact>
+                <versionType>Component</versionType>
+                <repoType>Generic</repoType>
+                <id>
+                        <offering>Atlas Platform</offering>
+                        <componentName> ascend-docker-plugin</componentName>
+                        <componentVersion>1.0.0</componentVersion>
+                </id>
+                <isClear>N</isClear>
+                <copies>
+                        <copy>
+                                <source>output/</source>
+                                <dest />
+                        </copy>
+                </copies>
+        </artifact>
+        <dependencies>
+                <!-- 3rd-party -->
+                <dependency>
+                        <versionType>3rd-party</versionType>
+                        <repoType>Generic</repoType>
+                        <id>
+                                <artifactName>cJSON-1.7.13.tar.gz</artifactName>
+                                <pdmCode>05834SXQ</pdmCode>
+                        </id>
+                        <copies>
+                                <copy>
+                                        <source>/*</source>
+                                        <dest>opensource</dest>
+                                </copy>
+                        </copies>
+                </dependency>
+        </dependencies>
+</project>

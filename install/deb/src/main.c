@@ -11,6 +11,7 @@
 #define NUM_ARGS 3
 #define FINAL_FILE_INDEX 1
 #define TEMP_FILE_INDEX 2
+#define PATH_VALUE "/usr/local/bin/ascend-docker-runtime"
 
 void ReadJsonFile(const FILE *pf, char *text, int maxBufferSize)
 {
