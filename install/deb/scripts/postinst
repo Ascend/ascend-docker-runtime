@@ -1,5 +1,8 @@
 #!/bin/bash
 DIR=/etc/docker
+if [ ! -d "${DIR}" ]; then
+mkdir ${DIR}
+fi
 SRC="${DIR}/daemon.json.${PPID}"
 DST="${DIR}/daemon.json"
 BINDIR=/usr/local/bin

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 ROOT=$(cd `dirname $0`; pwd)/..
 
 OPENSRC=${ROOT}/opensource
@@ -50,6 +51,11 @@ mkdir ${INSTALLHELPERSRCDIR}/build&&cd ${INSTALLHELPERSRCDIR}/build
 cmake ../
 make clean
 make
+
+[ -d "${ROOT}/opensource/src" ]&&rm -rf ${ROOT}/opensource/src
+mkdir ${ROOT}/opensource/src
+/bin/cp -rf ${HOOKSRCDIR}/vendor/* ${ROOT}/opensource/src
+export GOPATH="${GOPATH}:${ROOT}/opensource"
 
 [ -d "${HOOKSRCDIR}/build" ]&&rm -rf ${HOOKSRCDIR}/build
 mkdir ${HOOKSRCDIR}/build&&cd ${HOOKSRCDIR}/build
@@ -103,7 +109,7 @@ wget -O cJSON.tar.gz  https://github.com/DaveGamble/cJSON/archive/v1.7.13.tar.gz
 
 funcmakeunzip(){
 cd ${OPENSRC}
-tar -xzvf cJSON.tar.gz
+tar -xzvf cJSON*.tar.gz
 CJSONS=`find . -name "cJSON.*"`
 CJSONSLIB=`find ${INSTALLHELPERDIR} -name cjson -type d` 
 /bin/cp -f ${CJSONS} ${CJSONSLIB}
