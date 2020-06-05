@@ -5,7 +5,7 @@
                 <repoType>Generic</repoType>
                 <id>
                         <offering>Atlas Platform</offering>
-                        <componentName> ascend-docker-plugin</componentName>
+                        <componentName>ascend-docker-plugin</componentName>
                         <componentVersion>1.0.0</componentVersion>
                 </id>
                 <isClear>N</isClear>
