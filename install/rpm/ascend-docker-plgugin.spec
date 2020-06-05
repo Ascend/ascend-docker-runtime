@@ -1,7 +1,6 @@
 Name: ascenddockerplugin
 Version: 1.0.0
 Release: 1
-BuildArch: noarch
 Summary: simple RPM package
 License: FIXME
 
@@ -29,7 +28,7 @@ BINDIR=/usr/local/bin
 if [ ! -d "${DIR}" ]; then
 mkdir ${DIR}
 fi
-${BINDIR}/ascend-docker-plugin-install-helper ${DST} ${SRC}
+${BINDIR}/ascend-docker-plugin-install-helper add ${DST} ${SRC}
 if [ "$?" != "0" ]; then
 echo "create damon.json failed\n"
 exit 1
@@ -38,6 +37,18 @@ fi
 echo "create damom.json success\n"
 
 %preun
+#!/bin/bash
+DIR=/etc/docker
+BINDIR=/usr/local/bin
+SRC="${DIR}/daemon.json.${PPID}"
+DST="${DIR}/daemon.json"
+${BINDIR}/ascend-docker-plugin-install-helper rm ${DST} ${SRC}
+if [ "$?" != "0" ]; then
+echo "del damon.json failed\n"
+exit 1
+fi
+\mv ${SRC} ${DST} 
+echo "del damom.json success\n"
 
 %postun
 

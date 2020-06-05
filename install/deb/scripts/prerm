@@ -6,10 +6,10 @@ fi
 SRC="${DIR}/daemon.json.${PPID}"
 DST="${DIR}/daemon.json"
 BINDIR=/usr/local/bin
-${BINDIR}/ascend-docker-plugin-install-helper add ${DST} ${SRC}
+${BINDIR}/ascend-docker-plugin-install-helper rm ${DST} ${SRC}
 if [ "$?" != "0" ]; then
-echo "create damon.json failed\n"
+echo "del damon.json failed\n"
 exit 1
 fi
 \mv ${SRC} ${DST} 
-echo "create damom.json success\n"
+echo "del damom.json success\n"
