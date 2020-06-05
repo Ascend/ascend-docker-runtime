@@ -102,7 +102,7 @@ RPMSNAME=${RPMS##*/}
 funcmakeclean(){
 [ -d "${RPMPACK}" ]&&rm -rf ${RPMPACK}
 [ -d "${DEBPACK}" ]&&rm -rf ${DEBPACK}
-[ -d "${OUTPUT}" ]&&cd ${output}&&rm -rf *
+[ -d "${OUTPUT}" ]&&cd ${OUTPUT}&&rm -rf *
 }
 
 funcmakepull(){
