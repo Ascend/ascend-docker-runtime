@@ -49,7 +49,7 @@ int CreateNode(cJSON *runtimes)
     }
     
     cJSON_AddItemToObject(newItem, "path", cJSON_CreateString(PATH_VALUE));
-    cJSON_AddItemToObject(newItem, "runtimeArges", paraArray);
+    cJSON_AddItemToObject(newItem, "runtimeArgs", paraArray);
 
     return 0;
 }

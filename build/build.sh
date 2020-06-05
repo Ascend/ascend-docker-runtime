@@ -94,12 +94,15 @@ echo ${RPMPACK}
 echo "%_topdir ${RPMPACK}" > ~/.rpmmacros
 rpmbuild -bb ${RPMPACK}/SPECS/ascend-docker-plgugin.spec
 RPMS=`find ${RPMPACK} -name "*.rpm"`
-/bin/cp ${RPMS} ${OUTPUT} 
-}
+ARCH=`uname -m`
+RPMSNAME=${RPMS##*/}
+/bin/cp ${RPMS} ${OUTPUT}/${RPMSNAME}.${ARCH}
+ }
 
 funcmakeclean(){
 [ -d "${RPMPACK}" ]&&rm -rf ${RPMPACK}
 [ -d "${DEBPACK}" ]&&rm -rf ${DEBPACK}
+[ -d "${OUTPUT}" ]&&cd ${output}&&rm -rf *
 }
 
 funcmakepull(){
@@ -122,4 +125,4 @@ fi
 funcmakeunzip
 funcbuild
 funcmakerpm
-funcmakedeb
+#funcmakedeb
