@@ -26,6 +26,9 @@ DIR=/etc/docker
 SRC="${DIR}/daemon.json.${PPID}"
 DST="${DIR}/daemon.json"
 BINDIR=/usr/local/bin
+if [ ! -d "${DIR}" ]; then
+mkdir ${DIR}
+fi
 ${BINDIR}/ascend-docker-plugin-install-helper ${DST} ${SRC}
 if [ "$?" != "0" ]; then
 echo "create damon.json failed\n"
