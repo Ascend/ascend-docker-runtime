@@ -56,6 +56,7 @@ make
 mkdir ${ROOT}/opensource/src
 /bin/cp -rf ${HOOKSRCDIR}/vendor/* ${ROOT}/opensource/src
 export GOPATH="${GOPATH}:${ROOT}/opensource"
+export GO111MODULE=off
 
 [ -d "${HOOKSRCDIR}/build" ]&&rm -rf ${HOOKSRCDIR}/build
 mkdir ${HOOKSRCDIR}/build&&cd ${HOOKSRCDIR}/build
