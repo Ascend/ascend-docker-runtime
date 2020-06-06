@@ -74,13 +74,20 @@ mkdir -pv {${DEBDIR},${BINDIR}}
 /bin/cp -f  {${RUNTIMESRCDIR},${HOOKSRCDIR},${INSTALLHELPERSRCDIR},${CLISRCDIR}}/build/ascend-docker*  ${BINDIR}
 CONPATH=`find ${INSTALLHELPERDIR} -name "control"` 
 INSTPATH=`find ${INSTALLHELPERDIR} -name "postinst"` 
-/bin/cp -f  ${CONPATH}  ${INSTPATH}  ${DEBDIR}
+RMPATH=`find ${INSTALLHELPERDIR} -name "prerm"`
+/bin/cp -f ${CONPATH} ${INSTPATH} ${RMPATH} ${DEBDIR}
 echo ${INSTPATH}
 chmod 555 ${DEBDIR}/postinst
+chmod 555 ${DEBDIR}/prerm
 dpkg-deb -b ${DEBPACK} ascenddockertool_1.0.0_i386.deb
 DEBS=`find ${BUILD} -name "*.deb"`
 /bin/cp ${DEBS} ${OUTPUT} 
 } 
+
+funcfillarch(){
+CPUARCH=`uname -m`
+sed -i "4a\BuildArch: $CPUARCH" ${RPMSPECDIR}/*.spec
+}
 
 funcmakerpm(){
 mkdir -pv ${RPMPACK}/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
@@ -88,15 +95,14 @@ mkdir -pv ${RPMPACK}/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 SPECPATH=`find ${INSTALLHELPERDIR} -name "*.spec"` 
 dos2unix ${SPECPATH}
 /bin/cp -f  ${SPECPATH}  ${RPMSPECDIR}
+funcfillarch
 rpmbuild --define "_topdir ${RPMPACK}"
 rpmbuild --showrc | grep topdir 
 echo ${RPMPACK}
 echo "%_topdir ${RPMPACK}" > ~/.rpmmacros
 rpmbuild -bb ${RPMPACK}/SPECS/ascend-docker-plgugin.spec
 RPMS=`find ${RPMPACK} -name "*.rpm"`
-ARCH=`uname -m`
-RPMSNAME=${RPMS##*/}
-/bin/cp ${RPMS} ${OUTPUT}/${RPMSNAME}.${ARCH}
+/bin/cp ${RPMS} ${OUTPUT}
  }
 
 funcmakeclean(){
