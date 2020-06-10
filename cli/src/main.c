@@ -112,24 +112,14 @@ int EnterNsByPath(const char *path, int nsType)
     return 0;
 }
 
-unsigned int GetNextSerialNum()
-{
-    static unsigned int index = 0;
-
-    return index++;
-}
-
 int MountDevice(const char *rootfs, const int serialNumber)
 {
     int ret;
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
-    char tmp[BUF_SIZE] = {0};
 
     snprintf(src, BUF_SIZE, "/dev/" DEVICE_NAME "%d", serialNumber);
-    unsigned int targetSerialDevId = GetNextSerialNum();
-    snprintf(tmp, BUF_SIZE, "/dev/" DEVICE_NAME "%d", targetSerialDevId);
-    snprintf(dst, BUF_SIZE, "%s%s", rootfs, (const char *)tmp);
+    snprintf(dst, BUF_SIZE, "%s%s", rootfs, (const char *)src);
 
     struct stat srcStat;
     ret = stat((const char *)src, &srcStat);
