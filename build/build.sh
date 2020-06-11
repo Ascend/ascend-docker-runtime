@@ -37,6 +37,11 @@ HOOKSRCDIR=${HOOKSRCPATH%/${HOOKSRCNAME}}
 RUNTIMESRCPATH=`find ${RUNTIMEDIR} -name "${RUNTIMESRCNAME}"`
 RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
+VERSION="1.0.0"
+RELEASE="1"
+PACKAGENAEM="ascend-docker-runtime"
+CPUARCH=`uname -m`
+
 funcbuild(){
 echo "make cli"
 [ -d "${CLISRCDIR}/build" ]&&rm -rf ${CLISRCDIR}/build
@@ -69,6 +74,12 @@ go build ../${RUNTIMESRCNAME}
 mv main ascend-docker-runtime
 }
 
+fillcontrol(){
+sed -i "1i\Package: ${PACKAGENAEM}" ${DEBDIR}/control
+sed -i "2a\Architecture: all" ${DEBDIR}/control
+sed -i "3a\Version: ${VERSION}" ${DEBDIR}/control
+}
+
 funcmakedeb(){
 cd ${BUILD}
 mkdir -pv {${DEBDIR},${BINDIR}}
@@ -78,15 +89,15 @@ INSTPATH=`find ${INSTALLHELPERDIR} -name "postinst"`
 RMPATH=`find ${INSTALLHELPERDIR} -name "prerm"`
 /bin/cp -f ${CONPATH} ${INSTPATH} ${RMPATH} ${DEBDIR}
 echo ${INSTPATH}
+fillcontrol
 chmod 555 ${DEBDIR}/postinst
 chmod 555 ${DEBDIR}/prerm
-dpkg-deb -b ${DEBPACK} ascenddockertool_1.0.0_i386.deb
+dpkg-deb -b ${DEBPACK} ${PACKAGENAEM}_${VERSION}-${RELEASE}_${CPUARCH}.deb
 DEBS=`find ${BUILD} -name "*.deb"`
 /bin/cp ${DEBS} ${OUTPUT} 
 } 
 
-funcfillarch(){
-CPUARCH=`uname -m`
+funcfillspec(){
 sed -i "4a\BuildArch: $CPUARCH" ${RPMSPECDIR}/*.spec
 }
 
@@ -96,7 +107,7 @@ mkdir -pv ${RPMPACK}/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 SPECPATH=`find ${INSTALLHELPERDIR} -name "*.spec"` 
 dos2unix ${SPECPATH}
 /bin/cp -f  ${SPECPATH}  ${RPMSPECDIR}
-funcfillarch
+funcfillspec
 rpmbuild --define "_topdir ${RPMPACK}"
 rpmbuild --showrc | grep topdir 
 echo ${RPMPACK}
