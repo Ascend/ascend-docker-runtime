@@ -173,7 +173,7 @@ func doPrestartHook() error {
 
 	visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices)
 	if visibleDevices == "" {
-		return fmt.Errorf("failed to get device setting")
+		return nil
 	}
 
 	devices, err := parseDevices(visibleDevices)
