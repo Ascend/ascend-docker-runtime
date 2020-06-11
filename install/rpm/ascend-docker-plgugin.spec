@@ -1,4 +1,4 @@
-Name: ascenddockerplugin
+Name: ascend-docker-runtime
 Version: 1.0.0
 Release: 1
 Summary: simple RPM package
