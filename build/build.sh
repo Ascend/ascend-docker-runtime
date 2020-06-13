@@ -4,6 +4,7 @@
 ROOT=$(cd `dirname $0`; pwd)/..
 
 OPENSRC=${ROOT}/opensource
+PLATFORM=${ROOT}/platform
 OUTPUT=${ROOT}/output
 BUILD=${ROOT}/build
 
@@ -132,8 +133,21 @@ funcmakeunzip(){
 cd ${OPENSRC}
 tar -xzvf cJSON*.tar.gz
 CJSONS=`find . -name "cJSON.*"`
-CJSONSLIB=`find ${INSTALLHELPERDIR} -name cjson -type d` 
+CJSONSLIB=${INSTALLHELPERDIR}/deb/src/cjson 
 /bin/cp -f ${CJSONS} ${CJSONSLIB}
+
+cd ${PLATFORM}
+tar -xzvf HuaweiSecureC.tar.gz
+SECURECSRC=`find . -name "src"`
+SECURECINC=`find . -name "include"`
+
+SECURECLIB=${INSTALLHELPERDIR}/deb/src/HuaweiSecureC
+/bin/cp -f ${SECURECSRC}/* ${SECURECLIB}
+/bin/cp -f ${SECURECINC}/* ${SECURECLIB}
+
+SECURECLIB=${CLIDIR}/src/HuaweiSecureC
+/bin/cp -f ${SECURECSRC}/* ${SECURECLIB}
+/bin/cp -f ${SECURECINC}/* ${SECURECLIB}
 }
 
 funcmakeclean
