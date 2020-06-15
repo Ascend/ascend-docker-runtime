@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #define MAX_JSON_FILE_SIZE 65535
 #define NUM_ARGS 4
@@ -22,7 +23,7 @@
 #define DEFALUT_KEY "default-runtime"
 #define DEFAULT_VALUE "ascend"
 
-void ReadJsonFile(const FILE *pf, char *text, int maxBufferSize)
+void ReadJsonFile(FILE *pf, char *text, int maxBufferSize)
 {
     fseek(pf, 0, SEEK_END);
 
@@ -144,7 +145,7 @@ cJSON *CreateContent()
     return root;
 }
 
-cJSON *ModifyContent(const FILE *pf)
+cJSON *ModifyContent(FILE *pf)
 {
     char jsonStr[MAX_JSON_FILE_SIZE] = {0x0};
     ReadJsonFile(pf, &jsonStr[0], MAX_JSON_FILE_SIZE);
@@ -197,7 +198,7 @@ cJSON *ModifyContent(const FILE *pf)
     return root;
 }
 
-cJSON *RemoveContent(const FILE *pf)
+cJSON *RemoveContent(FILE *pf)
 {
     char jsonStr[MAX_JSON_FILE_SIZE] = {0x0};
     ReadJsonFile(pf, &jsonStr[0], MAX_JSON_FILE_SIZE);

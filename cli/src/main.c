@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <sched.h>
 #include <dirent.h>
+#include "securec.h"
 
 #define DEVICE_NAME "davinci"
 #define DAVINCI_MANAGER_PATH        "/dev/davinci_manager"
@@ -29,7 +30,7 @@
 #define MOUNT_SUBSTR_GAP 2
 #define ROOT_SUBSTR_GAP 2
 
-static const struct option g_opts[] = {
+static const struct option g_cmdOpts[] = {
     {"devices", required_argument, 0, 'd'},
     {"pid", required_argument, 0, 'p'},
     {"rootfs", required_argument, 0, 'r'},
@@ -71,13 +72,13 @@ void FreeCmdArgs(struct CmdArgs *args)
 int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize)
 {
     static const char *fmtStr = "/proc/%d/ns/%s";
-    return snprintf(buf, bufSize, fmtStr, pid, nsType);
+    return snprintf_s(buf, BUF_SIZE, bufSize, fmtStr, pid, nsType);
 }
 
 int GetSelfNsPath(const char *nsType, char *buf, size_t bufSize)
 {
     static const char *fmtStr = "/proc/self/ns/%s";
-    return snprintf(buf, bufSize, fmtStr, nsType);
+    return snprintf_s(buf, BUF_SIZE, bufSize, fmtStr, nsType);
 }
 
 int EnterNsByFd(int fd, int nsType)
@@ -118,9 +119,14 @@ int MountDevice(const char *rootfs, const int serialNumber)
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
 
-    snprintf(src, BUF_SIZE, "/dev/" DEVICE_NAME "%d", serialNumber);
-    snprintf(dst, BUF_SIZE, "%s%s", rootfs, (const char *)src);
-
+    ret = snprintf_s(src, BUF_SIZE, BUF_SIZE, "/dev/" DEVICE_NAME "%d", serialNumber);
+    if (ret < 0) {
+        return -1;
+    }
+    ret = snprintf_s(dst, BUF_SIZE, BUF_SIZE, "%s%s", rootfs, (const char *)src);
+    if (ret < 0) {
+        return -1;
+    }
     struct stat srcStat;
     ret = stat((const char *)src, &srcStat);
     if (ret < 0) {
@@ -149,7 +155,10 @@ int DoDeviceMounting(const char *rootfs, const char *devicesList)
 {
     static const char *sep = ",";
     char list[BUF_SIZE] = {0};
-    strcpy(list, devicesList);
+    errno_t err = strncpy_s(list, BUF_SIZE, devicesList, strlen(devicesList));
+    if (err != EOK) {
+        return -1;
+    }
     char *token = NULL;
 
     token = strtok(list, sep);
@@ -196,7 +205,10 @@ int GetParentPathStr(const char *path, int lenOfPath, char *parent)
     if (len < 1) {
         return 0;
     }
-    strncpy(parent, path, len);
+    errno_t ret = strncpy_s(parent, BUF_SIZE, path, len);
+    if (ret != EOK) {
+        return -1;
+    }
     return 0;
 }
 
@@ -231,13 +243,17 @@ int MountFiles(const char *rootfs, const char *file, unsigned long reMountRwFlag
 {
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
-    snprintf(src, BUF_SIZE, "%s", file);
-    snprintf(dst, BUF_SIZE, "%s%s", rootfs, file);
-
-    struct stat srcStat;
-    int ret = stat((const char *) src, &srcStat);
+    int ret = snprintf_s(src, BUF_SIZE, BUF_SIZE, "%s", file);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to stat src: %s\n", src);
+        return -1;
+    }
+    ret = snprintf_s(dst, BUF_SIZE, BUF_SIZE, "%s%s", rootfs, file);
+    if (ret < 0) {
+        return -1;
+    }
+    struct stat srcStat;
+    ret = stat((const char *) src, &srcStat);
+    if (ret < 0) {
         return -1;
     }
 
@@ -439,7 +455,10 @@ int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* f
     while (getline(&line, &len, fp) != -1) {
         char* result = fn(line, "devices");
         if (result != NULL && strlen(result) < bufferSize) {
-            strncpy(buffer, result, strlen(result));
+            errno_t ret = strncpy_s(buffer, BUF_SIZE, result, strlen(result));
+            if (ret != EOK) {
+                return -1;
+            }
             break;
         }
     }
@@ -503,7 +522,7 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
     char mountPath[BUF_SIZE] = {0x0};
     char mount[BUF_SIZE] = {0x0};
 
-    ret = snprintf(mountPath, BUF_SIZE, "/proc/%d/mountinfo", (int)getppid());
+    ret = snprintf_s(mountPath, BUF_SIZE, BUF_SIZE, "/proc/%d/mountinfo", (int)getppid());
     if (ret < 0) {
         fprintf(stderr, "error: assemble mount info path failed: ppid(%d)\n", getppid());
         return -1;
@@ -517,7 +536,7 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
 
     char cgroup[BUF_SIZE] = {0x0};
     char cgroupPath[BUF_SIZE] = {0x0};
-    ret = snprintf(cgroupPath, BUF_SIZE, "/proc/%d/cgroup", args->pid);
+    ret = snprintf_s(cgroupPath, BUF_SIZE, BUF_SIZE, "/proc/%d/cgroup", args->pid);
     if (ret < 0) {
         fprintf(stderr, "error: assemble cgroup path failed: pid(%d)\n", args->pid);
         return -1;
@@ -532,7 +551,7 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
     // cut last '\n' off
     cgroup[strcspn(cgroup, "\n")] = '\0';
 
-    ret = snprintf(effPath, maxSize, "%s%s%s", mount, cgroup, ALLOW_PATH);
+    ret = snprintf_s(effPath, BUF_SIZE, maxSize, "%s%s%s", mount, cgroup, ALLOW_PATH);
     if (ret < 0) {
         fprintf(stderr, "error: assemble cgroup device path failed: \n");
         return -1;
@@ -549,7 +568,10 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
 
     static const char *sep = ",";
     char list[BUF_SIZE] = {0};
-    strcpy(list, args->devices);
+    errno_t err = strncpy_s(list, BUF_SIZE, args->devices, strlen(args->devices));
+    if (err != EOK) {
+        return -1;
+    }
     char *token = NULL;
 
     cgroupAllow = fopen(cgroupPath, "a");
@@ -567,7 +589,7 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
     
     token = strtok(list, sep);
     while (token != NULL) {
-        ret = snprintf(devicePath, BUF_SIZE, "/dev/" DEVICE_NAME "%d", atoi(token));
+        ret = snprintf_s(devicePath, BUF_SIZE, BUF_SIZE, "/dev/" DEVICE_NAME "%d", atoi(token));
         if (ret < 0) {
             fclose(cgroupAllow);
             fprintf(stderr, "error: failed to assemble device path for no.%s\n", token);
@@ -675,7 +697,7 @@ int Process(int argc, char **argv)
         .pid     = -1
     };
 
-    while ((c = getopt_long(argc, argv, "d:p:r", g_opts, &optionIndex)) != -1) {
+    while ((c = getopt_long(argc, argv, "d:p:r", g_cmdOpts, &optionIndex)) != -1) {
         switch (c) {
             case 'd':
                 args.devices = strdup(optarg);

@@ -3,6 +3,5 @@
 aux_source_directory(. LIB_SRC)
 
 #生成链接库
-add_library(cjson ${LIB_SRC})
-target_compile_options(cjson PRIVATE -fstack-protector-all -fpie)
-
+add_library(HuaweiSecureC ${LIB_SRC})
+target_compile_options(HuaweiSecureC PRIVATE -fstack-protector-all -fpie)
