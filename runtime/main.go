@@ -20,7 +20,7 @@ import (
 const (
 	loggingPrefix       = "ascend-docker-runtime"
 	hookCli             = "ascend-docker-hook"
-	hookDefaultFilePath = "/usr/local/bin/ascend-docker-hook"
+	hookDefaultFilePath = "/usr/bin/ascend-docker-hook"
 	dockerRuncFile      = "docker-runc"
 	runcFile            = "runc"
 )
@@ -165,7 +165,6 @@ func doProcess() error {
 
 func main() {
 	log.SetPrefix(loggingPrefix)
-
 	if err := doProcess(); err != nil {
 		log.Fatal(err)
 	}

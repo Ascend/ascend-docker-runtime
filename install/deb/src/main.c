@@ -15,7 +15,7 @@
 #define CMD_INDEX 1
 #define FINAL_FILE_INDEX 2
 #define TEMP_FILE_INDEX 3
-#define ASCEND_RUNTIME_PATH_VALUE "/usr/local/bin/ascend-docker-runtime"
+#define ASCEND_RUNTIME_PATH_VALUE "/usr/bin/ascend-docker-runtime"
 #define ASCEND_RUNTIME_PATH_KEY "path"
 #define ASCEND_RUNTIME_ARGS_KEY "runtimeArgs"
 #define RUNTIME_KEY "runtimes"

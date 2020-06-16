@@ -21,7 +21,7 @@ RUNTIMEDIR=${ROOT}/runtime
 RUNTIMESRCNAME="main.go"
 
 DEBPACK=${ROOT}/debpack
-BINDIR=${DEBPACK}/usr/local/bin
+BINDIR=${DEBPACK}/usr/bin
 DEBDIR=${DEBPACK}/DEBIAN
 
 RPMPACK=${ROOT}/rpmpack
