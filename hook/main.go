@@ -24,7 +24,7 @@ const (
 	loggingPrefix          = "ascend-docker-hook"
 	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
 	ascendDockerCli        = "ascend-docker-cli"
-	defaultAscendDockerCli = "/usr/local/bin/ascend-docker-cli"
+	defaultAscendDockerCli = "/usr/bin/ascend-docker-cli"
 
 	borderNum  = 2
 	kvPairSize = 2

@@ -14,8 +14,8 @@ ascend-docker-plugin helps usrs to use NPU in docker
 %build
 
 %install
-mkdir -p %{buildroot}/usr/local/bin/
-cp -rf %{buildroot}/../../SOURCES/ascend*  %{buildroot}/usr/local/bin/
+mkdir -p %{buildroot}/usr/bin/
+cp -rf %{buildroot}/../../SOURCES/ascend*  %{buildroot}/usr/bin/
 
 %pre
 
@@ -24,7 +24,7 @@ cp -rf %{buildroot}/../../SOURCES/ascend*  %{buildroot}/usr/local/bin/
 DIR=/etc/docker
 SRC="${DIR}/daemon.json.${PPID}"
 DST="${DIR}/daemon.json"
-BINDIR=/usr/local/bin
+BINDIR=/usr/bin
 if [ ! -d "${DIR}" ]; then
 mkdir ${DIR}
 fi
@@ -39,7 +39,7 @@ echo "create damom.json success\n"
 %preun
 #!/bin/bash
 DIR=/etc/docker
-BINDIR=/usr/local/bin
+BINDIR=/usr/bin
 SRC="${DIR}/daemon.json.${PPID}"
 DST="${DIR}/daemon.json"
 ${BINDIR}/ascend-docker-plugin-install-helper rm ${DST} ${SRC}
@@ -56,4 +56,4 @@ echo "del damom.json success\n"
 
 %files
 %defattr(0755,root,root,0755)
-/usr/local/bin/*
+/usr/bin/*

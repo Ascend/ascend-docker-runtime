@@ -22,6 +22,7 @@
 #define DEVMM_SVM_PATH              "/dev/devmm_svm"
 #define HISI_HDC_PATH               "/dev/hisi_hdc"
 #define ASCEND_DRIVER_PATH          "/usr/local/Ascend/driver"
+#define ASCEND_ADDONS_PATH          "/usr/local/Ascend/add-ons"
 #define DEFAULT_DIR_MODE 0755
 #define BUF_SIZE 1024
 #define ALLOW_PATH "/devices.allow"
@@ -328,6 +329,13 @@ int DoDirectoryMounting(const char *rootfs)
         fprintf(stderr, "error: failed to do mount %s\n", ASCEND_DRIVER_PATH);
         return -1;
     }
+
+    ret = MountFiles(rootfs, ASCEND_ADDONS_PATH, reMountRwFlag);
+    if (ret < 0) {
+        fprintf(stderr, "error: failed to do mount %s\n", ASCEND_ADDONS_PATH);
+        return -1;
+    }
+
     return 0;
 }
 
