@@ -156,5 +156,5 @@ funcmakepull
 fi
 funcmakeunzip
 funcbuild
-funcmakerpm
-#funcmakedeb
+[ -f /etc/redhat-release ]&&funcmakerpm
+[ -f /etc/debian_version ]&&funcmakedeb
