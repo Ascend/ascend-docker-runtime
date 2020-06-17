@@ -66,12 +66,12 @@ export GO111MODULE=off
 
 [ -d "${HOOKSRCDIR}/build" ]&&rm -rf ${HOOKSRCDIR}/build
 mkdir ${HOOKSRCDIR}/build&&cd ${HOOKSRCDIR}/build
-go build ../${HOOKSRCNAME}
+go build -ldflags "-buildid=IdNetCheck" -trimpath ../${HOOKSRCNAME}
 mv main ascend-docker-hook
 
 [ -d "${RUNTIMESRCDIR}/build" ]&&rm -rf ${RUNTIMESRCDIR}/build
 mkdir ${RUNTIMESRCDIR}/build&&cd ${RUNTIMESRCDIR}/build
-go build ../${RUNTIMESRCNAME}
+go build -ldflags "-buildid=IdNetCheck" -trimpath ../${RUNTIMESRCNAME}
 mv main ascend-docker-runtime
 }
 
