@@ -154,7 +154,14 @@ funcmakeclean
 if [ $1 == "pull" ]; then
 funcmakepull
 fi
+
 funcmakeunzip
 funcbuild
-[ -f /etc/redhat-release ]&&funcmakerpm
-[ -f /etc/debian_version ]&&funcmakedeb
+
+if [ -f /etc/centos-release ]; then
+funcmakerpm
+fi
+
+if [ -f /etc/debian_version ]; then
+funcmakedeb
+fi
