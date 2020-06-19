@@ -15,12 +15,18 @@
 #include <unistd.h>
 #include <sched.h>
 #include <dirent.h>
+#include <limits.h>
+#include <errno.h>
 #include "securec.h"
 
+#undef major
+#undef minor
+#include <sys/sysmacros.h>
+
 #define DEVICE_NAME "davinci"
-#define DAVINCI_MANAGER_PATH        "/dev/davinci_manager"
-#define DEVMM_SVM_PATH              "/dev/devmm_svm"
-#define HISI_HDC_PATH               "/dev/hisi_hdc"
+#define DAVINCI_MANAGER             "davinci_manager"
+#define DEVMM_SVM                   "devmm_svm"
+#define HISI_HDC                    "hisi_hdc"
 #define ASCEND_DRIVER_PATH          "/usr/local/Ascend/driver"
 #define ASCEND_ADDONS_PATH          "/usr/local/Ascend/add-ons"
 #define DEFAULT_DIR_MODE 0755
@@ -39,8 +45,8 @@ static const struct option g_cmdOpts[] = {
 };
 
 struct CmdArgs {
-    char *devices;
-    char *rootfs;
+    char devices[BUF_SIZE];
+    char rootfs[BUF_SIZE];
     int  pid;
 };
 
@@ -52,22 +58,7 @@ struct ParsedConfig {
 
 static inline bool IsCmdArgsValid(struct CmdArgs *args)
 {
-    return (args->devices != NULL) && (args->rootfs != NULL) && (args->pid > 0);
-}
-
-void FreeCmdArgs(struct CmdArgs *args)
-{
-    if (args->devices != NULL) {
-        free(args->devices);
-        args->devices = NULL;
-    }
-
-    if (args->rootfs != NULL) {
-        free(args->rootfs);
-        args->rootfs = NULL;
-    }
-
-    args->pid = -1;
+    return (strlen(args->devices) > 0) && (strlen(args->rootfs) > 0) && (args->pid > 0);
 }
 
 int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize)
@@ -98,7 +89,7 @@ int EnterNsByPath(const char *path, int nsType)
     int fd;
     int ret;
 
-    fd = open(path, O_RDONLY);
+    fd = open(path, O_RDONLY); // proc文件接口，非外部输入
     if (fd < 0) {
         fprintf(stderr, "error: failed to open ns path: %s\n", path);
         return -1;
@@ -107,6 +98,7 @@ int EnterNsByPath(const char *path, int nsType)
     ret = EnterNsByFd(fd, nsType);
     if (ret < 0) {
         fprintf(stderr, "error: failed to set ns: %s\n", path);
+        close(fd);
         return -1;
     }
 
@@ -114,20 +106,81 @@ int EnterNsByPath(const char *path, int nsType)
     return 0;
 }
 
-int MountDevice(const char *rootfs, const int serialNumber)
+static int Mount(const char *src, const char *dst)
+{
+    static const unsigned long remountFlags = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
+    int ret;
+
+    ret = mount(src, dst, NULL, MS_BIND, NULL);
+    if (ret < 0) {
+        fprintf(stderr, "error: failed to mount\n");
+        return -1;
+    }
+
+    ret = mount(NULL, dst, NULL, remountFlags, NULL);
+    if (ret < 0) {
+        fprintf(stderr, "error: failed to re-mount\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int CreateFile(const char *path, mode_t mode)
+{
+    int fd = open(path, O_NOFOLLOW | O_CREAT, mode);
+    if (fd < 0) {
+        fprintf(stderr, "error: cannot create file: %s\n", path);
+        return -1;
+    }
+    close(fd);
+    return 0;
+}
+
+static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
+    char *src, size_t srcBufSize, char *dst, size_t dstBufSize)
+{
+    int ret;
+    error_t err;
+    char unresolvedDst[BUF_SIZE] = {0};
+    char resolvedDst[PATH_MAX] = {0};
+
+    ret = snprintf_s(src, srcBufSize, srcBufSize, "/dev/%s", deviceName);
+    if (ret < 0) {
+        return -1;
+    }
+
+    ret = snprintf_s(unresolvedDst, BUF_SIZE, BUF_SIZE, "%s%s", rootfs, src);
+    if (ret < 0) {
+        return -1;
+    }
+
+    if (realpath(unresolvedDst, resolvedDst) == NULL && errno != ENOENT) {
+        fprintf(stderr, "error: cannot canonicalize device dst: %s\n", dst);
+        return -1;
+    }
+
+    err = strcpy_s(dst, dstBufSize, (const char *)resolvedDst);
+    if (err != EOK) {
+        fprintf(stderr, "error: failed to copy resolved device mnt path to dst: %s\n", resolvedDst);
+        return -1;
+    }
+
+    return 0;
+}
+
+int MountDevice(const char *rootfs, const char *deviceName)
 {
     int ret;
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
 
-    ret = snprintf_s(src, BUF_SIZE, BUF_SIZE, "/dev/" DEVICE_NAME "%d", serialNumber);
+    ret = GetDeviceMntSrcDst(rootfs, deviceName, src, BUF_SIZE, dst, BUF_SIZE);
     if (ret < 0) {
+        fprintf(stderr, "error: failed to get device mount src and(or) dst path, device name: %s\n", deviceName);
         return -1;
     }
-    ret = snprintf_s(dst, BUF_SIZE, BUF_SIZE, "%s%s", rootfs, (const char *)src);
-    if (ret < 0) {
-        return -1;
-    }
+
     struct stat srcStat;
     ret = stat((const char *)src, &srcStat);
     if (ret < 0) {
@@ -135,17 +188,15 @@ int MountDevice(const char *rootfs, const int serialNumber)
         return -1;
     }
 
-    close(open(dst, O_NOFOLLOW | O_CREAT, srcStat.st_mode));
-
-    ret = mount(src, dst, NULL, MS_BIND, NULL);
+    ret = CreateFile(dst, srcStat.st_mode);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to mount dev\n");
+        fprintf(stderr, "error: failed to create mount dst file: %s\n", dst);
         return -1;
     }
 
-    ret = mount(NULL, dst, NULL, MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC, NULL);
+    ret = Mount(src, dst);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to re-mount dev\n");
+        fprintf(stderr, "error: failed to mount dev\n");
         return -1;
     }
 
@@ -156,6 +207,8 @@ int DoDeviceMounting(const char *rootfs, const char *devicesList)
 {
     static const char *sep = ",";
     char list[BUF_SIZE] = {0};
+    char deviceName[BUF_SIZE] = {0};
+
     errno_t err = strncpy_s(list, BUF_SIZE, devicesList, strlen(devicesList));
     if (err != EOK) {
         return -1;
@@ -164,7 +217,13 @@ int DoDeviceMounting(const char *rootfs, const char *devicesList)
 
     token = strtok(list, sep);
     while (token != NULL) {
-        int ret = MountDevice(rootfs, atoi((const char *) token));
+        int ret = snprintf_s(deviceName, BUF_SIZE, BUF_SIZE, "%s%s", DEVICE_NAME, token);
+        if (ret < 0) {
+            fprintf(stderr, "error: assemble device name failed, id: %s\n", token);
+            return -1;
+        }
+
+        ret = MountDevice(rootfs, deviceName);
         if (ret < 0) {
             fprintf(stderr, "error: failed to mount device no. %s\n", token);
             return -1;
@@ -176,122 +235,109 @@ int DoDeviceMounting(const char *rootfs, const char *devicesList)
     return 0;
 }
 
-int CheckDirExists(char *dir, int len)
+int CheckDirExists(const char *dir)
 {
-    if (len < 0) {
-        fprintf(stderr, "length of path is %d\n", len);
-        return -1;
-    }
     DIR *ptr = opendir(dir);
     if (NULL == ptr) {
         fprintf(stderr, "path %s not exist\n", dir);
         return -1;
-    } else {
-        fprintf(stdout, "path %s exist\n", dir);
-        closedir(ptr);
-        return 0;
     }
+
+    fprintf(stdout, "path %s exist\n", dir);
+    closedir(ptr);
+    return 0;
 }
 
-int GetParentPathStr(const char *path, int lenOfPath, char *parent)
+int GetParentPathStr(const char *path, char *parent, size_t bufSize)
 {
-    if (lenOfPath < 0) {
-        return -1;
-    }
     char *ptr = strrchr(path, '/');
     if (ptr == NULL) {
         return 0;
     }
-    int len = strlen(path) - strlen(ptr);
+
+    int len = (int)strlen(path) - (int)strlen(ptr);
     if (len < 1) {
         return 0;
     }
-    errno_t ret = strncpy_s(parent, BUF_SIZE, path, len);
+
+    errno_t ret = strncpy_s(parent, bufSize, path, len);
     if (ret != EOK) {
         return -1;
     }
+
     return 0;
 }
 
-int MakeDir(char *dir, int mode)
+int MakeDir(const char *dir, int mode)
 {
     return mkdir(dir, mode);
 }
 
-int MakeParentDir(char *path, mode_t mode)
+int MakeParentDir(const char *path, mode_t mode)
 {
     if (*path == '\0' || *path == '.') {
         return 0;
     }
-    if (CheckDirExists(path, strlen(path)) == 0) {
+    if (CheckDirExists(path) == 0) {
         return 0;
     }
+
     char parentPath[BUF_SIZE] = {0};
-    GetParentPathStr(path, strlen(path), parentPath);
+    GetParentPathStr(path, parentPath, BUF_SIZE);
     if (strlen(parentPath) > 0 && MakeParentDir(parentPath, mode) < 0) {
         return -1;
     }
+
     struct stat s;
     int ret = stat(path, &s);
     if (ret < 0) {
         fprintf(stderr, "error: failed to stat path: %s\n", path);
         return (MakeDir(path, mode));
     }
+
     return 0;
 }
 
-int MountFiles(const char *rootfs, const char *file, unsigned long reMountRwFlag)
+int MountDir(const char *rootfs, const char *src)
 {
-    char src[BUF_SIZE] = {0};
+    int ret;
     char dst[BUF_SIZE] = {0};
-    int ret = snprintf_s(src, BUF_SIZE, BUF_SIZE, "%s", file);
+
+    ret = snprintf_s(dst, BUF_SIZE, BUF_SIZE, "%s%s", rootfs, src);
     if (ret < 0) {
         return -1;
     }
-    ret = snprintf_s(dst, BUF_SIZE, BUF_SIZE, "%s%s", rootfs, file);
-    if (ret < 0) {
-        return -1;
-    }
+
     struct stat srcStat;
-    ret = stat((const char *) src, &srcStat);
+    ret = stat(src, &srcStat);
     if (ret < 0) {
         return -1;
     }
 
-    if (S_ISDIR(srcStat.st_mode)) {
-        /* directory */
-        char parentDir[BUF_SIZE] = {0};
-        GetParentPathStr(dst, strlen(dst), parentDir);
-        if (CheckDirExists(parentDir, strlen(parentDir)) < 0) {
-            mode_t parentMode = DEFAULT_DIR_MODE;
-            ret = MakeParentDir(parentDir, parentMode);
-            if (ret < 0) {
-                fprintf(stderr, "error: failed to make dir: %s\n", parentDir);
-                return -1;
-            }
+    /* directory */
+    char parentDir[BUF_SIZE] = {0};
+    GetParentPathStr(dst, parentDir, BUF_SIZE);
+    if (CheckDirExists(parentDir) < 0) {
+        mode_t parentMode = DEFAULT_DIR_MODE;
+        ret = MakeParentDir(parentDir, parentMode);
+        if (ret < 0) {
+            fprintf(stderr, "error: failed to make dir: %s\n", parentDir);
+            return -1;
         }
-        if (CheckDirExists(dst, strlen(dst)) < 0) {
-            const mode_t curMode = srcStat.st_mode;
-            ret = MakeDir(dst, curMode);
-            if (ret < 0) {
-                fprintf(stderr, "error: failed to make dir: %s\n", dst);
-                return -1;
-            }
-        }
-    } else {
-        /* device */
-        close(open(dst, O_NOFOLLOW | O_CREAT, srcStat.st_mode));
     }
 
-    ret = mount(src, dst, NULL, MS_BIND, NULL);
-    if (ret < 0) {
-        fprintf(stderr, "error: failed to mount dev\n");
-        return -1;
+    if (CheckDirExists(dst) < 0) {
+        const mode_t curMode = srcStat.st_mode;
+        ret = MakeDir(dst, curMode);
+        if (ret < 0) {
+            fprintf(stderr, "error: failed to make dir: %s\n", dst);
+            return -1;
+        }
     }
 
-    ret = mount(NULL, dst, NULL, reMountRwFlag, NULL);
+    ret = Mount(src, dst);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to re-mount dev\n");
+        fprintf(stderr, "error: failed to mount dir: %s to %s\n", src, dst);
         return -1;
     }
 
@@ -301,36 +347,37 @@ int MountFiles(const char *rootfs, const char *file, unsigned long reMountRwFlag
 int DoCtrlDeviceMounting(const char *rootfs)
 {
     /* device */
-    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
-    int ret = MountFiles(rootfs, DAVINCI_MANAGER_PATH, reMountRwFlag);
+    int ret = MountDevice(rootfs, DAVINCI_MANAGER);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to do mount %s\n", DAVINCI_MANAGER_PATH);
+        fprintf(stderr, "error: failed to mount device %s\n", DAVINCI_MANAGER);
         return -1;
     }
-    ret = MountFiles(rootfs, DEVMM_SVM_PATH, reMountRwFlag);
+
+    ret = MountDevice(rootfs, DEVMM_SVM);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to do mount %s\n", DEVMM_SVM_PATH);
+        fprintf(stderr, "error: failed to mount device %s\n", DEVMM_SVM);
         return -1;
     }
-    ret = MountFiles(rootfs, HISI_HDC_PATH, reMountRwFlag);
+
+    ret = MountDevice(rootfs, HISI_HDC);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to do mount %s\n", HISI_HDC_PATH);
+        fprintf(stderr, "error: failed to mount device %s\n", HISI_HDC);
         return -1;
     }
+
     return 0;
 }
 
 int DoDirectoryMounting(const char *rootfs)
 {
     /* directory */
-    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NODEV | MS_NOSUID;
-    int ret = MountFiles(rootfs, ASCEND_DRIVER_PATH, reMountRwFlag);
+    int ret = MountDir(rootfs, ASCEND_DRIVER_PATH);
     if (ret < 0) {
         fprintf(stderr, "error: failed to do mount %s\n", ASCEND_DRIVER_PATH);
         return -1;
     }
 
-    ret = MountFiles(rootfs, ASCEND_ADDONS_PATH, reMountRwFlag);
+    ret = MountDir(rootfs, ASCEND_ADDONS_PATH);
     if (ret < 0) {
         fprintf(stderr, "error: failed to do mount %s\n", ASCEND_ADDONS_PATH);
         return -1;
@@ -376,49 +423,64 @@ int StrHasPrefix(const char *str, const char *prefix)
     return (!strncmp(str, prefix, strlen(prefix)));
 }
 
-static bool IsCgroupLineArgsValid(const char *rootDir, const char *mountPoint, const char* fsType, const char* substr)
+static bool CheckRootDir(char **pLine)
 {
-    return ((rootDir != NULL && mountPoint != NULL && fsType != NULL && substr != NULL) &&
-           (*rootDir != '\0' && *mountPoint != '\0' && *fsType != '\0' && *substr != '\0'));
+    char *rootDir = NULL;
+    for (int i = 0; i < ROOT_GAP; i++) {
+        /* root is substr before gap, line is substr after gap */
+        rootDir = strsep(pLine, " ");
+        if (rootDir == NULL || *rootDir == '\0') {
+            return false;
+        }
+    }
+
+    return strlen(rootDir) < BUF_SIZE && !StrHasPrefix(rootDir, "/..");
+}
+
+static bool CheckFsType(char **pLine)
+{
+    char* fsType = NULL;
+    for (int i = 0; i < FSTYPE_GAP; i++) {
+        fsType = strsep(pLine, " ");
+        if (fsType == NULL || *fsType == '\0') {
+            return false;
+        }
+    }
+
+    return IsStrEqual(fsType, "cgroup");
+}
+
+static bool CheckSubStr(char **pLine, const char *subsys)
+{
+    char* substr = NULL;
+    for (int i = 0; i < MOUNT_SUBSTR_GAP; i++) {
+        substr = strsep(pLine, " ");
+        if (substr == NULL || *substr == '\0') {
+            return false;
+        }
+    }
+
+    return strstr(substr, subsys) != NULL;
 }
 
 char *GetCgroupMount(char *line, const char *subsys)
 {
-    int i;
-
-    char *rootDir = NULL;
-    for (i = 0; i < ROOT_GAP; ++i) {
-        /* root is substr before gap, line is substr after gap */
-        rootDir = strsep(&line, " ");
+    if (!CheckRootDir(&line)) {
+        return NULL;
     }
 
     char *mountPoint = NULL;
     mountPoint = strsep(&line, " ");
     line = strchr(line, '-');
-
-    char* fsType = NULL;
-    for (i = 0; i < FSTYPE_GAP; ++i) {
-        fsType = strsep(&line, " ");
-    }
-
-    char* substr = NULL;
-    for (i = 0; i < MOUNT_SUBSTR_GAP; ++i) {
-        substr = strsep(&line, " ");
-    }
-
-    if (!IsCgroupLineArgsValid(rootDir, mountPoint, fsType, substr)) {
+    if (mountPoint == NULL || *mountPoint == '\0') {
         return NULL;
     }
 
-    if (strlen(rootDir) >= BUF_SIZE || StrHasPrefix(rootDir, "/..")) {
+    if (!CheckFsType(&line)) {
         return NULL;
     }
 
-    if (strstr(substr, subsys) == NULL) {
-        return NULL;
-    }
-
-    if (!IsStrEqual(fsType, "cgroup")) {
+    if (!CheckSubStr(&line, subsys)) {
         return NULL;
     }
 
@@ -431,30 +493,38 @@ char *GetCgroupRoot(char *line, const char *subSystem)
     int i;
     for (i = 0; i < ROOT_SUBSTR_GAP; ++i) {
         token = strsep(&line, ":");
+        if (token == NULL || *token == '\0') {
+            return NULL;
+        }
     }
+    
     char *rootDir = strsep(&line, ":");
-    if (rootDir == NULL || token == NULL) {
-        return (NULL);
+    if (rootDir == NULL || *rootDir == '\0') {
+        return NULL;
     }
-    if (*rootDir == '\0' || *token == '\0') {
-        return (NULL);
-    }
+
     if (strlen(rootDir) >= BUF_SIZE || StrHasPrefix(rootDir, "/..")) {
-        return (NULL);
+        return NULL;
     }
     if (strstr(token, subSystem) == NULL) {
-        return (NULL);
+        return NULL;
     }
-    return (rootDir);
+    return rootDir;
 }
 
 int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* filepath)
 {
-    FILE *fp;
+    FILE *fp = NULL;
     char *line = NULL;
     size_t len = 0;
+    char resolvedPath[PATH_MAX] = {0x0};
 
-    fp = fopen(filepath, "r");
+    if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
+        fprintf(stderr, "error: cannot canonicalize path %s\n", filepath);
+        return -1;
+    }
+
+    fp = fopen(resolvedPath, "r");
     if (fp == NULL) {
         fprintf(stderr, "cannot open file.\n");
         return -1;
@@ -465,6 +535,7 @@ int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* f
         if (result != NULL && strlen(result) < bufferSize) {
             errno_t ret = strncpy_s(buffer, BUF_SIZE, result, strlen(result));
             if (ret != EOK) {
+                fclose(fp);
                 return -1;
             }
             break;
@@ -479,11 +550,19 @@ int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* f
     return 0;
 }
 
-int SetupDeviceCgroup(FILE *cgroupAllow, const char *devPath)
+int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
 {
     int ret;
     struct stat devStat;
-    ret = stat(devPath, &devStat);
+    char devPath[BUF_SIZE];
+
+    ret = snprintf_s(devPath, BUF_SIZE, BUF_SIZE, "/dev/%s", devName);
+    if (ret < 0) {
+        fprintf(stderr, "error: failed to assemble dev path for %s\n", devName);
+        return -1;
+    }
+
+    ret = stat((const char *)devPath, &devStat);
     if (ret < 0) {
         fprintf(stderr, "error: failed to get stat of %s\n", devPath);
         return -1;
@@ -503,21 +582,21 @@ int SetupDriverCgroup(FILE *cgroupAllow)
 {
     int ret;
 
-    ret = SetupDeviceCgroup(cgroupAllow, DAVINCI_MANAGER_PATH);
+    ret = SetupDeviceCgroup(cgroupAllow, DAVINCI_MANAGER);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to setup cgroup for %s\n", DAVINCI_MANAGER_PATH);
+        fprintf(stderr, "error: failed to setup cgroup for %s\n", DAVINCI_MANAGER);
         return -1;
     }
 
-    ret = SetupDeviceCgroup(cgroupAllow, DEVMM_SVM_PATH);
+    ret = SetupDeviceCgroup(cgroupAllow, DEVMM_SVM);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to setup cgroup for %s\n", DEVMM_SVM_PATH);
+        fprintf(stderr, "error: failed to setup cgroup for %s\n", DEVMM_SVM);
         return -1;
     }
 
-    ret = SetupDeviceCgroup(cgroupAllow, HISI_HDC_PATH);
+    ret = SetupDeviceCgroup(cgroupAllow, HISI_HDC);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to setup cgroup for %s\n", HISI_HDC_PATH);
+        fprintf(stderr, "error: failed to setup cgroup for %s\n", HISI_HDC);
         return -1;
     }
 
@@ -571,8 +650,14 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
 int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
 {
     int ret;
-    char devicePath[BUF_SIZE] = {0};
+    char deviceName[BUF_SIZE] = {0};
+    char resolvedCgroupPath[PATH_MAX] = {0};
     FILE *cgroupAllow = NULL;
+
+    if (realpath(cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
+        fprintf(stderr, "error: cannot canonicalize cgroup path: %s\n", cgroupPath);
+        return -1;
+    }
 
     static const char *sep = ",";
     char list[BUF_SIZE] = {0};
@@ -582,9 +667,9 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
     }
     char *token = NULL;
 
-    cgroupAllow = fopen(cgroupPath, "a");
+    cgroupAllow = fopen((const char *)resolvedCgroupPath, "a");
     if (cgroupAllow == NULL) {
-        fprintf(stderr, "error: failed to open cgroup file: %s\n", cgroupPath);
+        fprintf(stderr, "error: failed to open cgroup file: %s\n", resolvedCgroupPath);
         return -1;
     }
 
@@ -597,14 +682,14 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
     
     token = strtok(list, sep);
     while (token != NULL) {
-        ret = snprintf_s(devicePath, BUF_SIZE, BUF_SIZE, "/dev/" DEVICE_NAME "%d", atoi(token));
+        ret = snprintf_s(deviceName, BUF_SIZE, BUF_SIZE, "%s%s", DEVICE_NAME, token);
         if (ret < 0) {
             fclose(cgroupAllow);
             fprintf(stderr, "error: failed to assemble device path for no.%s\n", token);
             return -1;
         }
 
-        ret = SetupDeviceCgroup(cgroupAllow, (const char *)devicePath);
+        ret = SetupDeviceCgroup(cgroupAllow, (const char *)deviceName);
         if (ret < 0) {
             fclose(cgroupAllow);
             fprintf(stderr, "error: failed to setup cgroup %s\n", token);
@@ -641,7 +726,7 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
         return -1;
     }
 
-    config->originNsFd = open((const char *)originNsPath, O_RDONLY);
+    config->originNsFd = open((const char *)originNsPath, O_RDONLY); // proc接口，非外部输入
     if (config->originNsFd < 0) {
         fprintf(stderr, "error: failed to get self ns fd: %s\n", originNsPath);
         return -1;
@@ -698,42 +783,55 @@ int SetupMounts(struct CmdArgs *args)
 int Process(int argc, char **argv)
 {
     int c;
+    errno_t err;
     int optionIndex;
-    struct CmdArgs args = {
-        .devices = NULL,
-        .rootfs  = NULL,
-        .pid     = -1
-    };
+    bool isSucceed;
+    struct CmdArgs args = {0};
 
-    while ((c = getopt_long(argc, argv, "d:p:r", g_cmdOpts, &optionIndex)) != -1) {
+    isSucceed = true;
+    while (isSucceed) {
+        c = getopt_long(argc, argv, "d:p:r", g_cmdOpts, &optionIndex);
+        if (c == -1) {
+            // cmd options exhausted
+            break;
+        }
+
         switch (c) {
             case 'd':
-                args.devices = strdup(optarg);
+                err = strcpy_s(args.devices, BUF_SIZE, optarg);
+                if (err != EOK) {
+                    isSucceed = false;
+                }
                 break;
             case 'p':
                 args.pid = atoi(optarg);
+                if (args.pid <= 0) {
+                    isSucceed = false;
+                }
                 break;
             case 'r':
-                args.rootfs = strdup(optarg);
+                err = strcpy_s(args.rootfs, BUF_SIZE, optarg);
+                if (err != EOK) {
+                    isSucceed = false;
+                }
                 break;
             default:
                 fprintf(stderr, "unrecongnized option\n");
-                return -1; // unrecognized option
+                isSucceed = false; // unrecognized option
+                break;
         }
     }
 
-    if (!IsCmdArgsValid(&args)) {
-        FreeCmdArgs(&args);
+    if (!isSucceed || !IsCmdArgsValid(&args)) {
+        fprintf(stderr, "error: information not completed or valid.\n");
         return -1;
     }
 
     int ret = SetupMounts(&args);
     if (ret < 0) {
-        FreeCmdArgs(&args);
         return ret;
     }
 
-    FreeCmdArgs(&args);
     return 0;
 }
 
