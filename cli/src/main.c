@@ -12,16 +12,13 @@
 #include <sys/fsuid.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <unistd.h>
 #include <sched.h>
 #include <dirent.h>
 #include <limits.h>
 #include <errno.h>
 #include "securec.h"
-
-#undef major
-#undef minor
-#include <sys/sysmacros.h>
 
 #define DEVICE_NAME "davinci"
 #define DAVINCI_MANAGER             "davinci_manager"
@@ -37,7 +34,7 @@
 #define MOUNT_SUBSTR_GAP 2
 #define ROOT_SUBSTR_GAP 2
 
-static const struct option g_cmdOpts[] = {
+static struct option g_cmdOpts[] = {
     {"devices", required_argument, 0, 'd'},
     {"pid", required_argument, 0, 'p'},
     {"rootfs", required_argument, 0, 'r'},
@@ -54,6 +51,13 @@ struct ParsedConfig {
     char containerNsPath[BUF_SIZE];
     char cgroupPath[BUF_SIZE];
     int  originNsFd;
+};
+
+struct PathInfo {
+    char* src;
+    size_t srcLen;
+    char* dst;
+    size_t dstLen;
 };
 
 static inline bool IsCmdArgsValid(struct CmdArgs *args)
@@ -137,13 +141,31 @@ static int CreateFile(const char *path, mode_t mode)
     return 0;
 }
 
+static int VerfifyPathInfo(const struct PathInfo* pathInfo)
+{
+    if (pathInfo == NULL || pathInfo->dst == NULL || pathInfo->src == NULL) {
+        return -1;
+    }
+    return 0;
+}
+
 static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
-    char *src, size_t srcBufSize, char *dst, size_t dstBufSize)
+    struct PathInfo* pathInfo)
 {
     int ret;
     error_t err;
     char unresolvedDst[BUF_SIZE] = {0};
     char resolvedDst[PATH_MAX] = {0};
+
+    ret = VerfifyPathInfo(pathInfo);
+    if (ret < 0) {
+        return -1;
+    }
+    
+    size_t srcBufSize = pathInfo->srcLen;
+    size_t dstBufSize = pathInfo->dstLen;
+    char *src = pathInfo->src;
+    char *dst = pathInfo->dst;
 
     ret = snprintf_s(src, srcBufSize, srcBufSize, "/dev/%s", deviceName);
     if (ret < 0) {
@@ -174,8 +196,9 @@ int MountDevice(const char *rootfs, const char *deviceName)
     int ret;
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
+    struct PathInfo pathInfo = {src, BUF_SIZE, dst, BUF_SIZE};
 
-    ret = GetDeviceMntSrcDst(rootfs, deviceName, src, BUF_SIZE, dst, BUF_SIZE);
+    ret = GetDeviceMntSrcDst(rootfs, deviceName, &pathInfo);
     if (ret < 0) {
         fprintf(stderr, "error: failed to get device mount src and(or) dst path, device name: %s\n", deviceName);
         return -1;
