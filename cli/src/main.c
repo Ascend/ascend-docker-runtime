@@ -112,7 +112,7 @@ int EnterNsByPath(const char *path, int nsType)
 
 static int Mount(const char *src, const char *dst)
 {
-    static const unsigned long remountFlags = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
+    static const unsigned long remountFlags = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID;
     int ret;
 
     ret = mount(src, dst, NULL, MS_BIND, NULL);
