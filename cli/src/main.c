@@ -132,9 +132,15 @@ static int Mount(const char *src, const char *dst)
 
 static int CreateFile(const char *path, mode_t mode)
 {
-    int fd = open(path, O_NOFOLLOW | O_CREAT, mode);
+    char resolvedPath[PATH_MAX] = {0};
+    if (realpath(path, resolvedPath) == NULL && errno != ENOENT) {
+        fprintf(stderr, "error: failed to resolve path %s\n", path);
+        return -1;
+    }
+
+    int fd = open(resolvedPath, O_NOFOLLOW | O_CREAT, mode);
     if (fd < 0) {
-        fprintf(stderr, "error: cannot create file: %s\n", path);
+        fprintf(stderr, "error: cannot create file: %s\n", resolvedPath);
         return -1;
     }
     close(fd);
