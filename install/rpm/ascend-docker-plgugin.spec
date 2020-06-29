@@ -42,6 +42,9 @@ DIR=/etc/docker
 BINDIR=/usr/bin
 SRC="${DIR}/daemon.json.${PPID}"
 DST="${DIR}/daemon.json"
+if [ ! -f "${DST}" ]; then
+exit 0
+fi
 ${BINDIR}/ascend-docker-plugin-install-helper rm ${DST} ${SRC}
 if [ "$?" != "0" ]; then
 echo "del damon.json failed\n"

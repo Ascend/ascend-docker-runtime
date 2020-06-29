@@ -1,10 +1,10 @@
 #!/bin/bash
 DIR=/etc/docker
-if [ ! -d "${DIR}" ]; then
-mkdir ${DIR}
-fi
 SRC="${DIR}/daemon.json.${PPID}"
 DST="${DIR}/daemon.json"
+if [ ! -f "${DST}" ]; then
+exit 0
+fi
 BINDIR=/usr/bin
 ${BINDIR}/ascend-docker-plugin-install-helper rm ${DST} ${SRC}
 if [ "$?" != "0" ]; then
