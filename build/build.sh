@@ -51,7 +51,7 @@ cmake ../
 make clean
 make
 
-echo "make runtime"
+echo "make installhelper"
 [ -d "${INSTALLHELPERSRCDIR}/build" ]&&rm -rf ${INSTALLHELPERSRCDIR}/build
 mkdir ${INSTALLHELPERSRCDIR}/build&&cd ${INSTALLHELPERSRCDIR}/build
 cmake ../
@@ -64,11 +64,13 @@ mkdir ${ROOT}/opensource/src
 export GOPATH="${GOPATH}:${ROOT}/opensource"
 export GO111MODULE=off
 
+echo "make hook"
 [ -d "${HOOKSRCDIR}/build" ]&&rm -rf ${HOOKSRCDIR}/build
 mkdir ${HOOKSRCDIR}/build&&cd ${HOOKSRCDIR}/build
 go build -ldflags "-buildid=IdNetCheck" -trimpath ../${HOOKSRCNAME}
 mv main ascend-docker-hook
 
+echo "make runtime"
 [ -d "${RUNTIMESRCDIR}/build" ]&&rm -rf ${RUNTIMESRCDIR}/build
 mkdir ${RUNTIMESRCDIR}/build&&cd ${RUNTIMESRCDIR}/build
 go build -ldflags "-buildid=IdNetCheck" -trimpath ../${RUNTIMESRCNAME}
@@ -85,6 +87,11 @@ funcmakedeb(){
 cd ${BUILD}
 mkdir -pv {${DEBDIR},${BINDIR}}
 /bin/cp -f  {${RUNTIMESRCDIR},${HOOKSRCDIR},${INSTALLHELPERSRCDIR},${CLISRCDIR}}/build/ascend-docker*  ${BINDIR}
+FILECNT=`ls -l ${BINDIR} |grep "^-"|wc -l`
+echo "prepare package $FILECNT bins"
+if [ $FILECNT -ne 4 ]; then
+exit 1
+fi 
 CONPATH=`find ${INSTALLHELPERDIR} -name "control"` 
 INSTPATH=`find ${INSTALLHELPERDIR} -name "postinst"` 
 RMPATH=`find ${INSTALLHELPERDIR} -name "prerm"`
@@ -105,6 +112,11 @@ sed -i "4a\BuildArch: $CPUARCH" ${RPMSPECDIR}/*.spec
 funcmakerpm(){
 mkdir -pv ${RPMPACK}/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 /bin/cp -f  {${RUNTIMESRCDIR},${HOOKSRCDIR},${INSTALLHELPERSRCDIR},${CLISRCDIR}}/build/ascend-docker* ${RPMSOURCESDIR}
+FILECNT=`ls -l ${RPMSOURCESDIR} |grep "^-"|wc -l`
+echo "prepare package $FILECNT bins"
+if [ $FILECNT -ne 4 ]; then
+exit 1
+fi 
 SPECPATH=`find ${INSTALLHELPERDIR} -name "*.spec"` 
 dos2unix ${SPECPATH}
 /bin/cp -f  ${SPECPATH}  ${RPMSPECDIR}
