@@ -1,9 +1,9 @@
 #include "utils.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <limits.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <errno.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <sys/mount.h>
 #include "securec.h"
+#include "logging.h"
 
 int IsStrEqual(const char *s1, const char *s2)
 {
@@ -71,13 +72,13 @@ int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* f
     char resolvedPath[PATH_MAX] = {0x0};
 
     if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
-        fprintf(stderr, "error: cannot canonicalize path %s\n", filepath);
+        logError("error: cannot canonicalize path %s\n", filepath);
         return -1;
     }
 
     fp = fopen(resolvedPath, "r");
     if (fp == NULL) {
-        fprintf(stderr, "cannot open file.\n");
+        logError("cannot open file.\n");
         return -1;
     }
 
@@ -101,20 +102,45 @@ int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* f
     return 0;
 }
 
-int MakeDir(const char *dir, int mode)
+int MkDir(const char *dir, int mode)
 {
     return mkdir(dir, mode);
+}
+
+int MakeParentDir(const char *path, mode_t mode)
+{
+    if (*path == '\0' || *path == '.') {
+        return 0;
+    }
+    if (CheckDirExists(path) == 0) {
+        return 0;
+    }
+
+    char parentPath[BUF_SIZE] = {0};
+    GetParentPathStr(path, parentPath, BUF_SIZE);
+    if (strlen(parentPath) > 0 && MakeParentDir(parentPath, mode) < 0) {
+        return -1;
+    }
+
+    struct stat s;
+    int ret = stat(path, &s);
+    if (ret < 0) {
+        logError("error: failed to stat path: %s\n", path);
+        return (MkDir(path, mode));
+    }
+
+    return 0;
 }
 
 int CheckDirExists(const char *dir)
 {
     DIR *ptr = opendir(dir);
     if (NULL == ptr) {
-        fprintf(stderr, "path %s not exist\n", dir);
+        logError("path %s not exist\n", dir);
         return -1;
     }
 
-    fprintf(stdout, "path %s exist\n", dir);
+    logInfo("path %s exist\n", dir);
     closedir(ptr);
     return 0;
 }
@@ -143,13 +169,13 @@ int CreateFile(const char *path, mode_t mode)
 {
     char resolvedPath[PATH_MAX] = {0};
     if (realpath(path, resolvedPath) == NULL && errno != ENOENT) {
-        fprintf(stderr, "error: failed to resolve path %s\n", path);
+        logError("error: failed to resolve path %s\n", path);
         return -1;
     }
 
     int fd = open(resolvedPath, O_NOFOLLOW | O_CREAT, mode);
     if (fd < 0) {
-        fprintf(stderr, "error: cannot create file: %s\n", resolvedPath);
+        logError("error: cannot create file: %s\n", resolvedPath);
         return -1;
     }
     close(fd);
@@ -171,13 +197,13 @@ int Mount(const char *src, const char *dst)
 
     ret = mount(src, dst, NULL, MS_BIND, NULL);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to mount\n");
+        logError("error: failed to mount\n");
         return -1;
     }
 
     ret = mount(NULL, dst, NULL, remountFlags, NULL);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to re-mount\n");
+        logError("error: failed to re-mount\n");
         return -1;
     }
 

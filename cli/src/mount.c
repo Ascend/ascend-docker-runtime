@@ -1,12 +1,12 @@
 #include "mount.h"
 
-#include <stdio.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include "securec.h"
 #include "utils.h"
+#include "logging.h"
 
 static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
     struct PathInfo* pathInfo)
@@ -37,13 +37,13 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
     }
 
     if (realpath(unresolvedDst, resolvedDst) == NULL && errno != ENOENT) {
-        fprintf(stderr, "error: cannot canonicalize device dst: %s\n", dst);
+        logError("error: cannot canonicalize device dst: %s\n", dst);
         return -1;
     }
 
     err = strcpy_s(dst, dstBufSize, (const char *)resolvedDst);
     if (err != EOK) {
-        fprintf(stderr, "error: failed to copy resolved device mnt path to dst: %s\n", resolvedDst);
+        logError("error: failed to copy resolved device mnt path to dst: %s\n", resolvedDst);
         return -1;
     }
 
@@ -59,26 +59,26 @@ int MountDevice(const char *rootfs, const char *deviceName)
 
     ret = GetDeviceMntSrcDst(rootfs, deviceName, &pathInfo);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to get device mount src and(or) dst path, device name: %s\n", deviceName);
+        logError("error: failed to get device mount src and(or) dst path, device name: %s\n", deviceName);
         return -1;
     }
 
     struct stat srcStat;
     ret = stat((const char *)src, &srcStat);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to stat src: %s\n", src);
+        logError("error: failed to stat src: %s\n", src);
         return -1;
     }
 
     ret = CreateFile(dst, srcStat.st_mode);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to create mount dst file: %s\n", dst);
+        logError("error: failed to create mount dst file: %s\n", dst);
         return -1;
     }
 
     ret = Mount(src, dst);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to mount dev\n");
+        logError("error: failed to mount dev\n");
         return -1;
     }
 
@@ -101,42 +101,17 @@ int DoDeviceMounting(const char *rootfs, const char *devicesList)
     while (token != NULL) {
         int ret = snprintf_s(deviceName, BUF_SIZE, BUF_SIZE, "%s%s", DEVICE_NAME, token);
         if (ret < 0) {
-            fprintf(stderr, "error: assemble device name failed, id: %s\n", token);
+            logError("error: assemble device name failed, id: %s\n", token);
             return -1;
         }
 
         ret = MountDevice(rootfs, deviceName);
         if (ret < 0) {
-            fprintf(stderr, "error: failed to mount device no. %s\n", token);
+            logError("error: failed to mount device no. %s\n", token);
             return -1;
         }
 
         token = strtok(NULL, sep);
-    }
-
-    return 0;
-}
-
-int MakeParentDir(const char *path, mode_t mode)
-{
-    if (*path == '\0' || *path == '.') {
-        return 0;
-    }
-    if (CheckDirExists(path) == 0) {
-        return 0;
-    }
-
-    char parentPath[BUF_SIZE] = {0};
-    GetParentPathStr(path, parentPath, BUF_SIZE);
-    if (strlen(parentPath) > 0 && MakeParentDir(parentPath, mode) < 0) {
-        return -1;
-    }
-
-    struct stat s;
-    int ret = stat(path, &s);
-    if (ret < 0) {
-        fprintf(stderr, "error: failed to stat path: %s\n", path);
-        return (MakeDir(path, mode));
     }
 
     return 0;
@@ -165,23 +140,23 @@ int MountDir(const char *rootfs, const char *src)
         mode_t parentMode = DEFAULT_DIR_MODE;
         ret = MakeParentDir(parentDir, parentMode);
         if (ret < 0) {
-            fprintf(stderr, "error: failed to make dir: %s\n", parentDir);
+            logError("error: failed to make dir: %s\n", parentDir);
             return -1;
         }
     }
 
     if (CheckDirExists(dst) < 0) {
         const mode_t curMode = srcStat.st_mode;
-        ret = MakeDir(dst, curMode);
+        ret = MkDir(dst, curMode);
         if (ret < 0) {
-            fprintf(stderr, "error: failed to make dir: %s\n", dst);
+            logError("error: failed to make dir: %s\n", dst);
             return -1;
         }
     }
 
     ret = Mount(src, dst);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to mount dir: %s to %s\n", src, dst);
+        logError("error: failed to mount dir: %s to %s\n", src, dst);
         return -1;
     }
 
@@ -193,19 +168,19 @@ int DoCtrlDeviceMounting(const char *rootfs)
     /* device */
     int ret = MountDevice(rootfs, DAVINCI_MANAGER);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to mount device %s\n", DAVINCI_MANAGER);
+        logError("error: failed to mount device %s\n", DAVINCI_MANAGER);
         return -1;
     }
 
     ret = MountDevice(rootfs, DEVMM_SVM);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to mount device %s\n", DEVMM_SVM);
+        logError("error: failed to mount device %s\n", DEVMM_SVM);
         return -1;
     }
 
     ret = MountDevice(rootfs, HISI_HDC);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to mount device %s\n", HISI_HDC);
+        logError("error: failed to mount device %s\n", HISI_HDC);
         return -1;
     }
 
@@ -217,13 +192,13 @@ int DoDirectoryMounting(const char *rootfs)
     /* directory */
     int ret = MountDir(rootfs, ASCEND_DRIVER_PATH);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to do mount %s\n", ASCEND_DRIVER_PATH);
+        logError("error: failed to do mount %s\n", ASCEND_DRIVER_PATH);
         return -1;
     }
 
     ret = MountDir(rootfs, ASCEND_ADDONS_PATH);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to do mount %s\n", ASCEND_ADDONS_PATH);
+        logError("error: failed to do mount %s\n", ASCEND_ADDONS_PATH);
         return -1;
     }
 
@@ -236,19 +211,19 @@ int DoMounting(const struct CmdArgs *args)
 
     ret = DoDeviceMounting(args->rootfs, args->devices);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to do mounts\n");
+        logError("error: failed to do mounts\n");
         return -1;
     }
 
     ret = DoCtrlDeviceMounting(args->rootfs);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to do mount files\n");
+        logError("error: failed to do mount files\n");
         return -1;
     }
 
     ret = DoDirectoryMounting(args->rootfs);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to do mount directory\n");
+        logError("error: failed to do mount directory\n");
         return -1;
     }
 

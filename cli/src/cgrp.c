@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include "securec.h"
 #include "utils.h"
+#include "logging.h"
 
 char *GetCgroupMount(char *line, const char *subsys)
 {
@@ -68,20 +69,20 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
 
     ret = snprintf_s(devPath, BUF_SIZE, BUF_SIZE, "/dev/%s", devName);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to assemble dev path for %s\n", devName);
+        logError("error: failed to assemble dev path for %s\n", devName);
         return -1;
     }
 
     ret = stat((const char *)devPath, &devStat);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to get stat of %s\n", devPath);
+        logError("error: failed to get stat of %s\n", devPath);
         return -1;
     }
 
     bool isFailed = fprintf(cgroupAllow, "c %u:%u rw", major(devStat.st_rdev), minor(devStat.st_rdev)) < 0 ||
                     fflush(cgroupAllow) == EOF || ferror(cgroupAllow) < 0;
     if (isFailed) {
-        fprintf(stderr, "error: write devices failed\n");
+        logError("error: write devices failed\n");
         return -1;
     }
 
@@ -94,19 +95,19 @@ int SetupDriverCgroup(FILE *cgroupAllow)
 
     ret = SetupDeviceCgroup(cgroupAllow, DAVINCI_MANAGER);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to setup cgroup for %s\n", DAVINCI_MANAGER);
+        logError("error: failed to setup cgroup for %s\n", DAVINCI_MANAGER);
         return -1;
     }
 
     ret = SetupDeviceCgroup(cgroupAllow, DEVMM_SVM);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to setup cgroup for %s\n", DEVMM_SVM);
+        logError("error: failed to setup cgroup for %s\n", DEVMM_SVM);
         return -1;
     }
 
     ret = SetupDeviceCgroup(cgroupAllow, HISI_HDC);
     if (ret < 0) {
-        fprintf(stderr, "error: failed to setup cgroup for %s\n", HISI_HDC);
+        logError("error: failed to setup cgroup for %s\n", HISI_HDC);
         return -1;
     }
 
@@ -121,13 +122,13 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
 
     ret = snprintf_s(mountPath, BUF_SIZE, BUF_SIZE, "/proc/%d/mountinfo", (int)getppid());
     if (ret < 0) {
-        fprintf(stderr, "error: assemble mount info path failed: ppid(%d)\n", getppid());
+        logError("error: assemble mount info path failed: ppid(%d)\n", getppid());
         return -1;
     }
 
     ret = CatFileContent(mount, BUF_SIZE, GetCgroupMount, mountPath);
     if (ret < 0) {
-        fprintf(stderr, "error: cat file content failed\n");
+        logError("error: cat file content failed\n");
         return -1;
     }
 
@@ -135,13 +136,13 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
     char cgroupPath[BUF_SIZE] = {0x0};
     ret = snprintf_s(cgroupPath, BUF_SIZE, BUF_SIZE, "/proc/%d/cgroup", args->pid);
     if (ret < 0) {
-        fprintf(stderr, "error: assemble cgroup path failed: pid(%d)\n", args->pid);
+        logError("error: assemble cgroup path failed: pid(%d)\n", args->pid);
         return -1;
     }
 
     ret = CatFileContent(cgroup, BUF_SIZE, GetCgroupRoot, cgroupPath);
     if (ret < 0) {
-        fprintf(stderr, "error: cat file content failed\n");
+        logError("error: cat file content failed\n");
         return -1;
     }
 
@@ -150,7 +151,7 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
 
     ret = snprintf_s(effPath, BUF_SIZE, maxSize, "%s%s%s", mount, cgroup, ALLOW_PATH);
     if (ret < 0) {
-        fprintf(stderr, "error: assemble cgroup device path failed: \n");
+        logError("error: assemble cgroup device path failed: \n");
         return -1;
     }
 
@@ -165,7 +166,7 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
     FILE *cgroupAllow = NULL;
 
     if (realpath(cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
-        fprintf(stderr, "error: cannot canonicalize cgroup path: %s\n", cgroupPath);
+        logError("error: cannot canonicalize cgroup path: %s\n", cgroupPath);
         return -1;
     }
 
@@ -179,14 +180,14 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
 
     cgroupAllow = fopen((const char *)resolvedCgroupPath, "a");
     if (cgroupAllow == NULL) {
-        fprintf(stderr, "error: failed to open cgroup file: %s\n", resolvedCgroupPath);
+        logError("error: failed to open cgroup file: %s\n", resolvedCgroupPath);
         return -1;
     }
 
     ret = SetupDriverCgroup(cgroupAllow);
     if (ret < 0) {
         fclose(cgroupAllow);
-        fprintf(stderr, "error: failed to setup driver cgroup\n");
+        logError("error: failed to setup driver cgroup\n");
         return -1;
     }
     
@@ -195,14 +196,14 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
         ret = snprintf_s(deviceName, BUF_SIZE, BUF_SIZE, "%s%s", DEVICE_NAME, token);
         if (ret < 0) {
             fclose(cgroupAllow);
-            fprintf(stderr, "error: failed to assemble device path for no.%s\n", token);
+            logError("error: failed to assemble device path for no.%s\n", token);
             return -1;
         }
 
         ret = SetupDeviceCgroup(cgroupAllow, (const char *)deviceName);
         if (ret < 0) {
             fclose(cgroupAllow);
-            fprintf(stderr, "error: failed to setup cgroup %s\n", token);
+            logError("error: failed to setup cgroup %s\n", token);
             return -1;
         }
 
