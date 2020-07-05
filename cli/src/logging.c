@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+ * Description: ascend-docker-cli工具日志模块
+*/
 #include "logging.h"
 
 #include <stdio.h>

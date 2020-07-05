@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+ * Description: ascend-docker-cli工具容器Namespace实用函数模块
+*/
 #define _GNU_SOURCE
 #include "ns.h"
 

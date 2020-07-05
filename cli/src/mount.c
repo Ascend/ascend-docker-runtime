@@ -1,8 +1,12 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+ * Description: ascend-docker-cli工具容器设备与驱动挂载模块
+*/
 #include "mount.h"
 
-#include <limits.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/stat.h>
 #include "securec.h"
 #include "utils.h"
@@ -16,7 +20,7 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
     char unresolvedDst[BUF_SIZE] = {0};
     char resolvedDst[PATH_MAX] = {0};
 
-    ret = VerfifyPathInfo(pathInfo);
+    ret = VerifyPathInfo(pathInfo);
     if (ret < 0) {
         return -1;
     }
