@@ -75,13 +75,13 @@ int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* f
     char resolvedPath[PATH_MAX] = {0x0};
 
     if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
-        logError("error: cannot canonicalize path %s\n", filepath);
+        LogError("error: cannot canonicalize path %s\n", filepath);
         return -1;
     }
 
     fp = fopen(resolvedPath, "r");
     if (fp == NULL) {
-        logError("cannot open file.\n");
+        LogError("cannot open file.\n");
         return -1;
     }
 
@@ -122,11 +122,11 @@ int CheckDirExists(const char *dir)
 {
     DIR *ptr = opendir(dir);
     if (NULL == ptr) {
-        logError("path %s not exist\n", dir);
+        LogError("path %s not exist\n", dir);
         return -1;
     }
 
-    logInfo("path %s exist\n", dir);
+    LogInfo("path %s exist\n", dir);
     closedir(ptr);
     return 0;
 }
@@ -169,7 +169,7 @@ int MakeParentDir(const char *path, mode_t mode)
     struct stat s;
     int ret = stat(path, &s);
     if (ret < 0) {
-        logError("error: failed to stat path: %s\n", path);
+        LogError("error: failed to stat path: %s\n", path);
         return (MkDir(path, mode));
     }
 
@@ -180,13 +180,13 @@ int CreateFile(const char *path, mode_t mode)
 {
     char resolvedPath[PATH_MAX] = {0};
     if (realpath(path, resolvedPath) == NULL && errno != ENOENT) {
-        logError("error: failed to resolve path %s\n", path);
+        LogError("error: failed to resolve path %s\n", path);
         return -1;
     }
 
     int fd = open(resolvedPath, O_NOFOLLOW | O_CREAT, mode);
     if (fd < 0) {
-        logError("error: cannot create file: %s\n", resolvedPath);
+        LogError("error: cannot create file: %s\n", resolvedPath);
         return -1;
     }
     close(fd);
@@ -200,13 +200,13 @@ int Mount(const char *src, const char *dst)
 
     ret = mount(src, dst, NULL, MS_BIND, NULL);
     if (ret < 0) {
-        logError("error: failed to mount\n");
+        LogError("error: failed to mount\n");
         return -1;
     }
 
     ret = mount(NULL, dst, NULL, remountFlags, NULL);
     if (ret < 0) {
-        logError("error: failed to re-mount\n");
+        LogError("error: failed to re-mount\n");
         return -1;
     }
 
