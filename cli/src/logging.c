@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-void logError(const char *fmt, ...)
+void LogError(const char *fmt, ...)
 {
     va_list args;
 
@@ -16,7 +16,7 @@ void logError(const char *fmt, ...)
     va_end(args);
 }
 
-void logInfo(const char *fmt, ...)
+void LogInfo(const char *fmt, ...)
 {
     va_list args;
 

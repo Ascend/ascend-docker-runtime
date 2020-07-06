@@ -44,26 +44,26 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 
     ret = GetNsPath(args->pid, "mnt", config->containerNsPath, BUF_SIZE);
     if (ret < 0) {
-        logError("error: failed to get container mnt ns path: pid(%d)\n", args->pid);
+        LogError("error: failed to get container mnt ns path: pid(%d)\n", args->pid);
         return -1;
     }
 
     ret = GetCgroupPath(args, config->cgroupPath, BUF_SIZE);
     if (ret < 0) {
-        logError("error: failed to get cgroup path\n");
+        LogError("error: failed to get cgroup path\n");
         return -1;
     }
 
     char originNsPath[BUF_SIZE] = {0};
     ret = GetSelfNsPath("mnt", originNsPath, BUF_SIZE);
     if (ret < 0) {
-        logError("error: failed to get self ns path\n");
+        LogError("error: failed to get self ns path\n");
         return -1;
     }
 
     config->originNsFd = open((const char *)originNsPath, O_RDONLY); // proc接口，非外部输入
     if (config->originNsFd < 0) {
-        logError("error: failed to get self ns fd: %s\n", originNsPath);
+        LogError("error: failed to get self ns fd: %s\n", originNsPath);
         return -1;
     }
 
@@ -77,28 +77,28 @@ int SetupContainer(struct CmdArgs *args)
 
     ret = DoPrepare(args, &config);
     if (ret < 0) {
-        logError("error: failed to prepare nesessary config\n");
+        LogError("error: failed to prepare nesessary config\n");
         return -1;
     }
 
     // enter container's mount namespace
     ret = EnterNsByPath((const char *)config.containerNsPath, CLONE_NEWNS);
     if (ret < 0) {
-        logError("error: failed to set to container ns: %s\n", config.containerNsPath);
+        LogError("error: failed to set to container ns: %s\n", config.containerNsPath);
         close(config.originNsFd);
         return -1;
     }
 
     ret = DoMounting(args);
     if (ret < 0) {
-        logError("error: failed to do mounting\n");
+        LogError("error: failed to do mounting\n");
         close(config.originNsFd);
         return -1;
     }
 
     ret = SetupCgroup(args, (const char *)config.cgroupPath);
     if (ret < 0) {
-        logError("error: failed to set up cgroup\n");
+        LogError("error: failed to set up cgroup\n");
         close(config.originNsFd);
         return -1;
     }
@@ -106,7 +106,7 @@ int SetupContainer(struct CmdArgs *args)
     // back to original namespace
     ret = EnterNsByFd(config.originNsFd, CLONE_NEWNS);
     if (ret < 0) {
-        logError("error: failed to set ns back\n");
+        LogError("error: failed to set ns back\n");
         close(config.originNsFd);
         return -1;
     }
@@ -151,14 +151,14 @@ int Process(int argc, char **argv)
                 }
                 break;
             default:
-                logError("unrecongnized option\n");
+                LogError("unrecongnized option\n");
                 isSucceed = false; // unrecognized option
                 break;
         }
     }
 
     if (!isSucceed || !IsCmdArgsValid(&args)) {
-        logError("error: information not completed or valid.\n");
+        LogError("error: information not completed or valid.\n");
         return -1;
     }
 
