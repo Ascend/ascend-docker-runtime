@@ -23,6 +23,7 @@ import (
 const (
 	loggingPrefix          = "ascend-docker-hook"
 	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
+	ascendRuntimeOptions   = "ASCEND_RUNTIME_OPTIONS"
 	ascendDockerCli        = "ascend-docker-cli"
 	defaultAscendDockerCli = "/usr/bin/ascend-docker-cli"
 
@@ -36,6 +37,10 @@ var (
 	ascendDockerCliName        = ascendDockerCli
 	defaultAscendDockerCliName = defaultAscendDockerCli
 )
+
+var validRuntimeOptions = [...]string {
+	"NODRV",
+}
 
 type containerConfig struct {
 	Pid    int
@@ -102,6 +107,35 @@ func parseDevices(visibleDevices string) ([]int, error) {
 
 	sort.Slice(devices, func(i, j int) bool { return i < j })
 	return removeDuplication(devices), nil
+}
+
+func isRuntimeOptionValid(option string) bool {
+	for _, validOption := range validRuntimeOptions {
+		if option == validOption {
+			return true
+		}
+	}
+
+	return false
+}
+
+func parseRuntimeOptions(runtimeOptions string) ([]string, error) {
+	parsedOptions := make([]string, 0)
+
+	if runtimeOptions == "" {
+		return parsedOptions, nil
+	}
+
+	for _, option := range strings.Split(runtimeOptions, ",") {
+		option = strings.TrimSpace(option)
+		if !isRuntimeOptionValid(option) {
+			return nil, fmt.Errorf("invalid runtime option %s", option)
+		}
+
+		parsedOptions = append(parsedOptions, option)
+	}
+
+	return parsedOptions, nil
 }
 
 func parseOciSpecFile(file string) (*specs.Spec, error) {
@@ -181,6 +215,11 @@ func doPrestartHook() error {
 		return fmt.Errorf("failed to parse device setting: %w", err)
 	}
 
+	parsedOptions, err := parseRuntimeOptions(getValueByKey(containerConfig.Env, ascendRuntimeOptions))
+	if err != nil {
+		return fmt.Errorf("failed to parse runtime options: %w", err)
+	}
+
 	cliPath, err := exec.LookPath(ascendDockerCliName)
 	if err != nil {
 		_, err = os.Stat(defaultAscendDockerCliName)
@@ -195,6 +234,10 @@ func doPrestartHook() error {
 		"--devices", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(devices)), ","), "[]"),
 		"--pid", fmt.Sprintf("%d", containerConfig.Pid),
 		"--rootfs", containerConfig.Rootfs)
+
+	if len(parsedOptions) > 0 {
+		args = append(args, "--options", strings.Join(parsedOptions, ","))
+	}
 
 	if err := doExec(cliPath, args, os.Environ()); err != nil {
 		return fmt.Errorf("failed to exec ascend-docker-cli %v: %w", args, err)

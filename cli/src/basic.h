@@ -6,6 +6,7 @@
 #define _BASIC_H
 
 #include <sys/types.h>
+#include <stdint.h>
 
 #define DEVICE_NAME "davinci"
 #define DAVINCI_MANAGER             "davinci_manager"
@@ -23,9 +24,10 @@
 #define ROOT_SUBSTR_GAP 2
 
 struct CmdArgs {
-    char devices[BUF_SIZE];
-    char rootfs[BUF_SIZE];
-    int  pid;
+    char     devices[BUF_SIZE];
+    char     rootfs[BUF_SIZE];
+    int      pid;
+    char     options[BUF_SIZE];
 };
 
 struct PathInfo {
