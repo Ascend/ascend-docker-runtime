@@ -19,6 +19,9 @@
 #include "mount.h"
 #include "cgrp.h"
 #include "logging.h"
+#include "options.h"
+
+#define DECIMAL     10
 
 struct ParsedConfig {
     char containerNsPath[BUF_SIZE];
@@ -30,8 +33,96 @@ static struct option g_cmdOpts[] = {
     {"devices", required_argument, 0, 'd'},
     {"pid", required_argument, 0, 'p'},
     {"rootfs", required_argument, 0, 'r'},
+    {"options", required_argument, 0, 'o'},
     {0, 0, 0, 0}
 };
+
+typedef bool (*CmdArgParser)(struct CmdArgs *args, const char *arg);
+
+static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
+{
+    errno_t err = strcpy_s(args->devices, BUF_SIZE, arg);
+    if (err != EOK) {
+        LogError("error: failed to get devices from cmd args.");
+        return false;
+    }
+
+    return true;
+}
+
+static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
+{
+    errno = 0;
+    args->pid = strtol(optarg, NULL, DECIMAL);
+    if (errno != 0) {
+        LogError("error: failed to convert pid string from cmd args, pid string: %s.", arg);
+        return false;
+    }
+
+    if (args->pid <= 0) {
+        LogError("error: invalid pid %d.", args->pid);
+        return false;
+    }
+
+    return true;
+}
+
+static bool RootfsCmdArgParser(struct CmdArgs *args, const char *arg)
+{
+    errno_t err = strcpy_s(args->rootfs, BUF_SIZE, arg);
+    if (err != EOK) {
+        LogError("error: failed to get rootfs path from cmd args");
+        return false;
+    }
+
+    return true;
+}
+
+static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
+{
+    errno_t err = strcpy_s(args->options, BUF_SIZE, arg);
+    if (err != EOK) {
+        LogError("error: failed to get options string from cmd args");
+        return false;
+    }
+
+    return true;
+}
+
+#define NUM_OF_CMD_ARGS 4
+
+static struct {
+    const int c;
+    CmdArgParser parser;
+} g_cmdArgParsers[NUM_OF_CMD_ARGS] = {
+    {'d', DevicesCmdArgParser},
+    {'p', PidCmdArgParser},
+    {'r', RootfsCmdArgParser},
+    {'o', OptionsCmdArgParser}
+};
+
+static int ParseOneCmdArg(struct CmdArgs *args, int indicator, const char *value)
+{
+    int i;
+    for (i = 0; i < NUM_OF_CMD_ARGS; i++) {
+        if (g_cmdArgParsers[i].c == indicator) {
+            break;
+        }
+    }
+
+    if (i == NUM_OF_CMD_ARGS) {
+        LogError("error: unrecognized cmd arg: indicate char: %c, value: %s.", indicator, value);
+        return -1;
+    }
+
+    bool isOK = g_cmdArgParsers[i].parser(args, value);
+    if (!isOK) {
+        LogError("error: failed while parsing cmd arg, indicate char: %c, value: %s.", indicator, value);
+        return -1;
+    }
+
+    return 0;
+}
 
 static inline bool IsCmdArgsValid(struct CmdArgs *args)
 {
@@ -64,6 +155,12 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
     config->originNsFd = open((const char *)originNsPath, O_RDONLY); // proc接口，非外部输入
     if (config->originNsFd < 0) {
         LogError("error: failed to get self ns fd: %s\n", originNsPath);
+        return -1;
+    }
+
+    ret = ParseRuntimeOptions(args->options);
+    if (ret < 0) {
+        LogError("error: failed to parse runtime options.");
         return -1;
     }
 
@@ -118,51 +215,24 @@ int SetupContainer(struct CmdArgs *args)
 int Process(int argc, char **argv)
 {
     int c;
-    errno_t err;
+    int ret;
     int optionIndex;
-    bool isSucceed;
     struct CmdArgs args = {0};
 
-    isSucceed = true;
-    while (isSucceed) {
-        c = getopt_long(argc, argv, "d:p:r", g_cmdOpts, &optionIndex);
-        if (c == -1) {
-            // cmd options exhausted
-            break;
-        }
-
-        switch (c) {
-            case 'd':
-                err = strcpy_s(args.devices, BUF_SIZE, optarg);
-                if (err != EOK) {
-                    isSucceed = false;
-                }
-                break;
-            case 'p':
-                args.pid = atoi(optarg);
-                if (args.pid <= 0) {
-                    isSucceed = false;
-                }
-                break;
-            case 'r':
-                err = strcpy_s(args.rootfs, BUF_SIZE, optarg);
-                if (err != EOK) {
-                    isSucceed = false;
-                }
-                break;
-            default:
-                LogError("unrecongnized option\n");
-                isSucceed = false; // unrecognized option
-                break;
+    while ((c = getopt_long(argc, argv, "d:p:r:o", g_cmdOpts, &optionIndex)) != -1) {
+        ret = ParseOneCmdArg(&args, c, optarg);
+        if (ret < 0) {
+            LogError("error: failed to parse cmd args.");
+            return -1;
         }
     }
 
-    if (!isSucceed || !IsCmdArgsValid(&args)) {
+    if (!IsCmdArgsValid(&args)) {
         LogError("error: information not completed or valid.\n");
         return -1;
     }
 
-    int ret = SetupContainer(&args);
+    ret = SetupContainer(&args);
     if (ret < 0) {
         return ret;
     }

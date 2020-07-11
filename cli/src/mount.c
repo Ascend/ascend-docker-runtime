@@ -11,6 +11,7 @@
 #include "securec.h"
 #include "utils.h"
 #include "logging.h"
+#include "options.h"
 
 static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
     struct PathInfo* pathInfo)
@@ -100,8 +101,9 @@ int DoDeviceMounting(const char *rootfs, const char *devicesList)
         return -1;
     }
     char *token = NULL;
+    char *context = NULL;
 
-    token = strtok(list, sep);
+    token = strtok_s(list, sep, &context);
     while (token != NULL) {
         int ret = snprintf_s(deviceName, BUF_SIZE, BUF_SIZE, "%s%s", DEVICE_NAME, token);
         if (ret < 0) {
@@ -115,7 +117,7 @@ int DoDeviceMounting(const char *rootfs, const char *devicesList)
             return -1;
         }
 
-        token = strtok(NULL, sep);
+        token = strtok_s(NULL, sep, &context);
     }
 
     return 0;
@@ -223,6 +225,11 @@ int DoMounting(const struct CmdArgs *args)
     if (ret < 0) {
         LogError("error: failed to do mount files\n");
         return -1;
+    }
+
+    if (IsOptionNoDrvSet()) {
+        // 不挂载DRIVER
+        return 0;
     }
 
     ret = DoDirectoryMounting(args->rootfs);
