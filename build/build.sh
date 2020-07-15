@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 ROOT=$(cd `dirname $0`; pwd)/..
 
 OPENSRC=${ROOT}/opensource
@@ -38,8 +37,8 @@ HOOKSRCDIR=${HOOKSRCPATH%/${HOOKSRCNAME}}
 RUNTIMESRCPATH=`find ${RUNTIMEDIR} -name "${RUNTIMESRCNAME}"`
 RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
-VERSION="20.0.0"
-RELEASE="RC1"
+VERSION="20.0.RC1"
+RELEASE="1"
 PACKAGENAEM="ascend-docker-runtime"
 CPUARCH=`uname -m`
 
