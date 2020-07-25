@@ -122,11 +122,11 @@ int CheckDirExists(const char *dir)
 {
     DIR *ptr = opendir(dir);
     if (NULL == ptr) {
-        LogError("path %s not exist\n", dir);
+        LogError("path %s not exist.", dir);
         return -1;
     }
 
-    LogInfo("path %s exist\n", dir);
+    LogInfo("path %s exist.", dir);
     closedir(ptr);
     return 0;
 }
@@ -169,7 +169,7 @@ int MakeParentDir(const char *path, mode_t mode)
     struct stat s;
     int ret = stat(path, &s);
     if (ret < 0) {
-        LogError("error: failed to stat path: %s\n", path);
+        LogError("error: failed to stat path: %s.", path);
         return (MkDir(path, mode));
     }
 
@@ -180,13 +180,13 @@ int CreateFile(const char *path, mode_t mode)
 {
     char resolvedPath[PATH_MAX] = {0};
     if (realpath(path, resolvedPath) == NULL && errno != ENOENT) {
-        LogError("error: failed to resolve path %s\n", path);
+        LogError("error: failed to resolve path %s.", path);
         return -1;
     }
 
     int fd = open(resolvedPath, O_NOFOLLOW | O_CREAT, mode);
     if (fd < 0) {
-        LogError("error: cannot create file: %s\n", resolvedPath);
+        LogError("error: cannot create file: %s.", resolvedPath);
         return -1;
     }
     close(fd);

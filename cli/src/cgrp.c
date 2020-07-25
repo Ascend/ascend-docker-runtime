@@ -71,22 +71,22 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
     struct stat devStat;
     char devPath[BUF_SIZE];
 
-    ret = snprintf_s(devPath, BUF_SIZE, BUF_SIZE, "/dev/%s", devName);
+    ret = sprintf_s(devPath, BUF_SIZE, "/dev/%s", devName);
     if (ret < 0) {
-        LogError("error: failed to assemble dev path for %s\n", devName);
+        LogError("error: failed to assemble dev path for %s.", devName);
         return -1;
     }
 
     ret = stat((const char *)devPath, &devStat);
     if (ret < 0) {
-        LogError("error: failed to get stat of %s\n", devPath);
+        LogError("error: failed to get stat of %s.", devPath);
         return -1;
     }
 
     bool isFailed = fprintf(cgroupAllow, "c %u:%u rw", major(devStat.st_rdev), minor(devStat.st_rdev)) < 0 ||
                     fflush(cgroupAllow) == EOF || ferror(cgroupAllow) < 0;
     if (isFailed) {
-        LogError("error: write devices failed\n");
+        LogError("error: write devices failed.");
         return -1;
     }
 
@@ -99,19 +99,19 @@ int SetupDriverCgroup(FILE *cgroupAllow)
 
     ret = SetupDeviceCgroup(cgroupAllow, DAVINCI_MANAGER);
     if (ret < 0) {
-        LogError("error: failed to setup cgroup for %s\n", DAVINCI_MANAGER);
+        LogError("error: failed to setup cgroup for %s.", DAVINCI_MANAGER);
         return -1;
     }
 
     ret = SetupDeviceCgroup(cgroupAllow, DEVMM_SVM);
     if (ret < 0) {
-        LogError("error: failed to setup cgroup for %s\n", DEVMM_SVM);
+        LogError("error: failed to setup cgroup for %s.", DEVMM_SVM);
         return -1;
     }
 
     ret = SetupDeviceCgroup(cgroupAllow, HISI_HDC);
     if (ret < 0) {
-        LogError("error: failed to setup cgroup for %s\n", HISI_HDC);
+        LogError("error: failed to setup cgroup for %s.", HISI_HDC);
         return -1;
     }
 
@@ -124,15 +124,15 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
     char mountPath[BUF_SIZE] = {0x0};
     char mount[BUF_SIZE] = {0x0};
 
-    ret = snprintf_s(mountPath, BUF_SIZE, BUF_SIZE, "/proc/%d/mountinfo", (int)getppid());
+    ret = sprintf_s(mountPath, BUF_SIZE, "/proc/%d/mountinfo", (int)getppid());
     if (ret < 0) {
-        LogError("error: assemble mount info path failed: ppid(%d)\n", getppid());
+        LogError("error: assemble mount info path failed: ppid(%d).", getppid());
         return -1;
     }
 
     ret = CatFileContent(mount, BUF_SIZE, GetCgroupMount, mountPath);
     if (ret < 0) {
-        LogError("error: cat file content failed\n");
+        LogError("error: cat file content failed.");
         return -1;
     }
 
@@ -146,16 +146,16 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
 
     ret = CatFileContent(cgroup, BUF_SIZE, GetCgroupRoot, cgroupPath);
     if (ret < 0) {
-        LogError("error: cat file content failed\n");
+        LogError("error: cat file content failed.");
         return -1;
     }
 
     // cut last '\n' off
     cgroup[strcspn(cgroup, "\n")] = '\0';
 
-    ret = snprintf_s(effPath, BUF_SIZE, maxSize, "%s%s%s", mount, cgroup, ALLOW_PATH);
+    ret = sprintf_s(effPath, maxSize, "%s%s%s", mount, cgroup, ALLOW_PATH);
     if (ret < 0) {
-        LogError("error: assemble cgroup device path failed: \n");
+        LogError("error: assemble cgroup device path failed.");
         return -1;
     }
 
@@ -184,14 +184,14 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
 
     cgroupAllow = fopen((const char *)resolvedCgroupPath, "a");
     if (cgroupAllow == NULL) {
-        LogError("error: failed to open cgroup file: %s\n", resolvedCgroupPath);
+        LogError("error: failed to open cgroup file: %s.", resolvedCgroupPath);
         return -1;
     }
 
     ret = SetupDriverCgroup(cgroupAllow);
     if (ret < 0) {
         fclose(cgroupAllow);
-        LogError("error: failed to setup driver cgroup\n");
+        LogError("error: failed to setup driver cgroup.");
         return -1;
     }
     

@@ -12,7 +12,7 @@ void LogError(const char *fmt, ...)
     va_list args;
 
     va_start(args, fmt);
-    fprintf(stderr, fmt, args);
+    vfprintf(stderr, fmt, args);
     va_end(args);
 }
 
@@ -21,6 +21,6 @@ void LogInfo(const char *fmt, ...)
     va_list args;
 
     va_start(args, fmt);
-    fprintf(stdout, fmt, args);
+    vfprintf(stdout, fmt, args);
     va_end(args);
 }

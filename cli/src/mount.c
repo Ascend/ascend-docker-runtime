@@ -31,24 +31,24 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
     char *src = pathInfo->src;
     char *dst = pathInfo->dst;
 
-    ret = snprintf_s(src, srcBufSize, srcBufSize, "/dev/%s", deviceName);
+    ret = sprintf_s(src, srcBufSize, "/dev/%s", deviceName);
     if (ret < 0) {
         return -1;
     }
 
-    ret = snprintf_s(unresolvedDst, BUF_SIZE, BUF_SIZE, "%s%s", rootfs, src);
+    ret = sprintf_s(unresolvedDst, BUF_SIZE, "%s%s", rootfs, src);
     if (ret < 0) {
         return -1;
     }
 
     if (realpath(unresolvedDst, resolvedDst) == NULL && errno != ENOENT) {
-        LogError("error: cannot canonicalize device dst: %s\n", dst);
+        LogError("error: cannot canonicalize device dst: %s.", dst);
         return -1;
     }
 
     err = strcpy_s(dst, dstBufSize, (const char *)resolvedDst);
     if (err != EOK) {
-        LogError("error: failed to copy resolved device mnt path to dst: %s\n", resolvedDst);
+        LogError("error: failed to copy resolved device mnt path to dst: %s.", resolvedDst);
         return -1;
     }
 
@@ -64,26 +64,26 @@ int MountDevice(const char *rootfs, const char *deviceName)
 
     ret = GetDeviceMntSrcDst(rootfs, deviceName, &pathInfo);
     if (ret < 0) {
-        LogError("error: failed to get device mount src and(or) dst path, device name: %s\n", deviceName);
+        LogError("error: failed to get device mount src and(or) dst path, device name: %s.", deviceName);
         return -1;
     }
 
     struct stat srcStat;
     ret = stat((const char *)src, &srcStat);
     if (ret < 0) {
-        LogError("error: failed to stat src: %s\n", src);
+        LogError("error: failed to stat src: %s.", src);
         return -1;
     }
 
     ret = CreateFile(dst, srcStat.st_mode);
     if (ret < 0) {
-        LogError("error: failed to create mount dst file: %s\n", dst);
+        LogError("error: failed to create mount dst file: %s.", dst);
         return -1;
     }
 
     ret = Mount(src, dst);
     if (ret < 0) {
-        LogError("error: failed to mount dev\n");
+        LogError("error: failed to mount dev.");
         return -1;
     }
 
@@ -128,7 +128,7 @@ int MountDir(const char *rootfs, const char *src)
     int ret;
     char dst[BUF_SIZE] = {0};
 
-    ret = snprintf_s(dst, BUF_SIZE, BUF_SIZE, "%s%s", rootfs, src);
+    ret = sprintf_s(dst, BUF_SIZE, "%s%s", rootfs, src);
     if (ret < 0) {
         return -1;
     }
@@ -146,7 +146,7 @@ int MountDir(const char *rootfs, const char *src)
         mode_t parentMode = DEFAULT_DIR_MODE;
         ret = MakeParentDir(parentDir, parentMode);
         if (ret < 0) {
-            LogError("error: failed to make dir: %s\n", parentDir);
+            LogError("error: failed to make dir: %s.", parentDir);
             return -1;
         }
     }
@@ -155,14 +155,14 @@ int MountDir(const char *rootfs, const char *src)
         const mode_t curMode = srcStat.st_mode;
         ret = MkDir(dst, curMode);
         if (ret < 0) {
-            LogError("error: failed to make dir: %s\n", dst);
+            LogError("error: failed to make dir: %s.", dst);
             return -1;
         }
     }
 
     ret = Mount(src, dst);
     if (ret < 0) {
-        LogError("error: failed to mount dir: %s to %s\n", src, dst);
+        LogError("error: failed to mount dir: %s to %s.", src, dst);
         return -1;
     }
 
@@ -174,19 +174,19 @@ int DoCtrlDeviceMounting(const char *rootfs)
     /* device */
     int ret = MountDevice(rootfs, DAVINCI_MANAGER);
     if (ret < 0) {
-        LogError("error: failed to mount device %s\n", DAVINCI_MANAGER);
+        LogError("error: failed to mount device %s.", DAVINCI_MANAGER);
         return -1;
     }
 
     ret = MountDevice(rootfs, DEVMM_SVM);
     if (ret < 0) {
-        LogError("error: failed to mount device %s\n", DEVMM_SVM);
+        LogError("error: failed to mount device %s.", DEVMM_SVM);
         return -1;
     }
 
     ret = MountDevice(rootfs, HISI_HDC);
     if (ret < 0) {
-        LogError("error: failed to mount device %s\n", HISI_HDC);
+        LogError("error: failed to mount device %s.", HISI_HDC);
         return -1;
     }
 
@@ -198,13 +198,13 @@ int DoDirectoryMounting(const char *rootfs)
     /* directory */
     int ret = MountDir(rootfs, ASCEND_DRIVER_PATH);
     if (ret < 0) {
-        LogError("error: failed to do mount %s\n", ASCEND_DRIVER_PATH);
+        LogError("error: failed to do mount %s.", ASCEND_DRIVER_PATH);
         return -1;
     }
 
     ret = MountDir(rootfs, ASCEND_ADDONS_PATH);
     if (ret < 0) {
-        LogError("error: failed to do mount %s\n", ASCEND_ADDONS_PATH);
+        LogError("error: failed to do mount %s.", ASCEND_ADDONS_PATH);
         return -1;
     }
 
@@ -217,13 +217,13 @@ int DoMounting(const struct CmdArgs *args)
 
     ret = DoDeviceMounting(args->rootfs, args->devices);
     if (ret < 0) {
-        LogError("error: failed to do mounts\n");
+        LogError("error: failed to do mounts.");
         return -1;
     }
 
     ret = DoCtrlDeviceMounting(args->rootfs);
     if (ret < 0) {
-        LogError("error: failed to do mount files\n");
+        LogError("error: failed to do mount files.");
         return -1;
     }
 
