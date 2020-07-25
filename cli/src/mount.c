@@ -8,10 +8,32 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <sys/mount.h>
 #include "securec.h"
 #include "utils.h"
 #include "logging.h"
 #include "options.h"
+
+int Mount(const char *src, const char *dst)
+{
+    static const unsigned long mountFlags = MS_BIND;
+    static const unsigned long remountFlags = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID;
+    int ret;
+
+    ret = mount(src, dst, NULL, mountFlags, NULL);
+    if (ret < 0) {
+        LogError("error: failed to mount.");
+        return -1;
+    }
+
+    ret = mount(NULL, dst, NULL, remountFlags, NULL);
+    if (ret < 0) {
+        LogError("error: failed to re-mount.");
+        return -1;
+    }
+
+    return 0;
+}
 
 static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
     struct PathInfo* pathInfo)

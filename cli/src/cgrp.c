@@ -16,6 +16,87 @@
 #include "utils.h"
 #include "logging.h"
 
+bool TakeNthWord(char **pLine, unsigned int n, char **word)
+{
+    char *w = NULL;
+    for (unsigned int i = 0; i < n; i++) {
+        w = strsep(pLine, " ");
+        if (w == NULL || *w == '\0') {
+            return false;
+        }
+    }
+
+    *word = w;
+    return true;
+}
+
+bool CheckRootDir(char **pLine)
+{
+    char *rootDir = NULL;
+    if (!TakeNthWord(pLine, ROOT_GAP, &rootDir)) {
+        return false;
+    }
+
+    return strlen(rootDir) < BUF_SIZE && !StrHasPrefix(rootDir, "/..");
+}
+
+bool CheckFsType(char **pLine)
+{
+    char* fsType = NULL;
+    if (!TakeNthWord(pLine, FSTYPE_GAP, &fsType)) {
+        return false;
+    }
+
+    return IsStrEqual(fsType, "cgroup");
+}
+
+bool CheckSubStr(char **pLine, const char *subsys)
+{
+    char* substr = NULL;
+    if (!TakeNthWord(pLine, MOUNT_SUBSTR_GAP, &substr)) {
+        return false;
+    }
+
+    return strstr(substr, subsys) != NULL;
+}
+
+typedef char *(*ParseFileLine)(char *, const char *);
+int ParseFileByLine(char* buffer, int bufferSize, ParseFileLine fn, const char* filepath)
+{
+    FILE *fp = NULL;
+    char *result = NULL;
+    char *line = NULL;
+    size_t len = 0;
+    char resolvedPath[PATH_MAX] = {0x0};
+
+    if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
+        LogError("error: cannot canonicalize path %s.", filepath);
+        return -1;
+    }
+
+    fp = fopen(resolvedPath, "r");
+    if (fp == NULL) {
+        LogError("cannot open file.");
+        return -1;
+    }
+
+    while (getline(&line, &len, fp) != -1) {
+        result = fn(line, "devices");
+        if (result != NULL && strlen(result) < bufferSize) {
+            break;
+        }
+    }
+
+    errno_t ret = strcpy_s(buffer, bufferSize, result);
+    free(line);
+    fclose(fp);
+    if (ret != EOK) {
+        return -1;
+    }
+
+    return 0;
+}
+
 char *GetCgroupMount(char *line, const char *subsys)
 {
     if (!CheckRootDir(&line)) {
@@ -130,7 +211,7 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
         return -1;
     }
 
-    ret = CatFileContent(mount, BUF_SIZE, GetCgroupMount, mountPath);
+    ret = ParseFileByLine(mount, BUF_SIZE, GetCgroupMount, mountPath);
     if (ret < 0) {
         LogError("error: cat file content failed.");
         return -1;
@@ -144,7 +225,7 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
         return -1;
     }
 
-    ret = CatFileContent(cgroup, BUF_SIZE, GetCgroupRoot, cgroupPath);
+    ret = ParseFileByLine(cgroup, BUF_SIZE, GetCgroupRoot, cgroupPath);
     if (ret < 0) {
         LogError("error: cat file content failed.");
         return -1;
