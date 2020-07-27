@@ -7,6 +7,6 @@
 
 #include "basic.h"
 
-int DoMounting(const struct CmdArgs *args);
+int DoMounting(const struct ParsedConfig *config);
 
 #endif

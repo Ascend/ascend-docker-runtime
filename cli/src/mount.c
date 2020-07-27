@@ -112,34 +112,22 @@ int MountDevice(const char *rootfs, const char *deviceName)
     return 0;
 }
 
-int DoDeviceMounting(const char *rootfs, const char *devicesList)
+int DoDeviceMounting(const char *rootfs, const unsigned int ids[], size_t idsNr)
 {
-    static const char *sep = ",";
-    char list[BUF_SIZE] = {0};
     char deviceName[BUF_SIZE] = {0};
 
-    errno_t err = strncpy_s(list, BUF_SIZE, devicesList, strlen(devicesList));
-    if (err != EOK) {
-        return -1;
-    }
-    char *token = NULL;
-    char *context = NULL;
-
-    token = strtok_s(list, sep, &context);
-    while (token != NULL) {
-        int ret = snprintf_s(deviceName, BUF_SIZE, BUF_SIZE, "%s%s", DEVICE_NAME, token);
+    for (size_t idx = 0; idx < idsNr; idx++) {
+        int ret = sprintf_s(deviceName, BUF_SIZE, "%s%u", DEVICE_NAME, ids[idx]);
         if (ret < 0) {
-            LogError("error: assemble device name failed, id: %s\n", token);
+            LogError("error: assemble device name failed, id: %u.", ids[idx]);
             return -1;
         }
 
         ret = MountDevice(rootfs, deviceName);
         if (ret < 0) {
-            LogError("error: failed to mount device no. %s\n", token);
+            LogError("error: failed to mount device %s.", deviceName);
             return -1;
         }
-
-        token = strtok_s(NULL, sep, &context);
     }
 
     return 0;
@@ -233,31 +221,28 @@ int DoDirectoryMounting(const char *rootfs)
     return 0;
 }
 
-int DoMounting(const struct CmdArgs *args)
+int DoMounting(const struct ParsedConfig *config)
 {
     int ret;
 
-    ret = DoDeviceMounting(args->rootfs, args->devices);
+    ret = DoDeviceMounting(config->rootfs, config->devices, config->devicesNr);
     if (ret < 0) {
         LogError("error: failed to do mounts.");
         return -1;
     }
 
-    ret = DoCtrlDeviceMounting(args->rootfs);
+    ret = DoCtrlDeviceMounting(config->rootfs);
     if (ret < 0) {
         LogError("error: failed to do mount files.");
         return -1;
     }
 
-    if (IsOptionNoDrvSet()) {
-        // 不挂载DRIVER
-        return 0;
-    }
-
-    ret = DoDirectoryMounting(args->rootfs);
-    if (ret < 0) {
-        LogError("error: failed to do mount directory\n");
-        return -1;
+    if (!IsOptionNoDrvSet()) {
+        ret = DoDirectoryMounting(config->rootfs);
+        if (ret < 0) {
+            LogError("error: failed to do mount directory.");
+            return -1;
+        }
     }
 
     return 0;
