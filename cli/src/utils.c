@@ -11,13 +11,11 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mount.h>
 #include "securec.h"
 #include "logging.h"
 
-static int IsStrEqual(const char *s1, const char *s2)
+int IsStrEqual(const char *s1, const char *s2)
 {
     return (!strcmp(s1, s2));
 }
@@ -25,84 +23,6 @@ static int IsStrEqual(const char *s1, const char *s2)
 int StrHasPrefix(const char *str, const char *prefix)
 {
     return (!strncmp(str, prefix, strlen(prefix)));
-}
-
-bool CheckRootDir(char **pLine)
-{
-    char *rootDir = NULL;
-    for (int i = 0; i < ROOT_GAP; i++) {
-        /* root is substr before gap, line is substr after gap */
-        rootDir = strsep(pLine, " ");
-        if (rootDir == NULL || *rootDir == '\0') {
-            return false;
-        }
-    }
-
-    return strlen(rootDir) < BUF_SIZE && !StrHasPrefix(rootDir, "/..");
-}
-
-bool CheckFsType(char **pLine)
-{
-    char* fsType = NULL;
-    for (int i = 0; i < FSTYPE_GAP; i++) {
-        fsType = strsep(pLine, " ");
-        if (fsType == NULL || *fsType == '\0') {
-            return false;
-        }
-    }
-
-    return IsStrEqual(fsType, "cgroup");
-}
-
-bool CheckSubStr(char **pLine, const char *subsys)
-{
-    char* substr = NULL;
-    for (int i = 0; i < MOUNT_SUBSTR_GAP; i++) {
-        substr = strsep(pLine, " ");
-        if (substr == NULL || *substr == '\0') {
-            return false;
-        }
-    }
-
-    return strstr(substr, subsys) != NULL;
-}
-
-int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* filepath)
-{
-    FILE *fp = NULL;
-    char *line = NULL;
-    size_t len = 0;
-    char resolvedPath[PATH_MAX] = {0x0};
-
-    if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
-        LogError("error: cannot canonicalize path %s\n", filepath);
-        return -1;
-    }
-
-    fp = fopen(resolvedPath, "r");
-    if (fp == NULL) {
-        LogError("cannot open file.\n");
-        return -1;
-    }
-
-    while (getline(&line, &len, fp) != -1) {
-        char* result = fn(line, "devices");
-        if (result != NULL && strlen(result) < bufferSize) {
-            errno_t ret = strncpy_s(buffer, BUF_SIZE, result, strlen(result));
-            if (ret != EOK) {
-                fclose(fp);
-                return -1;
-            }
-            break;
-        }
-    }
-
-    if (line != NULL) {
-        free(line);
-    }
-
-    fclose(fp);
-    return 0;
 }
 
 int MkDir(const char *dir, int mode)
@@ -190,25 +110,5 @@ int CreateFile(const char *path, mode_t mode)
         return -1;
     }
     close(fd);
-    return 0;
-}
-
-int Mount(const char *src, const char *dst)
-{
-    static const unsigned long remountFlags = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID;
-    int ret;
-
-    ret = mount(src, dst, NULL, MS_BIND, NULL);
-    if (ret < 0) {
-        LogError("error: failed to mount\n");
-        return -1;
-    }
-
-    ret = mount(NULL, dst, NULL, remountFlags, NULL);
-    if (ret < 0) {
-        LogError("error: failed to re-mount\n");
-        return -1;
-    }
-
     return 0;
 }

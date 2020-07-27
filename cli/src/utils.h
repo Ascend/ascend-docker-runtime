@@ -9,21 +9,13 @@
 #include <sys/types.h>
 #include "basic.h"
 
-// For cgroup setup
+int IsStrEqual(const char *s1, const char *s2);
 int StrHasPrefix(const char *str, const char *prefix);
-bool CheckRootDir(char **pLine);
-bool CheckFsType(char **pLine);
-bool CheckSubStr(char **pLine, const char *subsys);
-typedef char *(*ParseFileLine)(char *, const char *);
-int CatFileContent(char* buffer, int bufferSize, ParseFileLine fn, const char* filepath);
-
-// For mount setup
 int MkDir(const char *dir, int mode);
 int VerifyPathInfo(const struct PathInfo* pathInfo);
 int CheckDirExists(const char *dir);
 int GetParentPathStr(const char *path, char *parent, size_t bufSize);
 int MakeParentDir(const char *path, mode_t mode);
 int CreateFile(const char *path, mode_t mode);
-int Mount(const char *src, const char *dst);
 
 #endif
