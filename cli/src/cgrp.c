@@ -199,7 +199,7 @@ int SetupDriverCgroup(FILE *cgroupAllow)
     return 0;
 }
 
-int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSize)
+int GetCgroupPath(int pid, char *effPath, size_t maxSize)
 {
     int ret;
     char mountPath[BUF_SIZE] = {0x0};
@@ -219,9 +219,9 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
 
     char cgroup[BUF_SIZE] = {0x0};
     char cgroupPath[BUF_SIZE] = {0x0};
-    ret = snprintf_s(cgroupPath, BUF_SIZE, BUF_SIZE, "/proc/%d/cgroup", args->pid);
+    ret = sprintf_s(cgroupPath, BUF_SIZE, "/proc/%d/cgroup", pid);
     if (ret < 0) {
-        LogError("error: assemble cgroup path failed: pid(%d)\n", args->pid);
+        LogError("error: assemble cgroup path failed: pid(%d).", pid);
         return -1;
     }
 
@@ -243,25 +243,17 @@ int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSiz
     return 0;
 }
 
-int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
+int SetupCgroup(const struct ParsedConfig *config)
 {
     int ret;
     char deviceName[BUF_SIZE] = {0};
     char resolvedCgroupPath[PATH_MAX] = {0};
     FILE *cgroupAllow = NULL;
 
-    if (realpath(cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
-        LogError("error: cannot canonicalize cgroup path: %s\n", cgroupPath);
+    if (realpath(config->cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
+        LogError("error: cannot canonicalize cgroup path: %s.", config->cgroupPath);
         return -1;
     }
-
-    static const char *sep = ",";
-    char list[BUF_SIZE] = {0};
-    errno_t err = strncpy_s(list, BUF_SIZE, args->devices, strlen(args->devices));
-    if (err != EOK) {
-        return -1;
-    }
-    char *token = NULL;
 
     cgroupAllow = fopen((const char *)resolvedCgroupPath, "a");
     if (cgroupAllow == NULL) {
@@ -275,24 +267,21 @@ int SetupCgroup(struct CmdArgs *args, const char *cgroupPath)
         LogError("error: failed to setup driver cgroup.");
         return -1;
     }
-    
-    token = strtok(list, sep);
-    while (token != NULL) {
-        ret = snprintf_s(deviceName, BUF_SIZE, BUF_SIZE, "%s%s", DEVICE_NAME, token);
+
+    for (size_t idx = 0; idx < config->devicesNr; idx++) {
+        ret = sprintf_s(deviceName, BUF_SIZE, "%s%u", DEVICE_NAME, config->devices[idx]);
         if (ret < 0) {
             fclose(cgroupAllow);
-            LogError("error: failed to assemble device path for no.%s\n", token);
+            LogError("error: failed to assemble device path for no.%u.", config->devices[idx]);
             return -1;
         }
 
         ret = SetupDeviceCgroup(cgroupAllow, (const char *)deviceName);
         if (ret < 0) {
             fclose(cgroupAllow);
-            LogError("error: failed to setup cgroup %s\n", token);
+            LogError("error: failed to setup cgroup for %s.", deviceName);
             return -1;
         }
-
-        token = strtok(NULL, sep);
     }
 
     fclose(cgroupAllow);

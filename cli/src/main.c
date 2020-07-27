@@ -23,10 +23,11 @@
 
 #define DECIMAL     10
 
-struct ParsedConfig {
-    char containerNsPath[BUF_SIZE];
-    char cgroupPath[BUF_SIZE];
-    int  originNsFd;
+struct CmdArgs {
+    char     devices[BUF_SIZE];
+    char     rootfs[BUF_SIZE];
+    int      pid;
+    char     options[BUF_SIZE];
 };
 
 static struct option g_cmdOpts[] = {
@@ -129,9 +130,51 @@ static inline bool IsCmdArgsValid(struct CmdArgs *args)
     return (strlen(args->devices) > 0) && (strlen(args->rootfs) > 0) && (args->pid > 0);
 }
 
+static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *devices)
+{
+    static const char *sep = ",";
+    char *token = NULL;
+    char *context = NULL;
+    size_t idx = 0;
+
+    token = strtok_s(devices, sep, &context);
+    while (token != NULL) {
+        if (idx >= *idListSize) {
+            LogError("error: too many devices(%u), support %u devices maximally", idx, *idListSize);
+            return -1;
+        }
+
+        errno = 0;
+        idList[idx] = strtoul((const char *)token, NULL, DECIMAL);
+        if (errno != 0) {
+            LogError("error: failed to convert device id (%s) from cmd args, caused by: %s.", token, strerror(errno));
+            return -1;
+        }
+
+        idx++;
+        token = strtok_s(NULL, sep, &context);
+    }
+
+    *idListSize = idx;
+    return 0;
+}
+
 int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 {
     int ret;
+    errno_t err;
+
+    err = strcpy_s(config->rootfs, BUF_SIZE, args->rootfs);
+    if (err != EOK) {
+        LogError("error: failed to copy rootfs path to parsed config.");
+        return -1;
+    }
+
+    ret = ParseDeviceIDs(config->devices, &config->devicesNr, (char *)args->devices);
+    if (ret < 0) {
+        LogError("error: failed to parse device ids from cmdline argument");
+        return -1;
+    }
 
     ret = GetNsPath(args->pid, "mnt", config->containerNsPath, BUF_SIZE);
     if (ret < 0) {
@@ -139,7 +182,7 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
         return -1;
     }
 
-    ret = GetCgroupPath(args, config->cgroupPath, BUF_SIZE);
+    ret = GetCgroupPath(args->pid, config->cgroupPath, BUF_SIZE);
     if (ret < 0) {
         LogError("error: failed to get cgroup path.");
         return -1;
@@ -172,6 +215,8 @@ int SetupContainer(struct CmdArgs *args)
     int ret;
     struct ParsedConfig config;
 
+    InitParsedConfig(&config);
+
     ret = DoPrepare(args, &config);
     if (ret < 0) {
         LogError("error: failed to prepare nesessary config.");
@@ -186,14 +231,14 @@ int SetupContainer(struct CmdArgs *args)
         return -1;
     }
 
-    ret = DoMounting(args);
+    ret = DoMounting(&config);
     if (ret < 0) {
         LogError("error: failed to do mounting.");
         close(config.originNsFd);
         return -1;
     }
 
-    ret = SetupCgroup(args, (const char *)config.cgroupPath);
+    ret = SetupCgroup(&config);
     if (ret < 0) {
         LogError("error: failed to set up cgroup.");
         close(config.originNsFd);
