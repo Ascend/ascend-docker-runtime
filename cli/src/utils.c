@@ -71,7 +71,7 @@ int GetParentPathStr(const char *path, char *parent, size_t bufSize)
     return 0;
 }
 
-int MakeParentDir(const char *path, mode_t mode)
+int MakeDirWithParent(const char *path, mode_t mode)
 {
     if (*path == '\0' || *path == '.') {
         return 0;
@@ -82,15 +82,13 @@ int MakeParentDir(const char *path, mode_t mode)
 
     char parentPath[BUF_SIZE] = {0};
     GetParentPathStr(path, parentPath, BUF_SIZE);
-    if (strlen(parentPath) > 0 && MakeParentDir(parentPath, mode) < 0) {
+    if (strlen(parentPath) > 0 && MakeDirWithParent(parentPath, mode) < 0) {
         return -1;
     }
 
-    struct stat s;
-    int ret = stat(path, &s);
+    int ret = MkDir(path, mode);
     if (ret < 0) {
-        LogError("error: failed to stat path: %s.", path);
-        return (MkDir(path, mode));
+        return -1;
     }
 
     return 0;
@@ -98,6 +96,16 @@ int MakeParentDir(const char *path, mode_t mode)
 
 int CreateFile(const char *path, mode_t mode)
 {
+    /* directory */
+    char parentDir[BUF_SIZE] = {0};
+    GetParentPathStr(path, parentDir, BUF_SIZE);
+
+    int ret = MakeDirWithParent(parentDir, DEFAULT_DIR_MODE);
+    if (ret < 0) {
+        LogError("error: failed to make parent dir for file: %s", path);
+        return -1;
+    }
+
     char resolvedPath[PATH_MAX] = {0};
     if (realpath(path, resolvedPath) == NULL && errno != ENOENT) {
         LogError("error: failed to resolve path %s.", path);

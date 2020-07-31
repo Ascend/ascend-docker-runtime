@@ -15,7 +15,7 @@ int MkDir(const char *dir, int mode);
 int VerifyPathInfo(const struct PathInfo* pathInfo);
 int CheckDirExists(const char *dir);
 int GetParentPathStr(const char *path, char *parent, size_t bufSize);
-int MakeParentDir(const char *path, mode_t mode);
+int MakeDirWithParent(const char *path, mode_t mode);
 int CreateFile(const char *path, mode_t mode);
 
 #endif
