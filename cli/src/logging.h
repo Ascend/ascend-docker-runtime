@@ -5,7 +5,12 @@
 #ifndef _LOGGING_H
 #define _LOGGING_H
 
+void SetPidForLog(int pid);
+int OpenLog(const char *logFile);
+void CloseLog();
+
 void LogError(const char *fmt, ...);
 void LogInfo(const char *fmt, ...);
+void LogWarning(const char *fmt, ...);
 
 #endif

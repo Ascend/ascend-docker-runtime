@@ -147,8 +147,8 @@ int MountFile(const char *rootfs, const char *filepath)
     struct stat srcStat;
     ret = stat(filepath, &srcStat);
     if (ret < 0) {
-        LogError("error: failed to stat src: %s.", filepath);
-        return -1;
+        LogWarning("warning: failed to find file %s on host, skipping", filepath);
+        return 0;
     }
 
     ret = CreateFile(dst, srcStat.st_mode);
@@ -179,7 +179,8 @@ int MountDir(const char *rootfs, const char *src)
     struct stat srcStat;
     ret = stat(src, &srcStat);
     if (ret < 0) {
-        return -1;
+        LogWarning("warning: failed to find dir %s on host, skipping", src);
+        return 0;
     }
 
     ret = MakeDirWithParent(dst, DEFAULT_DIR_MODE);

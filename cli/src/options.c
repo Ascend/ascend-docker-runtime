@@ -10,6 +10,7 @@
 
 static struct {
     bool noDrv;
+    bool verbose;
 } g_runtimeOptions;
 
 static struct {
@@ -17,6 +18,7 @@ static struct {
     bool *flag;
 } g_optionNameFlagTable[] = {
     {"NODRV", &g_runtimeOptions.noDrv}, // 不挂载Driver
+    {"VERBOSE", &g_runtimeOptions.verbose}, // 输出日志
     {NULL, NULL}
 };
 
@@ -24,6 +26,7 @@ int ParseRuntimeOptions(const char *options)
 {
     // set defaults value
     g_runtimeOptions.noDrv = false;
+    g_runtimeOptions.verbose = false;
 
     static const char *seperator = ",";
     char *runtimeOptions = strdup(options);
@@ -50,4 +53,9 @@ int ParseRuntimeOptions(const char *options)
 bool IsOptionNoDrvSet()
 {
     return g_runtimeOptions.noDrv;
+}
+
+bool IsOptionVerboseSet()
+{
+    return g_runtimeOptions.verbose;
 }

@@ -9,5 +9,6 @@
 
 int ParseRuntimeOptions(const char *options);
 bool IsOptionNoDrvSet();
+bool IsOptionVerboseSet();
 
 #endif
