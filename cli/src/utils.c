@@ -42,11 +42,9 @@ int CheckDirExists(const char *dir)
 {
     DIR *ptr = opendir(dir);
     if (NULL == ptr) {
-        LogError("path %s not exist.", dir);
         return -1;
     }
 
-    LogInfo("path %s exist.", dir);
     closedir(ptr);
     return 0;
 }

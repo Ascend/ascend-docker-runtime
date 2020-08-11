@@ -201,12 +201,6 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
         return -1;
     }
 
-    ret = ParseRuntimeOptions(args->options);
-    if (ret < 0) {
-        LogError("error: failed to parse runtime options.");
-        return -1;
-    }
-
     return 0;
 }
 
@@ -277,9 +271,32 @@ int Process(int argc, char **argv)
         return -1;
     }
 
+    ret = ParseRuntimeOptions(args.options);
+    if (ret < 0) {
+        LogError("error: failed to parse runtime options.");
+        return -1;
+    }
+
+    SetPidForLog(args.pid);
+
+    if (IsOptionVerboseSet()) {
+        ret = OpenLog(DEFAULT_LOG_FILE);
+        if (ret < 0) {
+            LogError("error: failed to open log file %s.", DEFAULT_LOG_FILE);
+            return -1;
+        }
+    }
+
     ret = SetupContainer(&args);
     if (ret < 0) {
+        if (IsOptionVerboseSet()) {
+            CloseLog();
+        }
         return ret;
+    }
+
+    if (IsOptionVerboseSet()) {
+        CloseLog();
     }
 
     return 0;

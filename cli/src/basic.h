@@ -22,6 +22,7 @@
 #define DEFAULT_DIR_MODE 0755
 #define BUF_SIZE 1024
 #define MAX_DEVICE_NR 1024
+#define DEFAULT_LOG_FILE "/var/log/ascend-docker-runtime.log"
 
 #define ALLOW_PATH "/devices.allow"
 #define ROOT_GAP 4
