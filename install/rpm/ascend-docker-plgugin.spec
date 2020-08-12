@@ -1,5 +1,5 @@
 Name: ascend-docker-runtime
-Version: 20.10.0.B010
+Version: 20.10.0.B011
 Release: 1
 Summary: simple RPM package
 License: FIXME
