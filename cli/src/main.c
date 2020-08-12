@@ -279,25 +279,19 @@ int Process(int argc, char **argv)
 
     SetPidForLog(args.pid);
 
-    if (IsOptionVerboseSet()) {
-        ret = OpenLog(DEFAULT_LOG_FILE);
-        if (ret < 0) {
-            LogError("error: failed to open log file %s.", DEFAULT_LOG_FILE);
-            return -1;
-        }
+    ret = OpenLog(DEFAULT_LOG_FILE);
+    if (ret < 0) {
+        LogError("error: failed to open log file %s.", DEFAULT_LOG_FILE);
+        return -1;
     }
 
     ret = SetupContainer(&args);
     if (ret < 0) {
-        if (IsOptionVerboseSet()) {
-            CloseLog();
-        }
+        CloseLog();
         return ret;
     }
 
-    if (IsOptionVerboseSet()) {
-        CloseLog();
-    }
+    CloseLog();
 
     return 0;
 }
