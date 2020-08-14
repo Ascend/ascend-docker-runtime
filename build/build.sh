@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ROOT=$(cd `dirname $0`; pwd)/..
+TOP_DIR=$ROOT/..
 
 OPENSRC=${ROOT}/opensource
 PLATFORM=${ROOT}/platform
@@ -37,7 +38,8 @@ HOOKSRCDIR=${HOOKSRCPATH%/${HOOKSRCNAME}}
 RUNTIMESRCPATH=`find ${RUNTIMEDIR} -name "${RUNTIMESRCNAME}"`
 RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
-VERSION="20.10.0.B020"
+SOFT_VERSION=`cat $TOP_DIR/CI/config/version.ini | grep "PackageName" | cut -d "=" -f 2`
+VERSION=$SOFT_VERSION
 RELEASE="1"
 PACKAGENAEM="ascend-docker-runtime"
 CPUARCH=`uname -m`
@@ -117,6 +119,7 @@ if [ $FILECNT -ne 4 ]; then
 exit 1
 fi 
 SPECPATH=`find ${INSTALLHELPERDIR} -name "*.spec"` 
+sed -i "2c Version: ${SOFT_VERSION}" ${SPECPATH}
 dos2unix ${SPECPATH}
 /bin/cp -f  ${SPECPATH}  ${RPMSPECDIR}
 funcfillspec
