@@ -13,6 +13,7 @@
 #include <time.h>
 #include "securec.h"
 #include "basic.h"
+#include "options.h"
 
 static int g_pid = -1;
 static FILE *g_logFile = NULL;
@@ -26,8 +27,8 @@ int OpenLog(const char *logFile)
 {
     char realPath[PATH_MAX] = {0};
 
-    if (g_logFile != NULL) {
-        return 0; // 防重入
+    if (!IsOptionVerboseSet()) { // 日志开关
+        return 0;
     }
 
     if (realpath(logFile, realPath) == NULL && errno != ENOENT) {
@@ -46,7 +47,7 @@ int OpenLog(const char *logFile)
 
 void CloseLog()
 {
-    if (g_logFile != NULL) {
+    if (IsOptionVerboseSet() && g_logFile != NULL) {
         (void)fclose(g_logFile);
         g_logFile = NULL;
     }
@@ -76,38 +77,44 @@ static void WriteLog(char level, const char *fmt, va_list args)
 void LogError(const char *fmt, ...)
 {
     va_list args;
-    va_list logArgs;
 
     va_start(args, fmt);
-    va_copy(logArgs, args);
+
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    WriteLog('E', fmt, argsCopy);
+    va_end(argsCopy);
+
     vfprintf(stderr, fmt, args);
-    WriteLog('E', fmt, logArgs);
-    va_end(logArgs);
     va_end(args);
 }
 
 void LogInfo(const char *fmt, ...)
 {
     va_list args;
-    va_list logArgs;
 
     va_start(args, fmt);
-    va_copy(logArgs, args);
+
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    WriteLog('I', fmt, argsCopy);
+    va_end(argsCopy);
+
     vfprintf(stdout, fmt, args);
-    WriteLog('I', fmt, logArgs);
-    va_end(logArgs);
     va_end(args);
 }
 
 void LogWarning(const char *fmt, ...)
 {
     va_list args;
-    va_list logArgs;
 
     va_start(args, fmt);
-    va_copy(logArgs, args);
+
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    WriteLog('W', fmt, argsCopy);
+    va_end(argsCopy);
+
     vfprintf(stderr, fmt, args);
-    WriteLog('W', fmt, logArgs);
-    va_end(logArgs);
     va_end(args);
 }
