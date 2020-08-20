@@ -98,7 +98,8 @@ run_lcov_cli()
     lcov --no-external -o result.info -b . -d . -c
     genhtml result.info -o Report
     cd ${CUR_DIR}
-    cp -f buildDTCenter.xml test_detail.xml
+    mkdir xml
+    cp -f buildDTCenter.xml ./xml/test_detail.xml
     echo "-------------run_ut cli end-------------------"
 }
 
