@@ -6,7 +6,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <limits.h>
 #include <errno.h>
 #include <sys/time.h>
@@ -32,13 +31,13 @@ int OpenLog(const char *logFile)
     }
 
     if (realpath(logFile, realPath) == NULL && errno != ENOENT) {
-        LogError("error: cannot canonicalize log file path %s.", logFile);
+        LOG_ERROR("error: cannot canonicalize log file path %s.", logFile);
         return -1;
     }
 
     g_logFile = fopen((const char *)realPath, "ae");
     if (g_logFile == NULL) {
-        LogError("error: failed to open log file %s.", realPath);
+        LOG_ERROR("error: failed to open log file %s.", realPath);
         return -1;
     }
 
@@ -53,7 +52,7 @@ void CloseLog()
     }
 }
 
-static void WriteLog(char level, const char *fmt, va_list args)
+void WriteLog(char level, const char *content)
 {
     struct timeval tv = {0};
     struct tm *tm = NULL;
@@ -70,51 +69,6 @@ static void WriteLog(char level, const char *fmt, va_list args)
     }
 
     fprintf(g_logFile, "[%c %s.%06ld %d] ", level, buf, tv.tv_usec, g_pid);
-    vfprintf(g_logFile, fmt, args);
+    fprintf(g_logFile, "%s", content);
     fputc('\n', g_logFile);
-}
-
-void LogError(const char *fmt, ...)
-{
-    va_list args;
-
-    va_start(args, fmt);
-
-    va_list argsCopy;
-    va_copy(argsCopy, args);
-    WriteLog('E', fmt, argsCopy);
-    va_end(argsCopy);
-
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-}
-
-void LogInfo(const char *fmt, ...)
-{
-    va_list args;
-
-    va_start(args, fmt);
-
-    va_list argsCopy;
-    va_copy(argsCopy, args);
-    WriteLog('I', fmt, argsCopy);
-    va_end(argsCopy);
-
-    vfprintf(stdout, fmt, args);
-    va_end(args);
-}
-
-void LogWarning(const char *fmt, ...)
-{
-    va_list args;
-
-    va_start(args, fmt);
-
-    va_list argsCopy;
-    va_copy(argsCopy, args);
-    WriteLog('W', fmt, argsCopy);
-    va_end(argsCopy);
-
-    vfprintf(stderr, fmt, args);
-    va_end(args);
 }

@@ -22,7 +22,7 @@ static struct {
     {NULL, NULL}
 };
 
-int ParseRuntimeOptions(const char *options)
+void ParseRuntimeOptions(const char *options)
 {
     // set defaults value
     g_runtimeOptions.noDrv = false;
@@ -47,7 +47,6 @@ int ParseRuntimeOptions(const char *options)
     }
 
     free(runtimeOptions);
-    return 0;
 }
 
 bool IsOptionNoDrvSet()

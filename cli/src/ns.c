@@ -28,7 +28,7 @@ int EnterNsByFd(int fd, int nsType)
 {
     int ret = setns(fd, nsType);
     if (ret < 0) {
-        LogError("error: failed to set ns: fd(%d).", fd);
+        LOG_ERROR("error: failed to set ns: fd(%d).", fd);
         return -1;
     }
 
@@ -42,13 +42,13 @@ int EnterNsByPath(const char *path, int nsType)
 
     fd = open(path, O_RDONLY); // proc文件接口，非外部输入
     if (fd < 0) {
-        LogError("error: failed to open ns path: %s.", path);
+        LOG_ERROR("error: failed to open ns path: %s.", path);
         return -1;
     }
 
     ret = EnterNsByFd(fd, nsType);
     if (ret < 0) {
-        LogError("error: failed to set ns: %s.", path);
+        LOG_ERROR("error: failed to set ns: %s.", path);
         close(fd);
         return -1;
     }

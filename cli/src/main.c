@@ -44,7 +44,7 @@ static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     errno_t err = strcpy_s(args->devices, BUF_SIZE, arg);
     if (err != EOK) {
-        LogError("error: failed to get devices from cmd args.");
+        LOG_ERROR("error: failed to get devices from cmd args.");
         return false;
     }
 
@@ -56,12 +56,12 @@ static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
     errno = 0;
     args->pid = strtol(optarg, NULL, DECIMAL);
     if (errno != 0) {
-        LogError("error: failed to convert pid string from cmd args, pid string: %s.", arg);
+        LOG_ERROR("error: failed to convert pid string from cmd args, pid string: %s.", arg);
         return false;
     }
 
     if (args->pid <= 0) {
-        LogError("error: invalid pid %d.", args->pid);
+        LOG_ERROR("error: invalid pid %d.", args->pid);
         return false;
     }
 
@@ -72,7 +72,7 @@ static bool RootfsCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     errno_t err = strcpy_s(args->rootfs, BUF_SIZE, arg);
     if (err != EOK) {
-        LogError("error: failed to get rootfs path from cmd args");
+        LOG_ERROR("error: failed to get rootfs path from cmd args");
         return false;
     }
 
@@ -83,7 +83,7 @@ static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     errno_t err = strcpy_s(args->options, BUF_SIZE, arg);
     if (err != EOK) {
-        LogError("error: failed to get options string from cmd args");
+        LOG_ERROR("error: failed to get options string from cmd args");
         return false;
     }
 
@@ -93,7 +93,7 @@ static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
 #define NUM_OF_CMD_ARGS 4
 
 static struct {
-    const int c;
+    const char c;
     CmdArgParser parser;
 } g_cmdArgParsers[NUM_OF_CMD_ARGS] = {
     {'d', DevicesCmdArgParser},
@@ -102,7 +102,7 @@ static struct {
     {'o', OptionsCmdArgParser}
 };
 
-static int ParseOneCmdArg(struct CmdArgs *args, int indicator, const char *value)
+static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *value)
 {
     int i;
     for (i = 0; i < NUM_OF_CMD_ARGS; i++) {
@@ -112,13 +112,13 @@ static int ParseOneCmdArg(struct CmdArgs *args, int indicator, const char *value
     }
 
     if (i == NUM_OF_CMD_ARGS) {
-        LogError("error: unrecognized cmd arg: indicate char: %c, value: %s.", indicator, value);
+        LOG_ERROR("error: unrecognized cmd arg: indicate char: %c, value: %s.", indicator, value);
         return -1;
     }
 
     bool isOK = g_cmdArgParsers[i].parser(args, value);
     if (!isOK) {
-        LogError("error: failed while parsing cmd arg, indicate char: %c, value: %s.", indicator, value);
+        LOG_ERROR("error: failed while parsing cmd arg, indicate char: %c, value: %s.", indicator, value);
         return -1;
     }
 
@@ -140,14 +140,14 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
     token = strtok_s(devices, sep, &context);
     while (token != NULL) {
         if (idx >= *idListSize) {
-            LogError("error: too many devices(%u), support %u devices maximally", idx, *idListSize);
+            LOG_ERROR("error: too many devices(%u), support %u devices maximally", idx, *idListSize);
             return -1;
         }
 
         errno = 0;
         idList[idx] = strtoul((const char *)token, NULL, DECIMAL);
         if (errno != 0) {
-            LogError("error: failed to convert device id (%s) from cmd args, caused by: %s.", token, strerror(errno));
+            LOG_ERROR("error: failed to convert device id (%s) from cmd args, caused by: %s.", token, strerror(errno));
             return -1;
         }
 
@@ -166,38 +166,38 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 
     err = strcpy_s(config->rootfs, BUF_SIZE, args->rootfs);
     if (err != EOK) {
-        LogError("error: failed to copy rootfs path to parsed config.");
+        LOG_ERROR("error: failed to copy rootfs path to parsed config.");
         return -1;
     }
 
     ret = ParseDeviceIDs(config->devices, &config->devicesNr, (char *)args->devices);
     if (ret < 0) {
-        LogError("error: failed to parse device ids from cmdline argument");
+        LOG_ERROR("error: failed to parse device ids from cmdline argument");
         return -1;
     }
 
     ret = GetNsPath(args->pid, "mnt", config->containerNsPath, BUF_SIZE);
     if (ret < 0) {
-        LogError("error: failed to get container mnt ns path: pid(%d).", args->pid);
+        LOG_ERROR("error: failed to get container mnt ns path: pid(%d).", args->pid);
         return -1;
     }
 
     ret = GetCgroupPath(args->pid, config->cgroupPath, BUF_SIZE);
     if (ret < 0) {
-        LogError("error: failed to get cgroup path.");
+        LOG_ERROR("error: failed to get cgroup path.");
         return -1;
     }
 
     char originNsPath[BUF_SIZE] = {0};
     ret = GetSelfNsPath("mnt", originNsPath, BUF_SIZE);
     if (ret < 0) {
-        LogError("error: failed to get self ns path.");
+        LOG_ERROR("error: failed to get self ns path.");
         return -1;
     }
 
     config->originNsFd = open((const char *)originNsPath, O_RDONLY); // proc接口，非外部输入
     if (config->originNsFd < 0) {
-        LogError("error: failed to get self ns fd: %s.", originNsPath);
+        LOG_ERROR("error: failed to get self ns fd: %s.", originNsPath);
         return -1;
     }
 
@@ -213,28 +213,28 @@ int SetupContainer(struct CmdArgs *args)
 
     ret = DoPrepare(args, &config);
     if (ret < 0) {
-        LogError("error: failed to prepare nesessary config.");
+        LOG_ERROR("error: failed to prepare nesessary config.");
         return -1;
     }
 
     // enter container's mount namespace
     ret = EnterNsByPath((const char *)config.containerNsPath, CLONE_NEWNS);
     if (ret < 0) {
-        LogError("error: failed to set to container ns: %s.", config.containerNsPath);
+        LOG_ERROR("error: failed to set to container ns: %s.", config.containerNsPath);
         close(config.originNsFd);
         return -1;
     }
 
     ret = DoMounting(&config);
     if (ret < 0) {
-        LogError("error: failed to do mounting.");
+        LOG_ERROR("error: failed to do mounting.");
         close(config.originNsFd);
         return -1;
     }
 
     ret = SetupCgroup(&config);
     if (ret < 0) {
-        LogError("error: failed to set up cgroup.");
+        LOG_ERROR("error: failed to set up cgroup.");
         close(config.originNsFd);
         return -1;
     }
@@ -242,7 +242,7 @@ int SetupContainer(struct CmdArgs *args)
     // back to original namespace
     ret = EnterNsByFd(config.originNsFd, CLONE_NEWNS);
     if (ret < 0) {
-        LogError("error: failed to set ns back.");
+        LOG_ERROR("error: failed to set ns back.");
         close(config.originNsFd);
         return -1;
     }
@@ -259,29 +259,24 @@ int Process(int argc, char **argv)
     struct CmdArgs args = {0};
 
     while ((c = getopt_long(argc, argv, "d:p:r:o", g_cmdOpts, &optionIndex)) != -1) {
-        ret = ParseOneCmdArg(&args, c, optarg);
+        ret = ParseOneCmdArg(&args, (char)c, optarg);
         if (ret < 0) {
-            LogError("error: failed to parse cmd args.");
+            LOG_ERROR("error: failed to parse cmd args.");
             return -1;
         }
     }
 
     if (!IsCmdArgsValid(&args)) {
-        LogError("error: information not completed or valid.");
+        LOG_ERROR("error: information not completed or valid.");
         return -1;
     }
 
-    ret = ParseRuntimeOptions(args.options);
-    if (ret < 0) {
-        LogError("error: failed to parse runtime options.");
-        return -1;
-    }
-
+    ParseRuntimeOptions(args.options);
     SetPidForLog(args.pid);
 
     ret = OpenLog(DEFAULT_LOG_FILE);
     if (ret < 0) {
-        LogError("error: failed to open log file %s.", DEFAULT_LOG_FILE);
+        LOG_ERROR("error: failed to open log file %s.", DEFAULT_LOG_FILE);
         return -1;
     }
 
