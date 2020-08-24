@@ -7,7 +7,7 @@
 
 #include <stdbool.h>
 
-int ParseRuntimeOptions(const char *options);
+void ParseRuntimeOptions(const char *options);
 bool IsOptionNoDrvSet();
 bool IsOptionVerboseSet();
 

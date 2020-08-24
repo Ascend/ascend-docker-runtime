@@ -5,12 +5,35 @@
 #ifndef _LOGGING_H
 #define _LOGGING_H
 
+#include <stdio.h>
+#include <stdarg.h>
+#include "securec.h"
+#include "basic.h"
+
 void SetPidForLog(int pid);
 int OpenLog(const char *logFile);
 void CloseLog();
+void WriteLog(char level, const char *content);
 
-void LogError(const char *fmt, ...);
-void LogInfo(const char *fmt, ...);
-void LogWarning(const char *fmt, ...);
+#define LOG(level, fmt, ...)                                        \
+    do {                                                            \
+        char content[BUF_SIZE] = {0};                               \
+        int ret = sprintf_s(content, BUF_SIZE, fmt, ##__VA_ARGS__); \
+        if (ret < 0) {                                              \
+            break;                                                  \
+        }                                                           \
+        WriteLog(level, (const char *)content);                     \
+        fprintf(stderr, "%s", (const char *)content);               \
+    } while (0)
+
+#define LOG_ERROR(fmt, ...)           \
+    do {                              \
+        LOG('E', fmt, ##__VA_ARGS__); \
+    } while (0)
+
+#define LOG_WARNING(fmt, ...)         \
+    do {                              \
+        LOG('W', fmt, ##__VA_ARGS__); \
+    } while (0)
 
 #endif

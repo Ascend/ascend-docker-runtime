@@ -100,19 +100,19 @@ int CreateFile(const char *path, mode_t mode)
 
     int ret = MakeDirWithParent(parentDir, DEFAULT_DIR_MODE);
     if (ret < 0) {
-        LogError("error: failed to make parent dir for file: %s", path);
+        LOG_ERROR("error: failed to make parent dir for file: %s", path);
         return -1;
     }
 
     char resolvedPath[PATH_MAX] = {0};
     if (realpath(path, resolvedPath) == NULL && errno != ENOENT) {
-        LogError("error: failed to resolve path %s.", path);
+        LOG_ERROR("error: failed to resolve path %s.", path);
         return -1;
     }
 
     int fd = open(resolvedPath, O_NOFOLLOW | O_CREAT, mode);
     if (fd < 0) {
-        LogError("error: cannot create file: %s.", resolvedPath);
+        LOG_ERROR("error: cannot create file: %s.", resolvedPath);
         return -1;
     }
     close(fd);
