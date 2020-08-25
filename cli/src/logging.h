@@ -15,25 +15,20 @@ int OpenLog(const char *logFile);
 void CloseLog();
 void WriteLog(char level, const char *content);
 
-#define LOG(level, fmt, ...)                                        \
-    do {                                                            \
-        char content[BUF_SIZE] = {0};                               \
-        int ret = sprintf_s(content, BUF_SIZE, fmt, ##__VA_ARGS__); \
-        if (ret < 0) {                                              \
-            break;                                                  \
-        }                                                           \
-        WriteLog(level, (const char *)content);                     \
-        fprintf(stderr, "%s", (const char *)content);               \
+#define LOG(level, fmt, ...)                                          \
+    do {                                                              \
+        char _content[BUF_SIZE] = {0};                                \
+        int _ret = sprintf_s(_content, BUF_SIZE, fmt, ##__VA_ARGS__); \
+        if (_ret < 0) {                                               \
+            fprintf(stderr, "cannot assemble log content");           \
+        } else {                                                      \
+            WriteLog(level, (const char *)_content);                  \
+            fprintf(stderr, "%s", (const char *)_content);            \
+        }                                                             \
     } while (0)
 
-#define LOG_ERROR(fmt, ...)           \
-    do {                              \
-        LOG('E', fmt, ##__VA_ARGS__); \
-    } while (0)
+#define LOG_ERROR(fmt, ...) LOG('E', fmt, ##__VA_ARGS__)
 
-#define LOG_WARNING(fmt, ...)         \
-    do {                              \
-        LOG('W', fmt, ##__VA_ARGS__); \
-    } while (0)
+#define LOG_WARNING(fmt, ...) LOG('W', fmt, ##__VA_ARGS__)
 
 #endif
