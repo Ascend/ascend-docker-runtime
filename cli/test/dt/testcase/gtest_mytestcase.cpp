@@ -131,6 +131,11 @@ int stub_Mount_success(const char *src, const char *dst)
     return 0;
 }
 
+int stub_Mount_failed(const char *src, const char *dst)
+{
+    return -1;
+}
+
 int stub_mount_failed(const char *source, const char *target,
                       const char *filesystemtype, unsigned long mountflags, const void *data)
 {
@@ -415,18 +420,15 @@ TEST_F(Test_Fhho, GetSelfNsPath)
     EXPECT_LE(0, GetSelfNsPath("mnt", nsPath, BUF_SIZE));
 }
 
-
 TEST(MountDevice, Status1)
 {
     char *rootfs="/home";
-    MOCKER(mount).stubs().will(invoke(stub_mount_success));
-    MOCKER(stat).stubs().will(invoke(stub_stat_success));
-    MOCKER(close).stubs().will(invoke(stub_close_success));
-    MOCKER(open).stubs().will(invoke(stub_open_success));
+    MOCKER(Mount).stubs().will(invoke(stub_Mount_failed));
     char *deviceName="davinci100";
     EXPECT_EQ(-1, MountDevice(rootfs, deviceName));
     GlobalMockObject::verify();
 }
+
 TEST(MountDevice, Status2)
 {
     char *rootfs="/home/notexists";

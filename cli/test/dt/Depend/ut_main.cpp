@@ -10,8 +10,6 @@ using namespace testing;
 
 int main(int argc, char* argv[])
 {
-    //testing::InitGoogleTest(&argc, argv);
     int result = testing::Init_UT(argc, argv,true);
-    
     return result;
 }
