@@ -95,11 +95,14 @@ run_lcov_cli()
     cd ${CUR_DIR}/build
     ./ut_demo
     cd ${SRC_ROOT}/..
-    lcov --no-external -o result.info -b . -d . -c
-    genhtml result.info -o Report
+    ENABLE_BRANCH_COV="--rc lcov_branch_coverage=1"
+    lcov --no-external -o result.info -b . -d . -c $ENABLE_BRANCH_COV
+    genhtml --branch-coverage result.info -o Report $ENABLE_BRANCH_COV
     cd ${CUR_DIR}
     mkdir xml
     cp -f buildDTCenter.xml ./xml/test_detail.xml
+    mkdir html
+    cp -rf ${SRC_ROOT}/../Report/* ./html/
     echo "-------------run_ut cli end-------------------"
 }
 
