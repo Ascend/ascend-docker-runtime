@@ -2,11 +2,11 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
  * Description: ascend_docker_install工具，用于辅助用户安装ascend_docker
 */
-#include "cJSON.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include "cJSON.h"
 
 #define MAX_JSON_FILE_SIZE 65535
 #define NUM_ARGS 4

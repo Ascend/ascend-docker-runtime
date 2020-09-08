@@ -125,7 +125,7 @@ static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *valu
     return 0;
 }
 
-static inline bool IsCmdArgsValid(struct CmdArgs *args)
+static inline bool IsCmdArgsValid(const struct CmdArgs *args)
 {
     return (strlen(args->devices) > 0) && (strlen(args->rootfs) > 0) && (args->pid > 0);
 }

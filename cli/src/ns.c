@@ -8,7 +8,6 @@
 #include <sched.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "basic.h"
 #include "securec.h"
 #include "logging.h"
 

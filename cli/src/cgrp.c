@@ -61,7 +61,7 @@ bool CheckSubStr(char **pLine, const char *subsys)
 }
 
 typedef char *(*ParseFileLine)(char *, const char *);
-int ParseFileByLine(char* buffer, int bufferSize, ParseFileLine fn, const char* filepath)
+int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const char* filepath)
 {
     FILE *fp = NULL;
     char *result = NULL;
