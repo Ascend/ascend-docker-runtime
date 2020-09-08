@@ -6,7 +6,6 @@
 #define _LOGGING_H
 
 #include <stdio.h>
-#include <stdarg.h>
 #include "securec.h"
 #include "basic.h"
 
