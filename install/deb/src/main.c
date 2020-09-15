@@ -9,13 +9,14 @@
 #include "cJSON.h"
 
 #define MAX_JSON_FILE_SIZE 65535
-#define NUM_ARGS 4
+#define MIN_ARGS_NUM 4
+#define ADD_CMD_ARGS_NUM 5
 #define ADD_CMD "add"
 #define RM_CMD "rm"
 #define CMD_INDEX 1
 #define FINAL_FILE_INDEX 2
 #define TEMP_FILE_INDEX 3
-#define ASCEND_RUNTIME_PATH_VALUE "/usr/bin/ascend-docker-runtime"
+#define RUNTIME_PATH_INDEX 4
 #define ASCEND_RUNTIME_PATH_KEY "path"
 #define ASCEND_RUNTIME_ARGS_KEY "runtimeArgs"
 #define RUNTIME_KEY "runtimes"
@@ -38,7 +39,7 @@ void ReadJsonFile(FILE *pf, char *text, int maxBufferSize)
     text[size] = '\0';
 }
 
-cJSON *CreateAscendRuntimeInfo()
+cJSON *CreateAscendRuntimeInfo(const char *runtimePath)
 {
     cJSON *root = NULL; 
     root = cJSON_CreateObject();
@@ -46,15 +47,15 @@ cJSON *CreateAscendRuntimeInfo()
         fprintf(stderr, "create ascend runtime info root err\n");
         return NULL;
     }
-    
+
     cJSON *newString = NULL; 
-    newString = cJSON_CreateString(ASCEND_RUNTIME_PATH_VALUE);
+    newString = cJSON_CreateString(runtimePath);
     if (newString == NULL) {
         fprintf(stderr, "create ascend runtime info path value err\n");
         cJSON_Delete(root);
         return NULL;
     }
-    
+
     cJSON *paraArray = NULL;
     paraArray = cJSON_CreateArray();
     if (paraArray == NULL) {
@@ -70,10 +71,10 @@ cJSON *CreateAscendRuntimeInfo()
     return root;
 }
 
-cJSON *CreateRuntimes()
+cJSON *CreateRuntimes(const char *runtimePath)
 {
     cJSON *ascendRuntime = NULL;
-    ascendRuntime = CreateAscendRuntimeInfo(); 
+    ascendRuntime = CreateAscendRuntimeInfo(runtimePath); 
     if (ascendRuntime == NULL) {
         fprintf(stderr, "create ascendruntime err\n");
         return NULL;
@@ -111,11 +112,11 @@ int DelJsonContent(cJSON *root, const char *key)
     return 0;
 }
 
-cJSON *CreateContent()
+cJSON *CreateContent(const char *runtimePath)
 {   
     /* 插入ascend runtime */
     cJSON *runtimes = NULL;
-    runtimes = CreateRuntimes();
+    runtimes = CreateRuntimes(runtimePath);
     if (runtimes == NULL) {
         fprintf(stderr, "create runtimes err\n");
         return NULL;
@@ -145,7 +146,7 @@ cJSON *CreateContent()
     return root;
 }
 
-cJSON *ModifyContent(FILE *pf)
+cJSON *ModifyContent(FILE *pf, const char *runtimePath)
 {
     char jsonStr[MAX_JSON_FILE_SIZE] = {0x0};
     ReadJsonFile(pf, &jsonStr[0], MAX_JSON_FILE_SIZE);
@@ -161,7 +162,7 @@ cJSON *ModifyContent(FILE *pf)
     cJSON *runtimes = NULL;
     runtimes = cJSON_GetObjectItem(root, "runtimes");
     if (runtimes == NULL) {
-        runtimes = CreateRuntimes();
+        runtimes = CreateRuntimes(runtimePath);
         if (runtimes == NULL) {
             cJSON_Delete(root);
             return NULL;
@@ -174,7 +175,7 @@ cJSON *ModifyContent(FILE *pf)
             return NULL;    
         }
         cJSON  *ascendRuntime = NULL;
-        ascendRuntime = CreateAscendRuntimeInfo();
+        ascendRuntime = CreateAscendRuntimeInfo(runtimePath);
         if (ascendRuntime == NULL) {
             cJSON_Delete(root);
             return NULL;
@@ -236,15 +237,15 @@ cJSON *RemoveContent(FILE *pf)
 }
 
 
-int DetectAndCreateJsonFile(const char *filePath, const char *tempPath)
+int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, const char *runtimePath)
 {
     cJSON *root = NULL;
     FILE *pf = NULL; 
     pf = fopen(filePath, "r+");
     if (pf == NULL) {
-        root = CreateContent();
+        root = CreateContent(runtimePath);
     } else {
-        root = ModifyContent(pf);
+        root = ModifyContent(pf, runtimePath);
         fclose(pf);
     }
 
@@ -302,14 +303,21 @@ int CreateRevisedJsonFile(const char *filePath, const char *tempPath)
 /* 该函数只负责生成json.bak文件，由调用者进行覆盖操作 */
 int main(int argc, char *argv[])
 {
-    if (argc != NUM_ARGS) {
+    if (argc < MIN_ARGS_NUM) {
         return -1;
     }
+
     printf("%s\n", argv[FINAL_FILE_INDEX]);
     printf("%s\n", argv[TEMP_FILE_INDEX]);
     printf("%s\n", argv[CMD_INDEX]);
+
     if (strcmp(argv[CMD_INDEX], ADD_CMD) == 0) {
-        return DetectAndCreateJsonFile(argv[FINAL_FILE_INDEX], argv[TEMP_FILE_INDEX]);
+        if (argc != ADD_CMD_ARGS_NUM) {
+            return -1;
+        }
+
+        return DetectAndCreateJsonFile(argv[FINAL_FILE_INDEX], argv[TEMP_FILE_INDEX], argv[RUNTIME_PATH_INDEX]);
     }
+
     return CreateRevisedJsonFile(argv[FINAL_FILE_INDEX], argv[TEMP_FILE_INDEX]);   
 }

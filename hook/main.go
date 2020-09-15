@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path"
 	"sort"
 	"strconv"
@@ -25,7 +24,7 @@ const (
 	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
 	ascendRuntimeOptions   = "ASCEND_RUNTIME_OPTIONS"
 	ascendDockerCli        = "ascend-docker-cli"
-	defaultAscendDockerCli = "/usr/bin/ascend-docker-cli"
+	defaultAscendDockerCli = "/usr/local/bin/ascend-docker-cli"
 
 	borderNum  = 2
 	kvPairSize = 2
@@ -221,14 +220,14 @@ func doPrestartHook() error {
 		return fmt.Errorf("failed to parse runtime options: %w", err)
 	}
 
-	cliPath, err := exec.LookPath(ascendDockerCliName)
+	currentExecPath, err := os.Executable()
 	if err != nil {
-		_, err = os.Stat(defaultAscendDockerCliName)
-		if err != nil {
-			return fmt.Errorf("could not found ascend docker cli")
-		}
+		return fmt.Errorf("cannot get the path of ascend-docker-hook: %w", err)
+	}
 
-		cliPath = defaultAscendDockerCliName
+	cliPath := path.Join(path.Dir(currentExecPath), ascendDockerCliName)
+	if _, err = os.Stat(cliPath); err != nil {
+		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %w", cliPath, err)
 	}
 
 	args := append([]string{cliPath},

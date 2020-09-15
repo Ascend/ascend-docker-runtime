@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"syscall"
 
@@ -20,7 +21,7 @@ import (
 const (
 	loggingPrefix       = "ascend-docker-runtime"
 	hookCli             = "ascend-docker-hook"
-	hookDefaultFilePath = "/usr/bin/ascend-docker-hook"
+	hookDefaultFilePath = "/usr/local/bin/ascend-docker-hook"
 	dockerRuncFile      = "docker-runc"
 	runcFile            = "runc"
 )
@@ -71,12 +72,14 @@ var execRunc = func() error {
 }
 
 func addHook(spec *specs.Spec) error {
-	path, err := exec.LookPath(hookCliPath)
+	currentExecPath, err := os.Executable()
 	if err != nil {
-		path = hookDefaultFile
-		if _, err = os.Stat(path); err != nil {
-			return fmt.Errorf("cannot find the hook")
-		}
+		return fmt.Errorf("cannot get the path of ascend-docker-runtime: %w", err)
+	}
+
+	hookCliPath = path.Join(path.Dir(currentExecPath), hookCli)
+	if _, err = os.Stat(hookCliPath); err != nil {
+		return fmt.Errorf("cannot find ascend-docker-hook executable file at %s: %w", hookCliPath, err)
 	}
 
 	if spec.Hooks == nil {
@@ -91,8 +94,8 @@ func addHook(spec *specs.Spec) error {
 	}
 
 	spec.Hooks.Prestart = append(spec.Hooks.Prestart, specs.Hook{
-		Path: path,
-		Args: []string{path},
+		Path: hookCliPath,
+		Args: []string{hookCliPath},
 	})
 
 	return nil
