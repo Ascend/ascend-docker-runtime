@@ -83,7 +83,7 @@ function build_run_package()
     /bin/cp -f scripts/run_main.sh run_pkg
     chmod 550 run_pkg/run_main.sh
 
-    RUN_PKG_NAME="${PACKAGENAME}-${CPUARCH}.run"
+    RUN_PKG_NAME="${PACKAGENAME}-${VERSION}-${CPUARCH}.run"
     DATE=`date -u "+%Y-%m-%d"`
     bash makeself.sh --nomd5 --nocrc --help-header scripts/help.info --packaging-date ${DATE} \
     --tar-extra "--mtime=${DATE}" run_pkg "${RUN_PKG_NAME}" ascend-docker-runtime ./run_main.sh
