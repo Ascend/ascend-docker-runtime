@@ -151,6 +151,11 @@ int MountFile(const char *rootfs, const char *filepath)
         return 0;
     }
 
+    if (!S_ISREG(srcStat.st_mode)) {
+        LOG_ERROR("error: this should be a regular file to be mounted: %s.", filepath);
+        return -1;
+    }
+
     ret = CreateFile(dst, srcStat.st_mode);
     if (ret < 0) {
         LOG_ERROR("error: failed to create mount dst file: %s.", dst);
@@ -181,6 +186,11 @@ int MountDir(const char *rootfs, const char *src)
     if (ret < 0) {
         LOG_WARNING("warning: failed to find dir %s on host, skipping", src);
         return 0;
+    }
+
+    if (!S_ISDIR(srcStat.st_mode)) {
+        LOG_ERROR("error: this should be a directory to be mounted: %s.", src);
+        return -1;
     }
 
     ret = MakeDirWithParent(dst, DEFAULT_DIR_MODE);
@@ -266,7 +276,13 @@ int DoFileMounting(const char *rootfs)
         return -1;
     }
 
-    MountFile(rootfs, ASCEND_SLOG_CONF_PATH);
+    ret = MountFile(rootfs, ASCEND_NPU_SMI_PATH_OLD);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to do mount %s.", ASCEND_NPU_SMI_PATH_OLD);
+        return -1;
+    }
+
+    ret = MountFile(rootfs, ASCEND_SLOG_CONF_PATH);
     if (ret < 0) {
         LOG_ERROR("error: failed to do mount %s.", ASCEND_SLOG_CONF_PATH);
         return -1;
