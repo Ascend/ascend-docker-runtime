@@ -667,7 +667,7 @@ TEST(MountDir, Status5)
     unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
     int ret = MountDir(rootfs, "/dev/random", reMountRwFlag);
     GlobalMockObject::verify();
-    EXPECT_EQ(0, ret);
+    EXPECT_EQ(-1, ret);
 }
 
 TEST(DoCtrlDeviceMounting, Status1)

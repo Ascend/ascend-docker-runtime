@@ -17,7 +17,8 @@
 #define ASCEND_DRIVER_INC_PATH      "/usr/local/Ascend/driver/include"
 #define ASCEND_ADDONS_PATH          "/usr/local/Ascend/add-ons"
 #define ASCEND_DCMI_PATH            "/usr/local/dcmi"
-#define ASCEND_NPU_SMI_PATH         "/usr/local/sbin/npu-smi"
+#define ASCEND_NPU_SMI_PATH         "/usr/local/bin/npu-smi"
+#define ASCEND_NPU_SMI_PATH_OLD     "/usr/local/sbin/npu-smi"
 #define ASCEND_SLOG_CONF_PATH       "/var/log/npu/conf/slog/slog.conf"
 #define DEFAULT_DIR_MODE 0755
 #define BUF_SIZE 1024
