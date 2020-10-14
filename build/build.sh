@@ -74,9 +74,10 @@ function build_run_package()
     mkdir run_pkg
 
     /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${INSTALLHELPERSRCDIR},${CLISRCDIR}}/build/ascend-docker*  run_pkg
+    /bin/cp -f scripts/uninstall.sh run_pkg
     FILECNT=`ls -l run_pkg |grep "^-"|wc -l`
     echo "prepare package $FILECNT bins"
-    if [ $FILECNT -ne 4 ]; then
+    if [ $FILECNT -ne 5 ]; then
         exit 1
     fi
 
