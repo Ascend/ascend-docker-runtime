@@ -14,9 +14,16 @@ function install()
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
+    cp -f ./ascend-docker-plugin-install-helper ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     chmod 550 ${INSTALL_PATH}/ascend-docker-runtime
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
+    chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
+
+    mkdir -p ${INSTALL_PATH}/script
+    cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
+    chmod 550 ${INSTALL_PATH}/script/uninstall.sh
+
     echo 'install executable files success'
 
     if [ ! -d "${DOCKER_CONFIG_DIR}" ]; then
@@ -45,22 +52,12 @@ function uninstall()
         exit 0
     fi
 
+    ${INSTALL_PATH}/script/uninstall.sh
+    echo 'remove daemon.json setting success'
+
     rm -rf ${INSTALL_PATH}
     echo 'remove executable files success'
 
-    SRC="${DOCKER_CONFIG_DIR}/daemon.json.${PPID}"
-    DST="${DOCKER_CONFIG_DIR}/daemon.json"
-    if [ ! -f "${DST}" ]; then
-        exit 0
-    fi
-
-    ./ascend-docker-plugin-install-helper rm ${DST} ${SRC}
-    if [ "$?" != "0" ]; then
-        echo 'ERROR: del damon.json failed'
-        exit 1
-    fi
-
-    mv ${SRC} ${DST} 
     echo 'del damom.json success'
 }
 
@@ -76,9 +73,13 @@ function upgrade()
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
+    cp -f ./ascend-docker-plugin-install-helper ${INSTALL_PATH}/ascend-docker-plugin-install-helper
+    cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
     chmod 550 ${INSTALL_PATH}/ascend-docker-runtime
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
+    chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
+    chmod 550 ${INSTALL_PATH}/script/uninstall.sh
 
     echo 'upgrade ascend docker runtime success'
 }
