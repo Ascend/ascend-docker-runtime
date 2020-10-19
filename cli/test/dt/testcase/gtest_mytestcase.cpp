@@ -6,6 +6,7 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
+#include <limits.h>
 #include <sys/mount.h>
 
 using namespace std;
@@ -14,6 +15,7 @@ using namespace testing;
 #define DAVINCI_MANAGER_PATH        "/dev/davinci_manager"
 #define BUF_SIZE 1024
 #define MAX_DEVICE_NR 1024
+#define MAX_MOUNT_NR 512
 typedef char *(*ParseFileLine)(char *, const char *);
 extern "C" int IsStrEqual(const char *s1, const char *s2);
 extern "C" int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize);
@@ -47,18 +49,25 @@ extern "C" int GetCgroupPath(const struct CmdArgs *args, char *effPath, const si
 extern "C" int SetupCgroup(const struct ParsedConfig *config);
 extern "C" int SetupContainer(struct CmdArgs *args);
 extern "C" int Process(int argc, char **argv);
-extern "C" int DoFileMounting(const char *rootfs);
+extern "C" int DoFileMounting(const char *rootfs, const struct MountList *list);
 extern "C" int DoMounting(const struct ParsedConfig *config);
-extern "C" int DoDirectoryMounting(const char *rootfs);
+extern "C" int DoDirectoryMounting(const char *rootfs, const struct MountList *list);
 extern "C" int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config);
 extern "C" int ParseRuntimeOptions(const char *options);
 extern "C" bool IsOptionNoDrvSet();
+
+struct MountList {
+    unsigned int count;
+    char list[MAX_MOUNT_NR][PATH_MAX];
+};
 
 struct CmdArgs {
     char     devices[BUF_SIZE];
     char     rootfs[BUF_SIZE];
     int      pid;
     char     options[BUF_SIZE];
+    struct MountList files;
+    struct MountList dirs;
 };
 
 struct ParsedConfig {
@@ -68,6 +77,8 @@ struct ParsedConfig {
     char containerNsPath[BUF_SIZE];
     char cgroupPath[BUF_SIZE];
     int  originNsFd;
+    const struct MountList *files;
+    const struct MountList *dirs;
 };
 
 int stub_setns(int fd, int nstype)
@@ -222,22 +233,22 @@ int Stub_DoCtrlDeviceMounting_Failed(const char *rootfs)
     return -1;
 }
 
-int Stub_DoDirectoryMounting_Success(const char *rootfs)
+int Stub_DoDirectoryMounting_Success(const char *rootfs, const struct MountList *list)
 {
     return 0;
 }
 
-int Stub_DoDirectoryMounting_Failed(const char *rootfs)
+int Stub_DoDirectoryMounting_Failed(const char *rootfs, const struct MountList *list)
 {
     return -1;
 }
 
-int Stub_DoFileMounting_Success(const char *rootfs)
+int Stub_DoFileMounting_Success(const char *rootfs, const struct MountList *list)
 {
     return 0;
 }
 
-int Stub_DoFileMounting_Failed(const char *rootfs)
+int Stub_DoFileMounting_Failed(const char *rootfs, const struct MountList *list)
 {
     return -1;
 }

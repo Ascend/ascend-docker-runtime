@@ -28,6 +28,8 @@ struct CmdArgs {
     char     rootfs[BUF_SIZE];
     int      pid;
     char     options[BUF_SIZE];
+    struct MountList files;
+    struct MountList dirs;
 };
 
 static struct option g_cmdOpts[] = {
@@ -35,6 +37,8 @@ static struct option g_cmdOpts[] = {
     {"pid", required_argument, 0, 'p'},
     {"rootfs", required_argument, 0, 'r'},
     {"options", required_argument, 0, 'o'},
+    {"mount-file", required_argument, 0, 'f'},
+    {"mount-dir", required_argument, 0, 'i'},
     {0, 0, 0, 0}
 };
 
@@ -90,7 +94,41 @@ static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
     return true;
 }
 
-#define NUM_OF_CMD_ARGS 4
+static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
+{
+    if (args->files.count == MAX_MOUNT_NR) {
+        LOG_ERROR("error: too many files to mount, max number is %u", MAX_MOUNT_NR);
+        return -1;
+    }
+
+    char *dst = &args->files.list[args->files.count++][0];
+    errno_t err = strcpy_s(dst, PATH_MAX, arg);
+    if (err != EOK) {
+        LOG_ERROR("error: failed to copy mount file path: %s", arg);
+        return false;
+    }
+
+    return true;
+}
+
+static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
+{
+    if (args->dirs.count == MAX_MOUNT_NR) {
+        LOG_ERROR("error: too many directories to mount, max number is %u", MAX_MOUNT_NR);
+        return -1;
+    }
+
+    char *dst = &args->dirs.list[args->dirs.count++][0];
+    errno_t  err = strcpy_s(dst, PATH_MAX, arg);
+    if (err != EOK) {
+        LOG_ERROR("error: failed to copy mount directory path: %s", arg);
+        return false;
+    }
+
+    return true;
+}
+
+#define NUM_OF_CMD_ARGS 6
 
 static struct {
     const char c;
@@ -99,7 +137,9 @@ static struct {
     {'d', DevicesCmdArgParser},
     {'p', PidCmdArgParser},
     {'r', RootfsCmdArgParser},
-    {'o', OptionsCmdArgParser}
+    {'o', OptionsCmdArgParser},
+    {'f', MountFileCmdArgParser},
+    {'i', MountDirCmdArgParser}
 };
 
 static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *value)
@@ -201,6 +241,9 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
         return -1;
     }
 
+    config->files = (const struct MountList *)&args->files;
+    config->dirs  = (const struct MountList *)&args->dirs;
+
     return 0;
 }
 
@@ -258,7 +301,7 @@ int Process(int argc, char **argv)
     int optionIndex;
     struct CmdArgs args = {0};
 
-    while ((c = getopt_long(argc, argv, "d:p:r:o", g_cmdOpts, &optionIndex)) != -1) {
+    while ((c = getopt_long(argc, argv, "d:p:r:o:f:i", g_cmdOpts, &optionIndex)) != -1) {
         ret = ParseOneCmdArg(&args, (char)c, optarg);
         if (ret < 0) {
             LOG_ERROR("error: failed to parse cmd args.");

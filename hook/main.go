@@ -5,12 +5,14 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,8 +25,12 @@ const (
 	loggingPrefix          = "ascend-docker-hook"
 	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
 	ascendRuntimeOptions   = "ASCEND_RUNTIME_OPTIONS"
+	ascendRuntimeMounts    = "ASCEND_RUNTIME_MOUNTS"
 	ascendDockerCli        = "ascend-docker-cli"
 	defaultAscendDockerCli = "/usr/local/bin/ascend-docker-cli"
+	configDir              = "/etc/ascend-docker-runtime.d"
+	baseConfig             = "base"
+	configFileSuffix       = "list"
 
 	borderNum  = 2
 	kvPairSize = 2
@@ -37,7 +43,7 @@ var (
 	defaultAscendDockerCliName = defaultAscendDockerCli
 )
 
-var validRuntimeOptions = [...]string {
+var validRuntimeOptions = [...]string{
 	"NODRV",
 	"VERBOSE",
 }
@@ -109,6 +115,22 @@ func parseDevices(visibleDevices string) ([]int, error) {
 	return removeDuplication(devices), nil
 }
 
+func parseMounts(mounts string) []string {
+	mountConfigs := make([]string, 0)
+
+	if mounts == "" {
+		return nil
+	}
+
+	for _, m := range strings.Split(mounts, ",") {
+		m = strings.TrimSpace(m)
+		m = strings.ToLower(m)
+		mountConfigs = append(mountConfigs, m)
+	}
+
+	return mountConfigs
+}
+
 func isRuntimeOptionValid(option string) bool {
 	for _, validOption := range validRuntimeOptions {
 		if option == validOption {
@@ -161,7 +183,7 @@ func parseOciSpecFile(file string) (*specs.Spec, error) {
 	return spec, nil
 }
 
-var getContainerConfig = func () (*containerConfig, error) {
+var getContainerConfig = func() (*containerConfig, error) {
 	state := new(specs.State)
 	decoder := json.NewDecoder(containerConfigInputStream)
 
@@ -199,6 +221,89 @@ func getValueByKey(data []string, key string) string {
 	return ""
 }
 
+func readMountConfig(dir string, name string) ([]string, []string, error) {
+	configFileName := fmt.Sprintf("%s.%s", name, configFileSuffix)
+	baseConfigFilePath, err := filepath.Abs(filepath.Join(dir, configFileName))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to assemble base config file path: %w", err)
+	}
+
+	fileInfo, err := os.Stat(baseConfigFilePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot stat base configuration file %s : %w", baseConfigFilePath, err)
+	}
+
+	if !fileInfo.Mode().IsRegular() {
+		return nil, nil, fmt.Errorf("base configuration file damaged because is not a regular file")
+	}
+
+	f, err := os.Open(baseConfigFilePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open base configuration file %s: %w", baseConfigFilePath, err)
+	}
+	defer f.Close()
+
+	fileMountList := make([]string, 0)
+	dirMountList := make([]string, 0)
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		mountPath := scanner.Text()
+		absMountPath, err := filepath.Abs(mountPath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get absolute path from %s: %w", mountPath)
+		}
+		mountPath = absMountPath
+
+		stat, err := os.Stat(mountPath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to stat %s: %w", mountPath, err)
+		}
+
+		if stat.Mode().IsRegular() || stat.Mode()&os.ModeSocket != 0 {
+			fileMountList = append(fileMountList, mountPath)
+		} else if stat.Mode().IsDir() {
+			dirMountList = append(dirMountList, mountPath)
+		} else {
+			return nil, nil, fmt.Errorf("%s is not a file nor a directory, which is illegal", mountPath)
+		}
+	}
+
+	return fileMountList, dirMountList, nil
+}
+
+func readConfigsOfDir(dir string, mountConfigs []string) ([]string, []string, error) {
+	fileInfo, err := os.Stat(dir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot stat configuration directory %s : %w", dir, err)
+	}
+
+	if !fileInfo.Mode().IsDir() {
+		return nil, nil, fmt.Errorf("%s should be a dir for ascend docker runtime, but now it is not", dir)
+	}
+
+	fileMountList := make([]string, 0)
+	dirMountList := make([]string, 0)
+
+	configs := []string{baseConfig}
+
+	if mountConfigs != nil {
+		configs = append(configs, mountConfigs...)
+	}
+
+	for _, config := range configs {
+		fileList, dirList, err := readMountConfig(dir, config)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to process config %s: %w", config, err)
+		}
+
+		fileMountList = append(fileMountList, fileList...)
+		dirMountList = append(dirMountList, dirList...)
+	}
+
+	return fileMountList, dirMountList, nil
+}
+
 func doPrestartHook() error {
 	containerConfig, err := getContainerConfig()
 	if err != nil {
@@ -213,6 +318,13 @@ func doPrestartHook() error {
 	devices, err := parseDevices(visibleDevices)
 	if err != nil {
 		return fmt.Errorf("failed to parse device setting: %w", err)
+	}
+
+	mountConfigs := parseMounts(getValueByKey(containerConfig.Env, ascendRuntimeMounts))
+
+	fileMountList, dirMountList, err := readConfigsOfDir(configDir, mountConfigs)
+	if err != nil {
+		return fmt.Errorf("failed to read configuration from config directory: %w", err)
 	}
 
 	parsedOptions, err := parseRuntimeOptions(getValueByKey(containerConfig.Env, ascendRuntimeOptions))
@@ -234,6 +346,14 @@ func doPrestartHook() error {
 		"--devices", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(devices)), ","), "[]"),
 		"--pid", fmt.Sprintf("%d", containerConfig.Pid),
 		"--rootfs", containerConfig.Rootfs)
+
+	for _, filePath := range fileMountList {
+		args = append(args, "--mount-file", filePath)
+	}
+
+	for _, dirPath := range dirMountList {
+		args = append(args, "--mount-dir", dirPath)
+	}
 
 	if len(parsedOptions) > 0 {
 		args = append(args, "--options", strings.Join(parsedOptions, ","))
