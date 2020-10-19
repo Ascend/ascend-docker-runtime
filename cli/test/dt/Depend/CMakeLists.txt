@@ -36,25 +36,3 @@ TARGET_INCLUDE_DIRECTORIES(ut_main PUBLIC "${mockcpp_SOURCE_DIR}/include")
 
 add_subdirectory(${gtest_dir} gtest.out)
 add_subdirectory(${mockcpp_dir} mockcpp.out)
-
-
-#CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
-#PROJECT(depend_lib)
-#
-#SET(LIBRARY_OUTPUT_PATH "${CMAKE_CURRENT_LIST_DIR}/lib")
-#if(CMAKE_COMPILER_IS_GNUCXX)
-#    ADD_COMPILE_OPTIONS(-std=c++11)
-#    message(STATUS "optional:-std=c++11")   
-#endif(CMAKE_COMPILER_IS_GNUCXX)
-#
-#FILE(GLOB SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/public_stub.cpp
-#                       ${CMAKE_CURRENT_LIST_DIR}/ut_main.cpp )
-#                       
-## global_stubs
-## mian
-#ADD_LIBRARY(ut_main STATIC ${SOURCE_FILES})
-#
-#INCLUDE_DIRECTORIES("googletest/googletest/include")
-#LINK_DIRECTORIES("googletest/lib")
-#TARGET_LINK_LIBRARIES(ut_main pthread)
-#TARGET_LINK_LIBRARIES(ut_main libgtest)

@@ -4,10 +4,12 @@
 */
 #include <string>
 #include <iostream>
-#include "gtest/gtest.h"
-#include "mockcpp/mockcpp.hpp"
 #include <limits.h>
 #include <sys/mount.h>
+#include "securec.h"
+#include "gtest/gtest.h"
+#include "mockcpp/mockcpp.hpp"
+
 
 using namespace std;
 using namespace testing;
@@ -494,8 +496,10 @@ TEST(DoDeviceMounting, Status2)
 TEST(DoDirectoryMounting, Status1)
 {
     MOCKER(MountDir).stubs().will(invoke(Stub_MountDir_Failed));
+    struct MountList list = {0};
+    list.count = 1;
     char *rootfs = "/home";
-    int ret = DoDirectoryMounting(rootfs);
+    int ret = DoDirectoryMounting(rootfs, &list);
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
 }
@@ -503,8 +507,10 @@ TEST(DoDirectoryMounting, Status1)
 TEST(DoDirectoryMounting, Status2)
 {
     MOCKER(MountDir).stubs().will(invoke(Stub_MountDir_Success));
+    struct MountList list = {0};
+    list.count = 3;
     char *rootfs = "/home";
-    int ret = DoDirectoryMounting(rootfs);
+    int ret = DoDirectoryMounting(rootfs, &list);
     GlobalMockObject::verify();
     EXPECT_EQ(0, ret);
 }
@@ -513,7 +519,7 @@ TEST(DoMounting, Status1)
 {
     MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Failed));
     struct ParsedConfig config;
-    strcpy(config.rootfs, "/home");
+    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
     config.devices[0] = 1;
     config.devices[1] = 2;
     config.devicesNr = 2;
@@ -527,7 +533,7 @@ TEST(DoMounting, Status2)
     MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
     MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Failed));
     struct ParsedConfig config;
-    strcpy(config.rootfs, "/home");
+    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
     config.devices[0] = 1;
     config.devices[1] = 2;
     config.devicesNr = 2;
@@ -540,9 +546,10 @@ TEST(DoMounting, Status3)
 {
     MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
     MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Success));
+    MOCKER(DoFileMounting).stubs().will(invoke(Stub_DoFileMounting_Success));
     MOCKER(DoDirectoryMounting).stubs().will(invoke(Stub_DoDirectoryMounting_Failed));
     struct ParsedConfig config;
-    strcpy(config.rootfs, "/home");
+    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
     config.devices[0] = 1;
     config.devices[1] = 2;
     config.devicesNr = 2;
@@ -559,7 +566,7 @@ TEST(DoMounting, Status4)
     MOCKER(DoFileMounting).stubs().will(invoke(Stub_DoFileMounting_Success));
     MOCKER(DoDirectoryMounting).stubs().will(invoke(Stub_DoDirectoryMounting_Success));
     struct ParsedConfig config;
-    strcpy(config.rootfs, "/home");
+    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
     config.devices[0] = 1;
     config.devices[1] = 2;
     config.devicesNr = 2;
@@ -671,14 +678,14 @@ TEST(MountDir, Status4)
 
 TEST(MountDir, Status5)
 {
-    MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
-    MOCKER(MkDir).stubs().will(invoke(stub_MkDir_success));
+    MOCKER(stat).stubs().will(invoke(stub_stat_failed));
+    MOCKER(MakeDirWithParent).stubs().will(invoke(Stub_MakeDirWithParent_Success));
     MOCKER(Mount).stubs().will(invoke(stub_Mount_success));
     char *rootfs = "/rootfs";
     unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
     int ret = MountDir(rootfs, "/dev/random", reMountRwFlag);
     GlobalMockObject::verify();
-    EXPECT_EQ(-1, ret);
+    EXPECT_EQ(0, ret);
 }
 
 TEST(DoCtrlDeviceMounting, Status1)
@@ -791,7 +798,7 @@ TEST(SetupDriverCgroup, Status2)
 TEST(GetCgroupPath, Status1)
 {
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -806,11 +813,11 @@ TEST(GetCgroupPath, Status1)
 TEST(SetupCgroup, Status1)
 {
     struct ParsedConfig config;
-    strcpy(config.rootfs, "/home");
+    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
     config.devices[0] = 1;
     config.devices[1] = 2;
     config.devicesNr = 2;
-    strcpy(config.cgroupPath, "/not_exist_dir/cgroup_path");
+    (void)strcpy_s(config.cgroupPath, sizeof(config.cgroupPath), "/not_exist_dir/cgroup_path");
     int ret = SetupCgroup(&config);
     EXPECT_EQ(-1, ret);
 }
@@ -818,11 +825,11 @@ TEST(SetupCgroup, Status1)
 TEST(SetupCgroup, Status2)
 {
     struct ParsedConfig config;
-    strcpy(config.rootfs, "/home");
+    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
     config.devices[0] = 1;
     config.devices[1] = 2;
     config.devicesNr = 2;
-    strcpy(config.cgroupPath, "devices.allow");
+    (void)strcpy_s(config.cgroupPath, sizeof(config.cgroupPath), "devices.allow");
     MOCKER(SetupDriverCgroup).stubs().will(invoke(Stub_SetupDriverCgroup_Fail));
     int ret = SetupCgroup(&config);
     GlobalMockObject::verify();
@@ -832,11 +839,11 @@ TEST(SetupCgroup, Status2)
 TEST(SetupCgroup, Status3)
 {
     struct ParsedConfig config;
-    strcpy(config.rootfs, "/home");
+    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
     config.devices[0] = 1;
     config.devices[1] = 2;
     config.devicesNr = 2;
-    strcpy(config.cgroupPath, "devices.allow");
+    (void)strcpy_s(config.cgroupPath, sizeof(config.cgroupPath), "devices.allow");
     MOCKER(SetupDriverCgroup).stubs().will(invoke(Stub_SetupDriverCgroup_Success));
     MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Failed));
     int ret = SetupCgroup(&config);
@@ -849,11 +856,11 @@ TEST(SetupCgroup, Status4)
     MOCKER(SetupDriverCgroup).stubs().will(invoke(Stub_SetupDriverCgroup_Success));
     MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Success));
     struct ParsedConfig config;
-    strcpy(config.rootfs, "/home");
+    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
     config.devices[0] = 1;
     config.devices[1] = 2;
     config.devicesNr = 2;
-    strcpy(config.cgroupPath, "devices.allow");
+    (void)strcpy_s(config.cgroupPath, sizeof(config.cgroupPath), "devices.allow");
     int ret = SetupCgroup(&config);
     GlobalMockObject::verify();
     EXPECT_EQ(0, ret);
@@ -862,7 +869,7 @@ TEST(SetupCgroup, Status4)
 TEST(SetupContainer, Status1)
 {
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -875,7 +882,7 @@ TEST(SetupContainer, Status1)
 TEST(SetupContainer, Status2)
 {
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -889,7 +896,7 @@ TEST(SetupContainer, Status2)
 TEST(SetupContainer, Status3)
 {
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -904,7 +911,7 @@ TEST(SetupContainer, Status3)
 TEST(SetupContainer, Status4)
 {
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -920,7 +927,7 @@ TEST(SetupContainer, Status4)
 TEST(SetupContainer, Status5)
 {
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -937,7 +944,7 @@ TEST(SetupContainer, Status5)
 TEST(SetupContainer, Status6)
 {
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -997,7 +1004,7 @@ TEST(DoPrepare, Status1)
 {
     MOCKER(GetCgroupPath).stubs().will(invoke(Stub_GetCgroupPath_Success));
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -1012,7 +1019,7 @@ TEST(DoPrepare, Status2)
 {
     MOCKER(GetCgroupPath).stubs().will(invoke(Stub_GetCgroupPath_Success));
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -1027,7 +1034,7 @@ TEST(DoPrepare, Status3)
 {
     MOCKER(GetNsPath).stubs().will(invoke(Stub_GetNsPath_Failed));
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -1043,7 +1050,7 @@ TEST(DoPrepare, Status4)
     MOCKER(GetCgroupPath).stubs().will(invoke(Stub_GetCgroupPath_Success));
     MOCKER(GetSelfNsPath).stubs().will(invoke(Stub_GetSelfNsPath_Failed));
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;
@@ -1059,7 +1066,7 @@ TEST(DoPrepare, Status5)
     MOCKER(GetCgroupPath).stubs().will(invoke(Stub_GetCgroupPath_Success));
     MOCKER(open).stubs().will(invoke(stub_open_failed));
     struct CmdArgs args;
-    strcpy(args.rootfs, "/home");
+    (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
     args.devices[0] = '1';
     args.devices[1] = '2';
     args.pid = 1;

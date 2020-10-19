@@ -116,12 +116,11 @@ func parseDevices(visibleDevices string) ([]int, error) {
 }
 
 func parseMounts(mounts string) []string {
-	mountConfigs := make([]string, 0)
-
 	if mounts == "" {
-		return nil
+		return []string{baseConfig}
 	}
 
+	mountConfigs := make([]string, 0)
 	for _, m := range strings.Split(mounts, ",") {
 		m = strings.TrimSpace(m)
 		m = strings.ToLower(m)
@@ -272,7 +271,11 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 	return fileMountList, dirMountList, nil
 }
 
-func readConfigsOfDir(dir string, mountConfigs []string) ([]string, []string, error) {
+func readConfigsOfDir(dir string, configs []string) ([]string, []string, error) {
+	if configs == nil || len(configs) == 0 {
+		panic("mounting configurations are empty, which should be impossible")
+	}
+
 	fileInfo, err := os.Stat(dir)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot stat configuration directory %s : %w", dir, err)
@@ -284,12 +287,6 @@ func readConfigsOfDir(dir string, mountConfigs []string) ([]string, []string, er
 
 	fileMountList := make([]string, 0)
 	dirMountList := make([]string, 0)
-
-	configs := []string{baseConfig}
-
-	if mountConfigs != nil {
-		configs = append(configs, mountConfigs...)
-	}
 
 	for _, config := range configs {
 		fileList, dirList, err := readMountConfig(dir, config)
