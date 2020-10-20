@@ -7,23 +7,17 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <limits.h>
 
 #define DEVICE_NAME "davinci"
 #define DAVINCI_MANAGER             "davinci_manager"
 #define DEVMM_SVM                   "devmm_svm"
 #define HISI_HDC                    "hisi_hdc"
-#define ASCEND_DRIVER_LIB64_PATH    "/usr/local/Ascend/driver/lib64"
-#define ASCEND_DRIVER_TOOLS_PATH    "/usr/local/Ascend/driver/tools"
-#define ASCEND_DRIVER_INC_PATH      "/usr/local/Ascend/driver/include"
-#define ASCEND_ADDONS_PATH          "/usr/local/Ascend/add-ons"
-#define ASCEND_DCMI_PATH            "/usr/local/dcmi"
-#define ASCEND_NPU_SMI_PATH         "/usr/local/bin/npu-smi"
-#define ASCEND_NPU_SMI_PATH_OLD     "/usr/local/sbin/npu-smi"
-#define ASCEND_SLOG_CONF_PATH       "/var/log/npu/conf/slog/slog.conf"
 #define DEFAULT_DIR_MODE 0755
 #define BUF_SIZE 1024
 #define MAX_DEVICE_NR 1024
 #define DEFAULT_LOG_FILE "/var/log/ascend-docker-runtime.log"
+#define MAX_MOUNT_NR 512
 
 #define ALLOW_PATH "/devices.allow"
 #define ROOT_GAP 4
@@ -38,6 +32,11 @@ struct PathInfo {
     size_t dstLen;
 };
 
+struct MountList {
+    unsigned int count;
+    char list[MAX_MOUNT_NR][PATH_MAX];
+};
+
 struct ParsedConfig {
     char rootfs[BUF_SIZE];
     unsigned int devices[MAX_DEVICE_NR];
@@ -45,6 +44,8 @@ struct ParsedConfig {
     char containerNsPath[BUF_SIZE];
     char cgroupPath[BUF_SIZE];
     int  originNsFd;
+    const struct MountList *files;
+    const struct MountList *dirs;
 };
 
 void InitParsedConfig(struct ParsedConfig *parsedConfig);

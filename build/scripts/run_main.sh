@@ -1,5 +1,6 @@
 #!/bin/bash
 
+ASCEND_RUNTIME_CONFIG_DIR=/etc/ascend-docker-runtime.d
 DOCKER_CONFIG_DIR=/etc/docker
 INSTALL_PATH=/usr/local/Ascend/Ascend-Docker-Runtime
 
@@ -23,6 +24,13 @@ function install()
     mkdir -p ${INSTALL_PATH}/script
     cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
     chmod 550 ${INSTALL_PATH}/script/uninstall.sh
+
+    if [ -d "${ASCEND_RUNTIME_CONFIG_DIR}" ]; then
+        rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
+    fi
+    mkdir -p ${ASCEND_RUNTIME_CONFIG_DIR}
+    cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
     echo 'install executable files success'
 
@@ -70,16 +78,23 @@ function upgrade()
         exit 1
     fi
 
+    if [ ! -d "${ASCEND_RUNTIME_CONFIG_DIR}" ]; then
+        echo 'ERROR: the configuration directory does not exist'
+        exit 1
+    fi
+
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
     cp -f ./ascend-docker-plugin-install-helper ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
+    cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     chmod 550 ${INSTALL_PATH}/ascend-docker-runtime
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
     chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     chmod 550 ${INSTALL_PATH}/script/uninstall.sh
+    chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
     echo 'upgrade ascend docker runtime success'
 }
