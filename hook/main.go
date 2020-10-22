@@ -272,10 +272,6 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 }
 
 func readConfigsOfDir(dir string, configs []string) ([]string, []string, error) {
-	if configs == nil || len(configs) == 0 {
-		panic("mounting configurations are empty, which should be impossible")
-	}
-
 	fileInfo, err := os.Stat(dir)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot stat configuration directory %s : %w", dir, err)
