@@ -14,7 +14,6 @@
 #include <sys/stat.h>
 #include "securec.h"
 #include "utils.h"
-#include "logging.h"
 
 bool TakeNthWord(char **pLine, unsigned int n, char **word)
 {

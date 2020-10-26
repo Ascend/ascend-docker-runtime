@@ -18,7 +18,6 @@
 #include "ns.h"
 #include "mount.h"
 #include "cgrp.h"
-#include "logging.h"
 #include "options.h"
 
 #define DECIMAL     10
@@ -315,21 +314,12 @@ int Process(int argc, char **argv)
     }
 
     ParseRuntimeOptions(args.options);
-    SetPidForLog(args.pid);
-
-    ret = OpenLog(DEFAULT_LOG_FILE);
-    if (ret < 0) {
-        LOG_ERROR("error: failed to open log file %s.", DEFAULT_LOG_FILE);
-        return -1;
-    }
 
     ret = SetupContainer(&args);
     if (ret < 0) {
-        CloseLog();
+        LOG_ERROR("error: failed to setup container.");
         return ret;
     }
-
-    CloseLog();
 
     return 0;
 }

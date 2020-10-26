@@ -11,7 +11,6 @@
 #include <sys/mount.h>
 #include "securec.h"
 #include "utils.h"
-#include "logging.h"
 #include "options.h"
 
 int Mount(const char *src, const char *dst)
@@ -147,7 +146,6 @@ int MountFile(const char *rootfs, const char *filepath)
     struct stat srcStat;
     ret = stat(filepath, &srcStat);
     if (ret < 0) {
-        LOG_WARNING("warning: failed to find file %s on host, skipping", filepath);
         return 0;
     }
 
@@ -179,7 +177,6 @@ int MountDir(const char *rootfs, const char *src)
     struct stat srcStat;
     ret = stat(src, &srcStat);
     if (ret < 0) {
-        LOG_WARNING("warning: failed to find dir %s on host, skipping", src);
         return 0;
     }
 

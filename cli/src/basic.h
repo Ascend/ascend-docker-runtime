@@ -9,15 +9,27 @@
 #include <stdint.h>
 #include <limits.h>
 
-#define DEVICE_NAME "davinci"
-#define DAVINCI_MANAGER             "davinci_manager"
-#define DEVMM_SVM                   "devmm_svm"
-#define HISI_HDC                    "hisi_hdc"
-#define DEFAULT_DIR_MODE 0755
-#define BUF_SIZE 1024
-#define MAX_DEVICE_NR 1024
-#define DEFAULT_LOG_FILE "/var/log/ascend-docker-runtime.log"
-#define MAX_MOUNT_NR 512
+#define DEVICE_NAME           "davinci"
+#define DAVINCI_MANAGER       "davinci_manager"
+#define DEVMM_SVM             "devmm_svm"
+#define HISI_HDC              "hisi_hdc"
+#define DEFAULT_DIR_MODE      0755
+#define BUF_SIZE              1024
+#define MAX_DEVICE_NR         1024
+#define MAX_MOUNT_NR          512
+
+#define LOG(level, fmt, ...)                                          \
+    do {                                                              \
+        char _content[BUF_SIZE] = {0};                                \
+        int _ret = sprintf_s(_content, BUF_SIZE, fmt, ##__VA_ARGS__); \
+        if (_ret < 0) {                                               \
+            fprintf(stderr, "cannot assemble log content");           \
+        } else {                                                      \
+            fprintf(stderr, "%s", (const char *)_content);            \
+        }                                                             \
+    } while (0)
+
+#define LOG_ERROR(fmt, ...) LOG('E', fmt, ##__VA_ARGS__)
 
 #define ALLOW_PATH "/devices.allow"
 #define ROOT_GAP 4

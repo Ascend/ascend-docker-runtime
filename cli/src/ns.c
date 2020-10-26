@@ -8,8 +8,8 @@
 #include <sched.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "basic.h"
 #include "securec.h"
-#include "logging.h"
 
 int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize)
 {
