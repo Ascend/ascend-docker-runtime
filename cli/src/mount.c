@@ -96,6 +96,19 @@ int MountDevice(const char *rootfs, const char *deviceName)
         return -1;
     }
 
+    errno = 0;
+    struct stat dstStat;
+    ret = stat((const char *)dst, &dstStat);
+    if (ret == 0 && S_ISCHR(dstStat.st_mode)) {
+        return 0; // 特权容器自动挂载HOST所有设备，故此处跳过
+    } else if (ret == 0) {
+        LOG_ERROR("error: %s already exists but not a char device as expected.", dst);
+        return -1;
+    } else if (ret < 0 && errno != ENOENT) {
+        LOG_ERROR("error: failed to check dst %s stat: %s.", dst, strerror(errno));
+        return -1;
+    }
+
     ret = CreateFile(dst, srcStat.st_mode);
     if (ret < 0) {
         LOG_ERROR("error: failed to create mount dst file: %s.", dst);

@@ -18,7 +18,7 @@
 #define MAX_DEVICE_NR         1024
 #define MAX_MOUNT_NR          512
 
-#define LOG(level, fmt, ...)                                          \
+#define LOG_ERROR(fmt, ...)                                           \
     do {                                                              \
         char _content[BUF_SIZE] = {0};                                \
         int _ret = sprintf_s(_content, BUF_SIZE, fmt, ##__VA_ARGS__); \
@@ -28,8 +28,6 @@
             fprintf(stderr, "%s", (const char *)_content);            \
         }                                                             \
     } while (0)
-
-#define LOG_ERROR(fmt, ...) LOG('E', fmt, ##__VA_ARGS__)
 
 #define ALLOW_PATH "/devices.allow"
 #define ROOT_GAP 4
