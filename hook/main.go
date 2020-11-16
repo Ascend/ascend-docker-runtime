@@ -45,7 +45,6 @@ var (
 
 var validRuntimeOptions = [...]string{
 	"NODRV",
-	"VERBOSE",
 }
 
 type containerConfig struct {
