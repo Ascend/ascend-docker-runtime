@@ -1,7 +1,6 @@
 /usr/local/Ascend/driver/lib64
 /usr/local/Ascend/driver/tools
 /usr/local/Ascend/driver/include
-/usr/local/Ascend/add-ons
 /usr/local/dcmi
 /usr/local/bin/npu-smi
 /var/log/npu/conf/slog/slog.conf
