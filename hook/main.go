@@ -249,21 +249,19 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 		mountPath := scanner.Text()
 		absMountPath, err := filepath.Abs(mountPath)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to get absolute path from %s: %w", mountPath)
+			continue  // skipping files/dirs with any problems
 		}
 		mountPath = absMountPath
 
 		stat, err := os.Stat(mountPath)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to stat %s: %w", mountPath, err)
+			continue  // skipping files/dirs with any problems
 		}
 
 		if stat.Mode().IsRegular() || stat.Mode()&os.ModeSocket != 0 {
 			fileMountList = append(fileMountList, mountPath)
 		} else if stat.Mode().IsDir() {
 			dirMountList = append(dirMountList, mountPath)
-		} else {
-			return nil, nil, fmt.Errorf("%s is not a file nor a directory, which is illegal", mountPath)
 		}
 	}
 

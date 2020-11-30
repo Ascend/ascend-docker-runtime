@@ -455,7 +455,7 @@ TEST(MountDevice, Status3)
     MOCKER(stat).stubs().will(invoke(stub_stat_success));
     MOCKER(close).stubs().will(invoke(stub_close_success));
     MOCKER(open).stubs().will(invoke(stub_open_success));
-    MOCKER(mount).stubs().will(invoke(stub_mount_failed));
+    MOCKER(mount).stubs().will(invoke(stub_Mount_failed));
     char *deviceName="davinci0";
     EXPECT_EQ(-1, MountDevice(rootfs, deviceName));
     GlobalMockObject::verify();
