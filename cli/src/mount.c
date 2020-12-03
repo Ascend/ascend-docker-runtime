@@ -89,13 +89,6 @@ int MountDevice(const char *rootfs, const char *deviceName)
         return -1;
     }
 
-    struct stat srcStat;
-    ret = stat((const char *)src, &srcStat);
-    if (ret < 0) {
-        LOG_ERROR("error: failed to stat src: %s.", src);
-        return -1;
-    }
-
     errno = 0;
     struct stat dstStat;
     ret = stat((const char *)dst, &dstStat);
@@ -106,6 +99,13 @@ int MountDevice(const char *rootfs, const char *deviceName)
         return -1;
     } else if (ret < 0 && errno != ENOENT) {
         LOG_ERROR("error: failed to check dst %s stat", dst);
+        return -1;
+    }
+
+    struct stat srcStat;
+    ret = stat((const char *)src, &srcStat);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to stat src: %s.", src);
         return -1;
     }
 
