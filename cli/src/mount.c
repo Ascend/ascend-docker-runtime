@@ -105,7 +105,7 @@ int MountDevice(const char *rootfs, const char *deviceName)
         LOG_ERROR("error: %s already exists but not a char device as expected.", dst);
         return -1;
     } else if (ret < 0 && errno != ENOENT) {
-        LOG_ERROR("error: failed to check dst %s stat: %s.", dst, strerror(errno));
+        LOG_ERROR("error: failed to check dst %s stat", dst);
         return -1;
     }
 
