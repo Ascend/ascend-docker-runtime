@@ -105,7 +105,7 @@ int MountDevice(const char *rootfs, const char *deviceName)
         LOG_ERROR("error: %s already exists but not a char device as expected.", dst);
         return -1;
     } else if (ret < 0 && errno != ENOENT) {
-        LOG_ERROR("error: failed to check dst %s stat: %s.", dst, strerror(errno));
+        LOG_ERROR("error: failed to check dst %s stat", dst);
         return -1;
     }
 
@@ -239,7 +239,7 @@ int DoDirectoryMounting(const char *rootfs, const struct MountList *list)
     for (unsigned int i = 0; i < list->count; i++) {
         ret = MountDir(rootfs, (const char *)&list->list[i][0]);
         if (ret < 0) {
-            LOG_ERROR("error: failed to do directory mounting for %s.", &list->list[i][0]);
+            LOG_ERROR("error: failed to do directory mounting for %s.", (const char *)&list->list[i][0]);
             return -1;
         }
     }
@@ -254,7 +254,7 @@ int DoFileMounting(const char *rootfs, const struct MountList *list)
     for (unsigned int i = 0; i < list->count; i++) {
         ret = MountFile(rootfs, (const char *)&list->list[i][0]);
         if (ret < 0) {
-            LOG_ERROR("error: failed to do file mounting for %s.", &list->list[i][0]);
+            LOG_ERROR("error: failed to do file mounting for %s.", (const char *)&list->list[i][0]);
             return -1;
         }
     }
