@@ -239,7 +239,7 @@ int DoDirectoryMounting(const char *rootfs, const struct MountList *list)
     for (unsigned int i = 0; i < list->count; i++) {
         ret = MountDir(rootfs, (const char *)&list->list[i][0]);
         if (ret < 0) {
-            LOG_ERROR("error: failed to do directory mounting for %s.", &list->list[i][0]);
+            LOG_ERROR("error: failed to do directory mounting for %s.", (char *)&list->list[i][0]);
             return -1;
         }
     }
@@ -254,7 +254,7 @@ int DoFileMounting(const char *rootfs, const struct MountList *list)
     for (unsigned int i = 0; i < list->count; i++) {
         ret = MountFile(rootfs, (const char *)&list->list[i][0]);
         if (ret < 0) {
-            LOG_ERROR("error: failed to do file mounting for %s.", &list->list[i][0]);
+            LOG_ERROR("error: failed to do file mounting for %s.", (char *)&list->list[i][0]);
             return -1;
         }
     }
