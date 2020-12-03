@@ -89,6 +89,13 @@ int MountDevice(const char *rootfs, const char *deviceName)
         return -1;
     }
 
+    struct stat srcStat;
+    ret = stat((const char *)src, &srcStat);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to stat src: %s.", src);
+        return -1;
+    }
+
     errno = 0;
     struct stat dstStat;
     ret = stat((const char *)dst, &dstStat);
@@ -99,13 +106,6 @@ int MountDevice(const char *rootfs, const char *deviceName)
         return -1;
     } else if (ret < 0 && errno != ENOENT) {
         LOG_ERROR("error: failed to check dst %s stat", dst);
-        return -1;
-    }
-
-    struct stat srcStat;
-    ret = stat((const char *)src, &srcStat);
-    if (ret < 0) {
-        LOG_ERROR("error: failed to stat src: %s.", src);
         return -1;
     }
 
@@ -162,6 +162,11 @@ int MountFile(const char *rootfs, const char *filepath)
         return 0;
     }
 
+    if (!S_ISREG(srcStat.st_mode)) {
+        LOG_ERROR("error: this should be a regular file to be mounted: %s.", filepath);
+        return -1;
+    }
+
     ret = CreateFile(dst, srcStat.st_mode);
     if (ret < 0) {
         LOG_ERROR("error: failed to create mount dst file: %s.", dst);
@@ -191,6 +196,11 @@ int MountDir(const char *rootfs, const char *src)
     ret = stat(src, &srcStat);
     if (ret < 0) {
         return 0;
+    }
+
+    if (!S_ISDIR(srcStat.st_mode)) {
+        LOG_ERROR("error: this should be a directory to be mounted: %s.", src);
+        return -1;
     }
 
     ret = MakeDirWithParent(dst, DEFAULT_DIR_MODE);
@@ -232,31 +242,60 @@ int DoCtrlDeviceMounting(const char *rootfs)
     return 0;
 }
 
-int DoDirectoryMounting(const char *rootfs, const struct MountList *list)
+int DoDirectoryMounting(const char *rootfs)
 {
-    int ret;
+    /* directory */
+    int ret = MountDir(rootfs, ASCEND_DRIVER_LIB64_PATH);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to do mount %s.", ASCEND_DRIVER_LIB64_PATH);
+        return -1;
+    }
 
-    for (unsigned int i = 0; i < list->count; i++) {
-        ret = MountDir(rootfs, (const char *)&list->list[i][0]);
-        if (ret < 0) {
-            LOG_ERROR("error: failed to do directory mounting for %s.", (char *)&list->list[i][0]);
-            return -1;
-        }
+    ret = MountDir(rootfs, ASCEND_DRIVER_TOOLS_PATH);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to do mount %s.", ASCEND_DRIVER_TOOLS_PATH);
+        return -1;
+    }
+
+    ret = MountDir(rootfs, ASCEND_DRIVER_INC_PATH);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to do mount %s.", ASCEND_DRIVER_INC_PATH);
+        return -1;
+    }
+
+    ret = MountDir(rootfs, ASCEND_ADDONS_PATH);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to do mount %s.", ASCEND_ADDONS_PATH);
+        return -1;
+    }
+
+    ret = MountDir(rootfs, ASCEND_DCMI_PATH);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to do mount %s.", ASCEND_DCMI_PATH);
+        return -1;
     }
 
     return 0;
 }
 
-int DoFileMounting(const char *rootfs, const struct MountList *list)
+int DoFileMounting(const char *rootfs)
 {
-    int ret;
+    int ret = MountFile(rootfs, ASCEND_NPU_SMI_PATH);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to do mount %s.", ASCEND_NPU_SMI_PATH);
+        return -1;
+    }
 
-    for (unsigned int i = 0; i < list->count; i++) {
-        ret = MountFile(rootfs, (const char *)&list->list[i][0]);
-        if (ret < 0) {
-            LOG_ERROR("error: failed to do file mounting for %s.", (char *)&list->list[i][0]);
-            return -1;
-        }
+    ret = MountFile(rootfs, ASCEND_NPU_SMI_PATH_OLD);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to do mount %s.", ASCEND_NPU_SMI_PATH_OLD);
+        return -1;
+    }
+
+    ret = MountFile(rootfs, ASCEND_SLOG_CONF_PATH);
+    if (ret < 0) {
+        LOG_ERROR("error: failed to do mount %s.", ASCEND_SLOG_CONF_PATH);
+        return -1;
     }
 
     return 0;
@@ -282,13 +321,13 @@ int DoMounting(const struct ParsedConfig *config)
         return 0;
     }
 
-    ret = DoFileMounting(config->rootfs, config->files);
+    ret = DoFileMounting(config->rootfs);
     if (ret < 0) {
         LOG_ERROR("error: failed to mount files.");
         return -1;
     }
 
-    ret = DoDirectoryMounting(config->rootfs, config->dirs);
+    ret = DoDirectoryMounting(config->rootfs);
     if (ret < 0) {
         LOG_ERROR("error: failed to do mount directories.");
         return -1;
