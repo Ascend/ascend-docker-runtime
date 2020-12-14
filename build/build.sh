@@ -1,6 +1,9 @@
 #!/bin/bash
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# Description: ascend-docker-runtime构建脚本
+set -e
 
-ROOT=$(cd `dirname $0`; pwd)/..
+ROOT=$(cd $(dirname $0); pwd)/..
 TOP_DIR=$ROOT/..
 
 OPENSRC=${ROOT}/opensource
@@ -20,18 +23,18 @@ HOOKSRCNAME="main.go"
 RUNTIMEDIR=${ROOT}/runtime
 RUNTIMESRCNAME="main.go"
 
-CLISRCPATH=`find ${CLIDIR} -name "${CLISRCNAME}"`
+CLISRCPATH=$(find ${CLIDIR} -name "${CLISRCNAME}")
 CLISRCDIR=${CLISRCPATH%/${CLISRCNAME}}
-INSTALLHELPERSRCPATH=`find ${INSTALLHELPERDIR} -name "${INSTALLHELPERSRCNAME}"`
+INSTALLHELPERSRCPATH=$(find ${INSTALLHELPERDIR} -name "${INSTALLHELPERSRCNAME}")
 INSTALLHELPERSRCDIR=${INSTALLHELPERSRCPATH%/${INSTALLHELPERSRCNAME}}
-HOOKSRCPATH=`find ${HOOKDIR} -name "${HOOKSRCNAME}"`
+HOOKSRCPATH=$(find ${HOOKDIR} -name "${HOOKSRCNAME}")
 HOOKSRCDIR=${HOOKSRCPATH%/${HOOKSRCNAME}}
-RUNTIMESRCPATH=`find ${RUNTIMEDIR} -name "${RUNTIMESRCNAME}"`
+RUNTIMESRCPATH=$(find ${RUNTIMEDIR} -name "${RUNTIMESRCNAME}")
 RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
-VERSION=`cat $TOP_DIR/CI/config/version.ini | grep "PackageName" | cut -d "=" -f 2`
+VERSION=$(cat $TOP_DIR/CI/config/version.ini | grep "PackageName" | cut -d "=" -f 2)
 PACKAGENAME="Ascend-docker-runtime"
-CPUARCH=`uname -m`
+CPUARCH=$(uname -m)
 
 function build_bin()
 {
@@ -76,7 +79,7 @@ function build_run_package()
     /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${INSTALLHELPERSRCDIR},${CLISRCDIR}}/build/ascend-docker*  run_pkg
     /bin/cp -f scripts/uninstall.sh run_pkg
     /bin/cp -f scripts/base.list run_pkg
-    FILECNT=`ls -l run_pkg |grep "^-"|wc -l`
+    FILECNT=$(ls -l run_pkg |grep "^-"|wc -l)
     echo "prepare package $FILECNT bins"
     if [ $FILECNT -ne 6 ]; then
         exit 1
@@ -86,8 +89,8 @@ function build_run_package()
     chmod 550 run_pkg/run_main.sh
 
     RUN_PKG_NAME="${PACKAGENAME}-${VERSION}-${CPUARCH}.run"
-    DATE=`date -u "+%Y-%m-%d"`
-    bash makeself.sh --nomd5 --nocrc --help-header scripts/help.info --packaging-date ${DATE} \
+    DATE=$(date -u "+%Y-%m-%d")
+    bash ${OPENSRC}/${MAKESELF_DIR}/makeself.sh --nomd5 --nocrc --help-header scripts/help.info --packaging-date ${DATE} \
     --tar-extra "--mtime=${DATE}" run_pkg "${RUN_PKG_NAME}" ascend-docker-runtime ./run_main.sh
     mv ${RUN_PKG_NAME} ${OUTPUT}
 }
@@ -107,23 +110,20 @@ function make_unzip()
 {
     cd ${OPENSRC}
     tar -xzvf cJSON*.tar.gz
-    CJSONS=`find . -name "cJSON.*"`
+    CJSONS=$(find . -name "cJSON.*")
     CJSONSLIB=${INSTALLHELPERDIR}/deb/src/cjson 
     /bin/cp -f ${CJSONS} ${CJSONSLIB}
 
     unzip makeself-release-*.zip
     rm -f makeself-release-*.zip
-    MAKESELF_DIR=`find . -name "makeself-release-*"`
-    /bin/cp -f ${MAKESELF_DIR}/makeself.sh ${BUILD}
-    /bin/cp -f ${MAKESELF_DIR}/makeself-header.sh ${BUILD}
-    cd ${BUILD} && /bin/cp -f scripts/mkselfmodify.patch ./
+    MAKESELF_DIR=$(find . -name "makeself-release-*")
+    cd ${MAKESELF_DIR} && /bin/cp -f ${BUILD}/scripts/mkselfmodify.patch ./
     patch -p0 < mkselfmodify.patch
     rm -f mkselfmodify.patch
 
     cd ${PLATFORM}
-    tar -xzvf HuaweiSecureC.tar.gz
-    SECURECSRC=`find . -name "src"`
-    SECURECINC=`find . -name "include"`
+    SECURECSRC=$(find . -name "src")
+    SECURECINC=$(find . -name "include")
 
     SECURECLIB=${INSTALLHELPERDIR}/deb/src/HuaweiSecureC
     /bin/cp -f ${SECURECSRC}/* ${SECURECLIB}
@@ -135,7 +135,7 @@ function make_unzip()
 }
 
 make_clean
-if [ $1 == "pull" ]; then
+if [ "$1" == "pull" ]; then
     make_pull
 fi
 

@@ -1,6 +1,9 @@
 #!/bin/bash
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# Description: ascend-docker-runtime 卸载脚本
+set -e
 
-ROOT=$(cd `dirname $0`; pwd)/..
+ROOT=$(cd $(dirname $0); pwd)/..
 DST='/etc/docker/daemon.json'
 SRC="${DST}.${PPID}"
 ASCEND_RUNTIME_CONFIG_DIR=/etc/ascend-docker-runtime.d
@@ -17,4 +20,4 @@ fi
 
 mv ${SRC} ${DST}
 
-rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
+[ -n "${ASCEND_RUNTIME_CONFIG_DIR}" ] && rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
