@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+# Description: ascend-docker-runtime run包脚本文件
+set -e
 
 ASCEND_RUNTIME_CONFIG_DIR=/etc/ascend-docker-runtime.d
 DOCKER_CONFIG_DIR=/etc/docker
@@ -63,7 +66,7 @@ function uninstall()
     ${INSTALL_PATH}/script/uninstall.sh
     echo 'remove daemon.json setting success'
 
-    rm -rf ${INSTALL_PATH}
+    [ -n "${INSTALL_PATH}" ] && rm -rf ${INSTALL_PATH}
     echo 'remove executable files success'
 
     echo 'del damom.json success'
@@ -118,8 +121,8 @@ do
             ;;
         --install-path=*)
             INSTALL_PATH_FLAG=y
-            INSTALL_PATH=`echo $3 | cut -d"=" -f2 `
-            INSTALL_PATH=`echo ${INSTALL_PATH} | sed "s/\/*$//g"`
+            INSTALL_PATH=$(echo $3 | cut -d"=" -f2)
+            INSTALL_PATH=$(echo ${INSTALL_PATH} | sed "s/\/*$//g")
             shift
             ;;
         --upgrade)
