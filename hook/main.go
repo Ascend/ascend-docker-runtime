@@ -167,7 +167,7 @@ func parseOciSpecFile(file string) (*specs.Spec, error) {
 
 	spec := new(specs.Spec)
 	if err := json.NewDecoder(f).Decode(spec); err != nil {
-		return nil, fmt.Errorf("failed to parse OCI config file: %s, caused by: %w", file, err)
+		return nil, fmt.Errorf("failed to parse OCI config file: %s, caused by: %v", file, err)
 	}
 
 	if spec.Process == nil {
@@ -192,7 +192,7 @@ var getContainerConfig = func() (*containerConfig, error) {
 	configPath := path.Join(state.Bundle, "config.json")
 	ociSpec, err := parseOciSpecFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse OCI spec: %w", err)
+		return nil, fmt.Errorf("failed to parse OCI spec: %v", err)
 	}
 
 	ret := &containerConfig{
@@ -223,12 +223,12 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 	configFileName := fmt.Sprintf("%s.%s", name, configFileSuffix)
 	baseConfigFilePath, err := filepath.Abs(filepath.Join(dir, configFileName))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to assemble base config file path: %w", err)
+		return nil, nil, fmt.Errorf("failed to assemble base config file path: %v", err)
 	}
 
 	fileInfo, err := os.Stat(baseConfigFilePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot stat base configuration file %s : %w", baseConfigFilePath, err)
+		return nil, nil, fmt.Errorf("cannot stat base configuration file %s : %v", baseConfigFilePath, err)
 	}
 
 	if !fileInfo.Mode().IsRegular() {
@@ -237,7 +237,7 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 
 	f, err := os.Open(baseConfigFilePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open base configuration file %s: %w", baseConfigFilePath, err)
+		return nil, nil, fmt.Errorf("failed to open base configuration file %s: %v", baseConfigFilePath, err)
 	}
 	defer f.Close()
 
@@ -249,13 +249,13 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 		mountPath := scanner.Text()
 		absMountPath, err := filepath.Abs(mountPath)
 		if err != nil {
-			continue  // skipping files/dirs with any problems
+			continue // skipping files/dirs with any problems
 		}
 		mountPath = absMountPath
 
 		stat, err := os.Stat(mountPath)
 		if err != nil {
-			continue  // skipping files/dirs with any problems
+			continue // skipping files/dirs with any problems
 		}
 
 		if stat.Mode().IsRegular() || stat.Mode()&os.ModeSocket != 0 {
@@ -271,7 +271,7 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 func readConfigsOfDir(dir string, configs []string) ([]string, []string, error) {
 	fileInfo, err := os.Stat(dir)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot stat configuration directory %s : %w", dir, err)
+		return nil, nil, fmt.Errorf("cannot stat configuration directory %s : %v", dir, err)
 	}
 
 	if !fileInfo.Mode().IsDir() {
@@ -284,7 +284,7 @@ func readConfigsOfDir(dir string, configs []string) ([]string, []string, error) 
 	for _, config := range configs {
 		fileList, dirList, err := readMountConfig(dir, config)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to process config %s: %w", config, err)
+			return nil, nil, fmt.Errorf("failed to process config %s: %v", config, err)
 		}
 
 		fileMountList = append(fileMountList, fileList...)
@@ -297,7 +297,7 @@ func readConfigsOfDir(dir string, configs []string) ([]string, []string, error) 
 func doPrestartHook() error {
 	containerConfig, err := getContainerConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get container config: %w", err)
+		return fmt.Errorf("failed to get container config: %v", err)
 	}
 
 	visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices)
@@ -307,29 +307,29 @@ func doPrestartHook() error {
 
 	devices, err := parseDevices(visibleDevices)
 	if err != nil {
-		return fmt.Errorf("failed to parse device setting: %w", err)
+		return fmt.Errorf("failed to parse device setting: %v", err)
 	}
 
 	mountConfigs := parseMounts(getValueByKey(containerConfig.Env, ascendRuntimeMounts))
 
 	fileMountList, dirMountList, err := readConfigsOfDir(configDir, mountConfigs)
 	if err != nil {
-		return fmt.Errorf("failed to read configuration from config directory: %w", err)
+		return fmt.Errorf("failed to read configuration from config directory: %v", err)
 	}
 
 	parsedOptions, err := parseRuntimeOptions(getValueByKey(containerConfig.Env, ascendRuntimeOptions))
 	if err != nil {
-		return fmt.Errorf("failed to parse runtime options: %w", err)
+		return fmt.Errorf("failed to parse runtime options: %v", err)
 	}
 
 	currentExecPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("cannot get the path of ascend-docker-hook: %w", err)
+		return fmt.Errorf("cannot get the path of ascend-docker-hook: %v", err)
 	}
 
 	cliPath := path.Join(path.Dir(currentExecPath), ascendDockerCliName)
 	if _, err = os.Stat(cliPath); err != nil {
-		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %w", cliPath, err)
+		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %v", cliPath, err)
 	}
 
 	args := append([]string{cliPath},
@@ -350,7 +350,7 @@ func doPrestartHook() error {
 	}
 
 	if err := doExec(cliPath, args, os.Environ()); err != nil {
-		return fmt.Errorf("failed to exec ascend-docker-cli %v: %w", args, err)
+		return fmt.Errorf("failed to exec ascend-docker-cli %v: %v", args, err)
 	}
 
 	return nil
