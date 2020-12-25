@@ -72,7 +72,7 @@ add_definitions(-Dgtest)
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector -std=c++11 -D _GNU_SOURCE -fprofile-arcs")
 
 add_subdirectory(srclib)
-set(UT_DEMO_SRCS testcase/main.cpp testcase/gtest_mytestcase.cpp)
+set(UT_DEMO_SRCS testcase/main.cpp testcase/gtest_mytest.cpp)
 
 add_executable(ut_demo ${UT_DEMO_SRCS})
 target_link_libraries(ut_demo
