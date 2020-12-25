@@ -351,12 +351,7 @@ protected:
     }
 };
 
-TEST_F(Test_Fhho, ClassEQ1)
-{
-    EXPECT_EQ(1, IsStrEqual("", ""));
-}
-
-TEST_F(Test_Fhho, ClassEQ2)
+TEST_F(Test_Fhho, ClassEQ)
 {
     int pid = 1;
     const char* nsType = "mnt";
@@ -366,7 +361,7 @@ TEST_F(Test_Fhho, ClassEQ2)
     EXPECT_LE(0, ret);
 }
 
-TEST(EnterNsByFd, Status1)
+TEST(EnterNsByFd, StatusOne)
 {
     int pid = 1;
     int nsType = 1;
@@ -378,15 +373,16 @@ TEST(EnterNsByFd, Status1)
     EXPECT_LE(0, ret);
 }
 
-TEST(EnterNsByFd, Status2)
+TEST(EnterNsByFd, StatusTwo)
 {
+    // The test does not have a file handle into the namespace
     int pid = 1;
     int nsType = 1;
     int ret = EnterNsByFd(pid, nsType);
     EXPECT_LE(-1, ret);
 }
 
-TEST(EnterNsByPath, Status1)
+TEST(EnterNsByPath, StatusOne)
 {
     char containerNsPath[BUF_SIZE] = {0};
     int nsType = 1;
@@ -396,44 +392,25 @@ TEST(EnterNsByPath, Status1)
     EXPECT_LE(-1, ret);
 }
 
-TEST(EnterNsByPath, Status2)
+TEST(EnterNsByPath, StatusTwo)
 {
+    // The test has no path into the namespace
     char containerNsPath[BUF_SIZE] = {0};
     int nsType = 1;
     int ret = EnterNsByPath(containerNsPath, nsType);
     EXPECT_LE(-1, ret);
 }
 
-TEST_F(Test_Fhho, StrHasPrefix)
-{
-    EXPECT_EQ(1, StrHasPrefix("/home/user", "/home"));
-    EXPECT_EQ(0, StrHasPrefix("/home/user", "/heme"));
-}
-
-TEST(StrHasPrefix, status1)
-{
-    EXPECT_EQ(1, StrHasPrefix("/home/user", "/home"));
-}
-
-TEST(StrHasPrefix, status2)
-{
-    EXPECT_EQ(0, StrHasPrefix("/home/user", "/heme"));
-}
-
-TEST_F(Test_Fhho, GetNsPath)
+TEST_F(Test_Fhho, GetNsPathAndGetSelfNsPath)
 {
     char containerNsPath[BUF_SIZE] = {0};
     int containerPid = 1;
     EXPECT_LE(0, GetNsPath(containerPid, "mnt", containerNsPath, BUF_SIZE));
-}
-
-TEST_F(Test_Fhho, GetSelfNsPath)
-{
     char nsPath[BUF_SIZE] = {0};
     EXPECT_LE(0, GetSelfNsPath("mnt", nsPath, BUF_SIZE));
 }
 
-TEST(MountDevice, Status1)
+TEST(MountDevice, StatusOne)
 {
     char *rootfs="/home";
     MOCKER(Mount).stubs().will(invoke(stub_Mount_failed));
@@ -442,14 +419,16 @@ TEST(MountDevice, Status1)
     GlobalMockObject::verify();
 }
 
-TEST(MountDevice, Status2)
+TEST(MountDevice, StatusTwo)
 {
+    // Test root file system does not exist mount
+    // Assign a false file path
     char *rootfs="/home/notexists";
     char *deviceName="davinci0";
     EXPECT_EQ(-1, MountDevice(rootfs, deviceName));
 }
 
-TEST(MountDevice, Status3)
+TEST(MountDevice, StatusThree)
 {
     char *rootfs="/home";
     MOCKER(stat).stubs().will(invoke(stub_stat_success));
@@ -461,7 +440,7 @@ TEST(MountDevice, Status3)
     GlobalMockObject::verify();
 }
 
-TEST(MountDevice, Status4)
+TEST(MountDevice, StatusFour)
 {
     char *rootfs="/home";
     MOCKER(mount).stubs().will(invoke(stub_mount_success));
@@ -471,7 +450,7 @@ TEST(MountDevice, Status4)
     EXPECT_EQ(-1, MountDevice(rootfs, deviceName));
 }
 
-TEST(DoDeviceMounting, Status1)
+TEST(DoDeviceMounting, StatusOne)
 {
     MOCKER(MountDevice).stubs().will(invoke(Stub_MountDevice_Success));
     char *rootfs = "/home";
@@ -482,7 +461,7 @@ TEST(DoDeviceMounting, Status1)
     EXPECT_EQ(0, ret);
 }
 
-TEST(DoDeviceMounting, Status2)
+TEST(DoDeviceMounting, StatusTwo)
 {
     MOCKER(MountDevice).stubs().will(invoke(Stub_MountDevice_Failed));
     char *rootfs = "/home";
@@ -493,7 +472,7 @@ TEST(DoDeviceMounting, Status2)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(DoDirectoryMounting, Status1)
+TEST(DoDirectoryMounting, StatusOne)
 {
     MOCKER(MountDir).stubs().will(invoke(Stub_MountDir_Failed));
     struct MountList list = {0};
@@ -504,7 +483,7 @@ TEST(DoDirectoryMounting, Status1)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(DoDirectoryMounting, Status2)
+TEST(DoDirectoryMounting, StatusTwo)
 {
     MOCKER(MountDir).stubs().will(invoke(Stub_MountDir_Success));
     struct MountList list = {0};
@@ -515,7 +494,7 @@ TEST(DoDirectoryMounting, Status2)
     EXPECT_EQ(0, ret);
 }
 
-TEST(DoMounting, Status1)
+TEST(DoMounting, StatusOne)
 {
     MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Failed));
     struct ParsedConfig config;
@@ -528,7 +507,7 @@ TEST(DoMounting, Status1)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(DoMounting, Status2)
+TEST(DoMounting, StatusTwo)
 {
     MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
     MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Failed));
@@ -542,7 +521,7 @@ TEST(DoMounting, Status2)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(DoMounting, Status3)
+TEST(DoMounting, StatusThree)
 {
     MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
     MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Success));
@@ -558,7 +537,7 @@ TEST(DoMounting, Status3)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(DoMounting, Status4)
+TEST(DoMounting, StatusFour)
 {
     MOCKER(DoDeviceMounting).stubs().will(invoke(Stub_DoDeviceMounting_Success));
     MOCKER(DoCtrlDeviceMounting).stubs().will(invoke(Stub_DoCtrlDeviceMounting_Success));
@@ -576,39 +555,43 @@ TEST(DoMounting, Status4)
 }
 
 
-TEST(CheckDirExists, Status1)
+TEST(CheckDirExists, StatusOne)
 {
+    // Test directory exists
     char *dir = "/home";
     int len = strlen(dir);
     int ret = CheckDirExists(dir, len);
     EXPECT_EQ(0, ret);
 }
 
-TEST(CheckDirExists, Status2)
+TEST(CheckDirExists, StatusTwo)
 {
+    // Test directory does not exist
     char *dir = "/home/notexist";
     int len = strlen(dir);
     int ret = CheckDirExists(dir, len);
     EXPECT_EQ(-1, ret);
 }
 
-TEST(GetParentPathStr, Status1)
+TEST(GetParentPathStr, StatusOne)
 {
+    // Test get path parent directory
     char *path = "/usr/bin";
     char parent[BUF_SIZE] = {0};
     int ret = GetParentPathStr(path, parent, BUF_SIZE);
     EXPECT_EQ(0, ret);
 }
 
-TEST(MakeDirWithParent, Status1)
+TEST(MakeDirWithParent, StatusOne)
 {
+    // The test create directory contains the parent directory
     mode_t mode = 0755;
     char parentDir[BUF_SIZE] = {0};
     int ret = MakeDirWithParent(parentDir, mode);
     EXPECT_EQ(0, ret);
 }
 
-TEST(MakeDirWithParent, Status2)
+TEST(MakeDirWithParent, StatusTwo)
 {
     mode_t mode = 0755;
     char parentDir[BUF_SIZE] = {0};
@@ -618,7 +601,7 @@ TEST(MakeDirWithParent, Status2)
     EXPECT_EQ(0, ret);
 }
 
-TEST(MakeDirWithParent, Status3)
+TEST(MakeDirWithParent, StatusThree)
 {
     char *pathData = "/path/abc/abcd";
     mode_t mode = 0755;
@@ -632,7 +615,7 @@ TEST(MakeDirWithParent, Status3)
     EXPECT_EQ(0, ret);
 }
 
-TEST(MountDir, Status1)
+TEST(MountDir, StatusOne)
 {
     MOCKER(stat).stubs().will(invoke(stub_stat_failed));
     char *rootfs = "/dev";
@@ -642,7 +625,7 @@ TEST(MountDir, Status1)
     EXPECT_EQ(0, ret);
 }
 
-TEST(MountDir, Status2)
+TEST(MountDir, StatusTwo)
 {
     MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
     MOCKER(MakeDirWithParent).stubs().will(invoke(Stub_MakeDirWithParent_Failed));
@@ -653,7 +636,7 @@ TEST(MountDir, Status2)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(MountDir, Status3)
+TEST(MountDir, StatusThree)
 {
     MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
     MOCKER(MkDir).stubs().will(invoke(stub_MkDir_failed));
@@ -664,7 +647,7 @@ TEST(MountDir, Status3)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(MountDir, Status4)
+TEST(MountDir, StatusFour)
 {
     MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
     MOCKER(MakeDirWithParent).stubs().will(invoke(Stub_MakeDirWithParent_Success));
@@ -676,7 +659,7 @@ TEST(MountDir, Status4)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(MountDir, Status5)
+TEST(MountDir, StatusFive)
 {
     MOCKER(stat).stubs().will(invoke(stub_stat_failed));
     MOCKER(MakeDirWithParent).stubs().will(invoke(Stub_MakeDirWithParent_Success));
@@ -688,7 +671,7 @@ TEST(MountDir, Status5)
     EXPECT_EQ(0, ret);
 }
 
-TEST(DoCtrlDeviceMounting, Status1)
+TEST(DoCtrlDeviceMounting, StatusOne)
 {
     char *rootfs = "/home";
     MOCKER(MountDir).stubs().will(invoke(Stub_MountDir_Failed));
@@ -697,7 +680,7 @@ TEST(DoCtrlDeviceMounting, Status1)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(DoCtrlDeviceMounting, Status2)
+TEST(DoCtrlDeviceMounting, StatusTwo)
 {
     MOCKER(MountDevice).stubs().will(invoke(Stub_MountDevice_Success));
     char *rootfs = "/home";
@@ -706,7 +689,7 @@ TEST(DoCtrlDeviceMounting, Status2)
     EXPECT_EQ(0, ret);
 }
 
-TEST(GetCgroupMount, Status1)
+TEST(GetCgroupMount, StatusOne)
 {
     char *lineData = "406 403 0:27 /docker/ba186404524744c189c6a03d2b66288a963a562a79b11005ae935104fc8c47b2 /sys/fs/cgroup/devices ro,nosuid,nodev,noexec,relatime master:15 - cgroup cgroup rw,devices";
     char *line = NULL;
@@ -717,7 +700,7 @@ TEST(GetCgroupMount, Status1)
     EXPECT_EQ(0, strcmp(actualRes, expectRes));
 }
 
-TEST(GetCgroupRoot, Status1)
+TEST(GetCgroupRoot, StatusOne)
 {
     char *lineData = "3:devices:/docker/ba186404524744c189c6a03d2b66288a963a562a79b11005ae935104fc8c47b2";
     char *line = NULL;
@@ -728,15 +711,16 @@ TEST(GetCgroupRoot, Status1)
     EXPECT_EQ(0, strcmp(actualRes, expectRes));
 }
 
-TEST(ParseFileByLine, Status1)
+TEST(ParseFileByLine, StatusOne)
 {
+    // Test parse file content does not exist
     char *mountPath= "/not_exist_dir/mountinfo.txt";
     char mount[BUF_SIZE] = {0x0};
     int ret = ParseFileByLine(mount, BUF_SIZE, GetCgroupMount, mountPath);
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupDeviceCgroup, Status1)
+TEST(SetupDeviceCgroup, StatusOne)
 {
     char *cgroupPathData = "devices.allow";
     char *cgroupPath = NULL;
@@ -751,7 +735,7 @@ TEST(SetupDeviceCgroup, Status1)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupDeviceCgroup, Status2)
+TEST(SetupDeviceCgroup, StatusTwo)
 {
     char *cgroupPathData = "/not_exist_dir/devices1.allow";
     char *cgroupPath = NULL;
@@ -767,7 +751,7 @@ TEST(SetupDeviceCgroup, Status2)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupDriverCgroup, Status1)
+TEST(SetupDriverCgroup, StatusOne)
 {
     char *cgroupPath = "devices.allow";
     FILE *cgroupAllow = NULL;
@@ -781,7 +765,7 @@ TEST(SetupDriverCgroup, Status1)
     EXPECT_EQ(0, ret);
 }
 
-TEST(SetupDriverCgroup, Status2)
+TEST(SetupDriverCgroup, StatusTwo)
 {
     char *cgroupPath = "devices1.allow";
     FILE *cgroupAllow = NULL;
@@ -795,7 +779,7 @@ TEST(SetupDriverCgroup, Status2)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(GetCgroupPath, Status1)
+TEST(GetCgroupPath, StatusOne)
 {
     struct CmdArgs args;
     (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
@@ -810,7 +794,7 @@ TEST(GetCgroupPath, Status1)
     EXPECT_EQ(0, ret);
 }
 
-TEST(SetupCgroup, Status1)
+TEST(SetupCgroup, StatusOne)
 {
     struct ParsedConfig config;
     (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
@@ -822,7 +806,7 @@ TEST(SetupCgroup, Status1)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupCgroup, Status2)
+TEST(SetupCgroup, StatusTwo)
 {
     struct ParsedConfig config;
     (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
@@ -836,7 +820,7 @@ TEST(SetupCgroup, Status2)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupCgroup, Status3)
+TEST(SetupCgroup, StatusThree)
 {
     struct ParsedConfig config;
     (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
@@ -851,7 +835,7 @@ TEST(SetupCgroup, Status3)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupCgroup, Status4)
+TEST(SetupCgroup, StatusFour)
 {
     MOCKER(SetupDriverCgroup).stubs().will(invoke(Stub_SetupDriverCgroup_Success));
     MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Success));
@@ -866,7 +850,7 @@ TEST(SetupCgroup, Status4)
     EXPECT_EQ(0, ret);
 }
 
-TEST(SetupContainer, Status1)
+TEST(SetupContainer, StatusOne)
 {
     struct CmdArgs args;
     (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
@@ -879,7 +863,7 @@ TEST(SetupContainer, Status1)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupContainer, Status2)
+TEST(SetupContainer, StatusTwo)
 {
     struct CmdArgs args;
     (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
@@ -893,7 +877,7 @@ TEST(SetupContainer, Status2)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupContainer, Status3)
+TEST(SetupContainer, StatusThree)
 {
     struct CmdArgs args;
     (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
@@ -908,7 +892,7 @@ TEST(SetupContainer, Status3)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupContainer, Status4)
+TEST(SetupContainer, StatusFour)
 {
     struct CmdArgs args;
     (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
@@ -924,7 +908,7 @@ TEST(SetupContainer, Status4)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupContainer, Status5)
+TEST(SetupContainer, StatusFive)
 {
     struct CmdArgs args;
     (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
@@ -941,7 +925,7 @@ TEST(SetupContainer, Status5)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupContainer, Status6)
+TEST(SetupContainer, StatusSix)
 {
     struct CmdArgs args;
     (void)strcpy_s(args.rootfs, sizeof(args.rootfs), "/home");
@@ -959,31 +943,34 @@ TEST(SetupContainer, Status6)
     EXPECT_EQ(0, ret);
 }
 
-TEST(Process, Status1)
+TEST(Process, StatusOne)
 {
+    // test parameter is null
     int argc = 0;
     char **argv = NULL;
     int ret = Process(argc, argv);
     EXPECT_EQ(-1, ret);
 }
 
-TEST(Process, Status2)
+TEST(Process, StatusTwo)
 {
+    // Test the correct options
     int argc = 7;
     const char *argvData[7] = {"ascend-docker-cli", "--devices", "1,2", "--pid", "123", "--rootfs", "/home"};
     int ret = Process(argc,const_cast<char **>(argvData));
     EXPECT_EQ(-1, ret);
 }
 
-TEST(Process, Status3)
+TEST(Process, StatusThree)
 {
+    // Test error options
     int argc = 7;
     const char *argvData[7] = {"ascend-docker-cli", "--evices", "1,2", "--idd", "123", "--ootfs", "/home"};
     int ret = Process(argc, const_cast<char **>(argvData));
     EXPECT_EQ(-1, ret);
 }
 
-TEST(Process, Status4)
+TEST(Process, StatusFour)
 {
     int argc = 7;
     const char *argvData[7] = {"ascend-docker-cli", "--evices", "1,2", "--idd", "123", "--ootfs", "/home"};
@@ -993,14 +980,16 @@ TEST(Process, Status4)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(ParseRuntimeOptions, Status1)
+TEST(ParseRuntimeOptions, StatusOne)
 {
+    // Test the right options
     const char options[BUF_SIZE] = "1,2";
+    // Options is the parameter value of -o
     int ret = ParseRuntimeOptions(options);
     EXPECT_EQ(0, ret);
 }
 
-TEST(DoPrepare, Status1)
+TEST(DoPrepare, StatusOne)
 {
     MOCKER(GetCgroupPath).stubs().will(invoke(Stub_GetCgroupPath_Success));
     struct CmdArgs args;
@@ -1015,7 +1004,7 @@ TEST(DoPrepare, Status1)
     EXPECT_EQ(0, ret);
 }
 
-TEST(DoPrepare, Status2)
+TEST(DoPrepare, StatusTwo)
 {
     MOCKER(GetCgroupPath).stubs().will(invoke(Stub_GetCgroupPath_Success));
     struct CmdArgs args;
@@ -1030,7 +1019,7 @@ TEST(DoPrepare, Status2)
     EXPECT_EQ(0, ret);
 }
 
-TEST(DoPrepare, Status3)
+TEST(DoPrepare, StatusThree)
 {
     MOCKER(GetNsPath).stubs().will(invoke(Stub_GetNsPath_Failed));
     struct CmdArgs args;
@@ -1045,7 +1034,7 @@ TEST(DoPrepare, Status3)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(DoPrepare, Status4)
+TEST(DoPrepare, StatusFour)
 {
     MOCKER(GetCgroupPath).stubs().will(invoke(Stub_GetCgroupPath_Success));
     MOCKER(GetSelfNsPath).stubs().will(invoke(Stub_GetSelfNsPath_Failed));
@@ -1061,7 +1050,7 @@ TEST(DoPrepare, Status4)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(DoPrepare, Status5)
+TEST(DoPrepare, StatusFive)
 {
     MOCKER(GetCgroupPath).stubs().will(invoke(Stub_GetCgroupPath_Success));
     MOCKER(open).stubs().will(invoke(stub_open_failed));
