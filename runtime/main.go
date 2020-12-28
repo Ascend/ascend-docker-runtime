@@ -27,10 +27,10 @@ const (
 )
 
 var (
-	hookCliPath         = hookCli
-	hookDefaultFile     = hookDefaultFilePath
-	dockerRuncName      = dockerRuncFile
-	runcName            = runcFile
+	hookCliPath     = hookCli
+	hookDefaultFile = hookDefaultFilePath
+	dockerRuncName  = dockerRuncFile
+	runcName        = runcFile
 )
 
 type args struct {
@@ -60,12 +60,12 @@ var execRunc = func() error {
 	if err != nil {
 		runcPath, err = exec.LookPath(runcName)
 		if err != nil {
-			return fmt.Errorf("failed to find the path of runc: %w", err)
+			return fmt.Errorf("failed to find the path of runc: %v", err)
 		}
 	}
 
 	if err = syscall.Exec(runcPath, append([]string{runcPath}, os.Args[1:]...), os.Environ()); err != nil {
-		return fmt.Errorf("failed to exec runc: %w", err)
+		return fmt.Errorf("failed to exec runc: %v", err)
 	}
 
 	return nil
@@ -74,12 +74,12 @@ var execRunc = func() error {
 func addHook(spec *specs.Spec) error {
 	currentExecPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("cannot get the path of ascend-docker-runtime: %w", err)
+		return fmt.Errorf("cannot get the path of ascend-docker-runtime: %v", err)
 	}
 
 	hookCliPath = path.Join(path.Dir(currentExecPath), hookCli)
 	if _, err = os.Stat(hookCliPath); err != nil {
-		return fmt.Errorf("cannot find ascend-docker-hook executable file at %s: %w", hookCliPath, err)
+		return fmt.Errorf("cannot find ascend-docker-hook executable file at %s: %v", hookCliPath, err)
 	}
 
 	if spec.Hooks == nil {
@@ -104,37 +104,37 @@ func addHook(spec *specs.Spec) error {
 func modifySpecFile(path string) error {
 	stat, err := os.Stat(path)
 	if err != nil {
-		return fmt.Errorf("spec file doesnt exist %s: %w", path, err)
+		return fmt.Errorf("spec file doesnt exist %s: %v", path, err)
 	}
 
 	jsonFile, err := os.OpenFile(path, os.O_RDWR, stat.Mode())
 	if err != nil {
-		return fmt.Errorf("cannot open oci spec file %s: %w", path, err)
+		return fmt.Errorf("cannot open oci spec file %s: %v", path, err)
 	}
 
 	defer jsonFile.Close()
 
 	jsonContent, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
-		return fmt.Errorf("failed to read oci spec file %s: %w", path, err)
+		return fmt.Errorf("failed to read oci spec file %s: %v", path, err)
 	}
 
 	var spec specs.Spec
 	if err := json.Unmarshal(jsonContent, &spec); err != nil {
-		return fmt.Errorf("failed to unmarshal oci spec file %s: %w", path, err)
+		return fmt.Errorf("failed to unmarshal oci spec file %s: %v", path, err)
 	}
 
 	if err := addHook(&spec); err != nil {
-		return fmt.Errorf("failed to inject hook: %w", err)
+		return fmt.Errorf("failed to inject hook: %v", err)
 	}
 
 	jsonOutput, err := json.Marshal(spec)
 	if err != nil {
-		return fmt.Errorf("failed to marshal OCI spec file: %w", err)
+		return fmt.Errorf("failed to marshal OCI spec file: %v", err)
 	}
 
 	if _, err := jsonFile.WriteAt(jsonOutput, 0); err != nil {
-		return fmt.Errorf("failed to write OCI spec file: %w", err)
+		return fmt.Errorf("failed to write OCI spec file: %v", err)
 	}
 
 	return nil
@@ -143,7 +143,7 @@ func modifySpecFile(path string) error {
 func doProcess() error {
 	args, err := getArgs()
 	if err != nil {
-		return fmt.Errorf("failed to get args: %w", err)
+		return fmt.Errorf("failed to get args: %v", err)
 	}
 
 	if args.cmd != "create" {
@@ -153,14 +153,14 @@ func doProcess() error {
 	if args.bundleDirPath == "" {
 		args.bundleDirPath, err = os.Getwd()
 		if err != nil {
-			return fmt.Errorf("failed to get current working dir: %w", err)
+			return fmt.Errorf("failed to get current working dir: %v", err)
 		}
 	}
 
 	specFilePath := args.bundleDirPath + "/config.json"
 
 	if err := modifySpecFile(specFilePath); err != nil {
-		return fmt.Errorf("failed to modify spec file %s: %w", specFilePath, err)
+		return fmt.Errorf("failed to modify spec file %s: %v", specFilePath, err)
 	}
 
 	return execRunc()
