@@ -186,7 +186,7 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
         errno = 0;
         idList[idx] = strtoul((const char *)token, NULL, DECIMAL);
         if (errno != 0) {
-            LOG_ERROR("error: failed to convert device id (%s) from cmd args, caused by: %s.", token, strerror(errno));
+            LOG_ERROR("error: failed to convert device id (%s) from cmd args", token);
             return -1;
         }
 
