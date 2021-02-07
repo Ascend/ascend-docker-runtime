@@ -15,6 +15,7 @@ using namespace std;
 using namespace testing;
 
 #define DAVINCI_MANAGER_PATH        "/dev/davinci_manager"
+#define DEVICE_NAME  "davinci"
 #define BUF_SIZE 1024
 #define MAX_DEVICE_NR 1024
 #define MAX_MOUNT_NR 512
@@ -36,7 +37,7 @@ extern "C" int GetNsPath(const int pid, const char *nsType, char *buf, size_t bu
 extern "C" int GetSelfNsPath(const char *nsType, char *buf, size_t bufSize);
 extern "C" int EnterNsByPath(const char *path, int nsType);
 extern "C" int MountDevice(const char *rootfs, const char *deviceName);
-extern "C" int DoDeviceMounting(const char *rootfs, const unsigned int ids[], size_t idsNr);
+extern "C" int DoDeviceMounting(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr);
 extern "C" int CheckDirExists(char *dir, int len);
 extern "C" int GetParentPathStr(const char *path, char *parent, size_t bufSize);
 extern "C" int MakeDirWithParent(const char *path, mode_t mode);
@@ -57,6 +58,7 @@ extern "C" int DoDirectoryMounting(const char *rootfs, const struct MountList *l
 extern "C" int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config);
 extern "C" int ParseRuntimeOptions(const char *options);
 extern "C" bool IsOptionNoDrvSet();
+extern "C" bool IsVirtual();
 
 struct MountList {
     unsigned int count;
@@ -215,12 +217,12 @@ int Stub_EnterNsByPath_Failed(const char *path, int nsType)
     return 0;
 }
 
-int Stub_DoDeviceMounting_Success(const char *rootfs, const unsigned int ids[], size_t idsNr)
+int Stub_DoDeviceMounting_Success(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr)
 {
     return 0;
 }
 
-int Stub_DoDeviceMounting_Failed(const char *rootfs, const unsigned int ids[], size_t idsNr)
+int Stub_DoDeviceMounting_Failed(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr)
 {
     return -1;
 }
@@ -457,7 +459,8 @@ TEST(DoDeviceMounting, StatusOne)
     char *rootfs = "/home";
     unsigned int devicesList[2] = {1, 2};
     size_t idNr = 2;
-    int ret = DoDeviceMounting(rootfs, devicesList, idNr);
+    char *device_name = "davinci";
+    int ret = DoDeviceMounting(rootfs, device_name, devicesList, idNr);
     GlobalMockObject::verify();
     EXPECT_EQ(0, ret);
 }
@@ -468,7 +471,8 @@ TEST(DoDeviceMounting, StatusTwo)
     char *rootfs = "/home";
     unsigned int devicesList[2] = {1, 2};
     size_t idNr = 2;
-    int ret = DoDeviceMounting(rootfs, devicesList, idNr);
+    char *device_name = "davinci";
+    int ret = DoDeviceMounting(rootfs, device_name, devicesList, idNr);
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
 }

@@ -10,6 +10,7 @@
 #include <limits.h>
 
 #define DEVICE_NAME           "davinci"
+#define VDEVICE_NAME          "vdavinci"
 #define DAVINCI_MANAGER       "davinci_manager"
 #define DEVMM_SVM             "devmm_svm"
 #define HISI_HDC              "hisi_hdc"

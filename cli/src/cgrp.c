@@ -8,12 +8,16 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <errno.h>
+
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include "securec.h"
+
 #include "utils.h"
+#include "options.h"
 
 bool TakeNthWord(char **pLine, unsigned int n, char **word)
 {
@@ -268,7 +272,9 @@ int SetupCgroup(const struct ParsedConfig *config)
     }
 
     for (size_t idx = 0; idx < config->devicesNr; idx++) {
-        ret = sprintf_s(deviceName, BUF_SIZE, "%s%u", DEVICE_NAME, config->devices[idx]);
+        int ret = sprintf_s(deviceName, BUF_SIZE, "%s%u",
+            (IsVirtual() ? VDEVICE_NAME : DEVICE_NAME),
+            config->devices[idx]);
         if (ret < 0) {
             fclose(cgroupAllow);
             LOG_ERROR("error: failed to assemble device path for no.%u.", config->devices[idx]);
