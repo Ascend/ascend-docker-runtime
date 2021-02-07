@@ -45,6 +45,7 @@ var (
 
 var validRuntimeOptions = [...]string{
 	"NODRV",
+	"VIRTUAL",
 }
 
 type containerConfig struct {

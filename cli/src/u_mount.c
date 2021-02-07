@@ -2,7 +2,7 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
  * Description: ascend-docker-cli工具容器设备与驱动挂载模块
 */
-#include "mount.h"
+#include "u_mount.h"
 
 #include <stdlib.h>
 #include <errno.h>
@@ -10,6 +10,8 @@
 #include <sys/stat.h>
 #include <sys/mount.h>
 #include "securec.h"
+
+#include "basic.h"
 #include "utils.h"
 #include "options.h"
 
@@ -34,8 +36,8 @@ int Mount(const char *src, const char *dst)
     return 0;
 }
 
-static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
-    struct PathInfo* pathInfo)
+static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
+                              const char *dstDeviceName, struct PathInfo* pathInfo)
 {
     int ret;
     errno_t err;
@@ -52,7 +54,7 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
     char *src = pathInfo->src;
     char *dst = pathInfo->dst;
 
-    ret = sprintf_s(src, srcBufSize, "/dev/%s", deviceName);
+    ret = sprintf_s(src, srcBufSize, "/dev/%s", srcDeviceName);
     if (ret < 0) {
         return -1;
     }
@@ -67,7 +69,15 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
         return -1;
     }
 
-    err = strcpy_s(dst, dstBufSize, (const char *)resolvedDst);
+    if (dstDeviceName != NULL) {
+        ret = sprintf_s(dst, dstBufSize, "%s/dev/%s", rootfs, dstDeviceName);
+        if (ret < 0) {
+            return -1;
+        }
+    } else {
+        err = strcpy_s(dst, dstBufSize, resolvedDst);
+    }
+
     if (err != EOK) {
         LOG_ERROR("error: failed to copy resolved device mnt path to dst: %s.", resolvedDst);
         return -1;
@@ -76,16 +86,16 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *deviceName,
     return 0;
 }
 
-int MountDevice(const char *rootfs, const char *deviceName)
+int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDeviceName)
 {
     int ret;
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
     struct PathInfo pathInfo = {src, BUF_SIZE, dst, BUF_SIZE};
 
-    ret = GetDeviceMntSrcDst(rootfs, deviceName, &pathInfo);
+    ret = GetDeviceMntSrcDst(rootfs, srcDeviceName, dstDeviceName, &pathInfo);
     if (ret < 0) {
-        LOG_ERROR("error: failed to get device mount src and(or) dst path, device name: %s.", deviceName);
+        LOG_ERROR("error: failed to get device mount src and(or) dst path, device name: %s.", srcDeviceName);
         return -1;
     }
 
@@ -124,20 +134,21 @@ int MountDevice(const char *rootfs, const char *deviceName)
     return 0;
 }
 
-int DoDeviceMounting(const char *rootfs, const unsigned int ids[], size_t idsNr)
+int DoDeviceMounting(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr)
 {
-    char deviceName[BUF_SIZE] = {0};
+    char srcDeviceName[BUF_SIZE] = {0};
+    char dstDeviceName[BUF_SIZE] = {0};
 
     for (size_t idx = 0; idx < idsNr; idx++) {
-        int ret = sprintf_s(deviceName, BUF_SIZE, "%s%u", DEVICE_NAME, ids[idx]);
-        if (ret < 0) {
+        int srcRet = sprintf_s(srcDeviceName, BUF_SIZE, "%s%u", device_name, ids[idx]);
+        int dstRet = sprintf_s(dstDeviceName, BUF_SIZE, "%s%u", DEVICE_NAME, ids[idx]);
+        if (srcRet < 0 || dstRet < 0) {
             LOG_ERROR("error: assemble device name failed, id: %u.", ids[idx]);
             return -1;
         }
-
-        ret = MountDevice(rootfs, deviceName);
+        int ret = MountDevice(rootfs, srcDeviceName, dstDeviceName);
         if (ret < 0) {
-            LOG_ERROR("error: failed to mount device %s.", deviceName);
+            LOG_ERROR("error: failed to mount device %s.", srcDeviceName);
             return -1;
         }
     }
@@ -211,19 +222,19 @@ int MountDir(const char *rootfs, const char *src)
 int DoCtrlDeviceMounting(const char *rootfs)
 {
     /* device */
-    int ret = MountDevice(rootfs, DAVINCI_MANAGER);
+    int ret = MountDevice(rootfs, DAVINCI_MANAGER, NULL);
     if (ret < 0) {
         LOG_ERROR("error: failed to mount device %s.", DAVINCI_MANAGER);
         return -1;
     }
 
-    ret = MountDevice(rootfs, DEVMM_SVM);
+    ret = MountDevice(rootfs, DEVMM_SVM, NULL);
     if (ret < 0) {
         LOG_ERROR("error: failed to mount device %s.", DEVMM_SVM);
         return -1;
     }
 
-    ret = MountDevice(rootfs, HISI_HDC);
+    ret = MountDevice(rootfs, HISI_HDC, NULL);
     if (ret < 0) {
         LOG_ERROR("error: failed to mount device %s.", HISI_HDC);
         return -1;
@@ -265,8 +276,9 @@ int DoFileMounting(const char *rootfs, const struct MountList *list)
 int DoMounting(const struct ParsedConfig *config)
 {
     int ret;
-
-    ret = DoDeviceMounting(config->rootfs, config->devices, config->devicesNr);
+    ret = DoDeviceMounting(config->rootfs,
+                           (IsVirtual() ? VDEVICE_NAME : DEVICE_NAME),
+                           config->devices, config->devicesNr);
     if (ret < 0) {
         LOG_ERROR("error: failed to mount devices.");
         return -1;

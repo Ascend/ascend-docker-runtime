@@ -10,6 +10,7 @@
 
 static struct {
     bool noDrv;
+    bool isVirtual;
 } g_runtimeOptions;
 
 static struct {
@@ -17,6 +18,7 @@ static struct {
     bool *flag;
 } g_optionNameFlagTable[] = {
     {"NODRV", &g_runtimeOptions.noDrv}, // 不挂载Driver
+    {"VIRTUAL", &g_runtimeOptions.isVirtual},
     {NULL, NULL}
 };
 
@@ -24,23 +26,21 @@ void ParseRuntimeOptions(const char *options)
 {
     // set defaults value
     g_runtimeOptions.noDrv = false;
+    g_runtimeOptions.isVirtual = false;
 
     static const char *seperator = ",";
     char *runtimeOptions = strdup(options);
     char *context = NULL;
     char *token = NULL;
 
-    token = strtok_s(runtimeOptions, seperator, &context);
-    while (token != NULL) {
+    for (token = strtok_s(runtimeOptions, seperator, &context);
+    token != NULL;
+    token = strtok_s(NULL, seperator, &context)) {
         for (int i = 0; g_optionNameFlagTable[i].name != NULL; i++) {
-            if (strcmp((const char *)token, g_optionNameFlagTable[i].name)) {
-                continue;
+            if (!strcmp((const char *)token, g_optionNameFlagTable[i].name)) {
+                *g_optionNameFlagTable[i].flag = true;
             }
-
-            *g_optionNameFlagTable[i].flag = true;
         }
-
-        token = strtok_s(NULL, seperator, &context);
     }
 
     free(runtimeOptions);
@@ -49,4 +49,9 @@ void ParseRuntimeOptions(const char *options)
 bool IsOptionNoDrvSet()
 {
     return g_runtimeOptions.noDrv;
+}
+
+bool IsVirtual()
+{
+    return g_runtimeOptions.isVirtual;
 }
