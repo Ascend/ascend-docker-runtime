@@ -33,7 +33,7 @@ void ReadJsonFile(FILE *pf, char *text, int maxBufferSize)
         fprintf(stderr, "file size too large\n");
         return;
     }
-    
+
     fseek(pf, 0, SEEK_SET);
     fread(text, sizeof(char), size, pf);
     text[size] = '\0';
@@ -41,14 +41,14 @@ void ReadJsonFile(FILE *pf, char *text, int maxBufferSize)
 
 cJSON *CreateAscendRuntimeInfo(const char *runtimePath)
 {
-    cJSON *root = NULL; 
+    cJSON *root = NULL;
     root = cJSON_CreateObject();
     if (root == NULL) {
         fprintf(stderr, "create ascend runtime info root err\n");
         return NULL;
     }
 
-    cJSON *newString = NULL; 
+    cJSON *newString = NULL;
     newString = cJSON_CreateString(runtimePath);
     if (newString == NULL) {
         fprintf(stderr, "create ascend runtime info path value err\n");
@@ -74,7 +74,7 @@ cJSON *CreateAscendRuntimeInfo(const char *runtimePath)
 cJSON *CreateRuntimes(const char *runtimePath)
 {
     cJSON *ascendRuntime = NULL;
-    ascendRuntime = CreateAscendRuntimeInfo(runtimePath); 
+    ascendRuntime = CreateAscendRuntimeInfo(runtimePath);
     if (ascendRuntime == NULL) {
         fprintf(stderr, "create ascendruntime err\n");
         return NULL;
@@ -97,23 +97,23 @@ int DelJsonContent(cJSON *root, const char *key)
 {
     cJSON *existItem = NULL;
     existItem = cJSON_GetObjectItem(root, key);
-    if (existItem == NULL) {       
+    if (existItem == NULL) {
         return 0;
     }
 
-    cJSON *removedItem = NULL; 
+    cJSON *removedItem = NULL;
     removedItem = cJSON_DetachItemViaPointer(root, existItem);
     if (removedItem == NULL) {
         fprintf(stderr, "remove %s failed\n", key);
         return -1;
     }
 
-    cJSON_Delete(removedItem);    
+    cJSON_Delete(removedItem);
     return 0;
 }
 
 cJSON *CreateContent(const char *runtimePath)
-{   
+{
     /* 插入ascend runtime */
     cJSON *runtimes = NULL;
     runtimes = CreateRuntimes(runtimePath);
@@ -167,12 +167,12 @@ cJSON *ModifyContent(FILE *pf, const char *runtimePath)
             cJSON_Delete(root);
             return NULL;
         }
-        cJSON_AddItemToObject(root, RUNTIME_KEY, runtimes);      
+        cJSON_AddItemToObject(root, RUNTIME_KEY, runtimes);
     } else {
         int ret = DelJsonContent(runtimes, ASCEND_RUNTIME_NAME);
         if (ret != 0) {
             cJSON_Delete(root);
-            return NULL;    
+            return NULL;
         }
         cJSON  *ascendRuntime = NULL;
         ascendRuntime = CreateAscendRuntimeInfo(runtimePath);
@@ -180,14 +180,14 @@ cJSON *ModifyContent(FILE *pf, const char *runtimePath)
             cJSON_Delete(root);
             return NULL;
         }
-        cJSON_AddItemToObject(runtimes, ASCEND_RUNTIME_NAME, ascendRuntime);    
+        cJSON_AddItemToObject(runtimes, ASCEND_RUNTIME_NAME, ascendRuntime);
     }
 
     /* 插入defaul runtime */
     int ret = DelJsonContent(root, DEFALUT_KEY);
     if (ret != 0) {
         cJSON_Delete(root);
-        return NULL;    
+        return NULL;
     }
     cJSON *defaultRuntime = cJSON_CreateString(DEFAULT_VALUE);
     if (defaultRuntime == NULL) {
@@ -195,7 +195,7 @@ cJSON *ModifyContent(FILE *pf, const char *runtimePath)
         return NULL;
     }
     cJSON_AddItemToObject(root, DEFALUT_KEY, defaultRuntime);
-    
+
     return root;
 }
 
@@ -232,7 +232,7 @@ cJSON *RemoveContent(FILE *pf)
         cJSON_Delete(root);
         return NULL;
     }
-       
+
     return root;
 }
 
@@ -240,7 +240,7 @@ cJSON *RemoveContent(FILE *pf)
 int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, const char *runtimePath)
 {
     cJSON *root = NULL;
-    FILE *pf = NULL; 
+    FILE *pf = NULL;
     pf = fopen(filePath, "r+");
     if (pf == NULL) {
         root = CreateContent(runtimePath);
@@ -259,7 +259,7 @@ int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, const ch
         fprintf(stderr, "error: failed to create file\n");
         return -1;
     }
-    
+
     fprintf(pf, "%s", cJSON_Print(root));
     fclose(pf);
 
@@ -270,7 +270,7 @@ int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, const ch
 
 int CreateRevisedJsonFile(const char *filePath, const char *tempPath)
 {
-    FILE *pf = NULL; 
+    FILE *pf = NULL;
     pf = fopen(filePath, "r+");
     if (pf == NULL) {
         fprintf(stderr, "error: no json files found\n");
@@ -291,13 +291,13 @@ int CreateRevisedJsonFile(const char *filePath, const char *tempPath)
         cJSON_Delete(newContent);
         return -1;
     }
-    
+
     fprintf(pf, "%s", cJSON_Print(newContent));
     fclose(pf);
 
     cJSON_Delete(newContent);
 
-    return 0;  
+    return 0;
 }
 
 /* 该函数只负责生成json.bak文件，由调用者进行覆盖操作 */
@@ -319,5 +319,5 @@ int main(int argc, char *argv[])
         return DetectAndCreateJsonFile(argv[FINAL_FILE_INDEX], argv[TEMP_FILE_INDEX], argv[RUNTIME_PATH_INDEX]);
     }
 
-    return CreateRevisedJsonFile(argv[FINAL_FILE_INDEX], argv[TEMP_FILE_INDEX]);   
+    return CreateRevisedJsonFile(argv[FINAL_FILE_INDEX], argv[TEMP_FILE_INDEX]);
 }

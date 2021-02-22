@@ -48,7 +48,7 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
     if (ret < 0) {
         return -1;
     }
-    
+
     size_t srcBufSize = pathInfo->srcLen;
     size_t dstBufSize = pathInfo->dstLen;
     char *src = pathInfo->src;
