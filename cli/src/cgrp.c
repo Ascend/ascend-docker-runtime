@@ -174,7 +174,7 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
         return -1;
     }
 
-    return 0; 
+    return 0;
 }
 
 int SetupDriverCgroup(FILE *cgroupAllow)
