@@ -77,8 +77,8 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
     } else {
         err = strcpy_s(dst, dstBufSize, resolvedDst);
         if (err != EOK) {
-           LOG_ERROR("error: failed to copy resolved device mnt path to dst: %s.", resolvedDst);
-           return -1;
+            LOG_ERROR("error: failed to copy resolved device mnt path to dst: %s.", resolvedDst);
+            return -1;
         }
     }
 
