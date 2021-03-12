@@ -195,10 +195,15 @@ var getContainerConfig = func() (*containerConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse OCI spec: %v", err)
 	}
+	// when use ctr->containerd. the rootfs in config.json is a relative path
+	rfs := ociSpec.Root.Path
+	if (!filepath.IsAbs(rfs)) {
+		rfs = path.Join(state.Bundle, ociSpec.Root.Path)
+	}
 
 	ret := &containerConfig{
 		Pid:    state.Pid,
-		Rootfs: ociSpec.Root.Path,
+		Rootfs: rfs,
 		Env:    ociSpec.Process.Env,
 	}
 
