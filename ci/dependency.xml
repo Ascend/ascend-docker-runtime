@@ -17,35 +17,6 @@
                 </copies>
         </artifact>
         <dependencies>
-                <!-- 3rd-party -->
-                <dependency>
-                        <versionType>3rd-party</versionType>
-                        <repoType>Generic</repoType>
-                        <id>
-                                <artifactName>cJSON-1.7.13.tar.gz</artifactName>
-                                <pdmCode>05834SXQ</pdmCode>
-                        </id>
-                        <copies>
-                                <copy>
-                                        <source>/*</source>
-                                        <dest>opensource</dest>
-                                </copy>
-                        </copies>
-                </dependency>
-                <dependency>
-                        <versionType>3rd-party</versionType>
-                        <repoType>Generic</repoType>
-                        <id>
-                                <artifactName>makeself-release-2.4.2.zip</artifactName>
-                                <pdmCode>05836ECT</pdmCode>
-                        </id>
-                        <copies>
-                                <copy>
-                                        <source>/*</source>
-                                        <dest>opensource</dest>
-                                </copy>
-                        </copies>
-                </dependency>
                 <!-- Platform -->
                 <dependency>
                     <versionType>BVersion</versionType>

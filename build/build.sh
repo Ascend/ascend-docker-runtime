@@ -109,19 +109,16 @@ function make_pull()
 function make_unzip()
 {
     cd ${OPENSRC}
-    tar -xzvf cJSON*.tar.gz
     CJSONS=$(find . -name "cJSON.*")
     CJSONSLIB=${INSTALLHELPERDIR}/deb/src/cjson 
     /bin/cp -f ${CJSONS} ${CJSONSLIB}
 
-    unzip makeself-release-*.zip
-    rm -f makeself-release-*.zip
     MAKESELF_DIR=$(find . -name "makeself-release-*")
     cd ${MAKESELF_DIR} && /bin/cp -f ${BUILD}/scripts/mkselfmodify.patch ./
     patch -p0 < mkselfmodify.patch
     rm -f mkselfmodify.patch
 
-    cd ${PLATFORM}
+    cd ${PLATFORM}/HuaweiSecureC
     SECURECSRC=$(find . -name "src")
     SECURECINC=$(find . -name "include")
 
