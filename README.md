@@ -122,12 +122,18 @@ xxx是新增挂载内容文件名，文件名必须是小写
 检查挂载成功：
 
 ![image](/uploads/a8f82fea-4075-45e3-b5a1-d9aa7dec267a/1616987709657.png '1616987709657.png')
+
+启动容器时docker客户端会根据/etc/docker/daemon.json配置文件调用docker-runtime，容器正常启动时修改
+/proc/当前进程id/cgroup 资源隔离文件
 ## 卸载
 
-集成工具toolboox安装
+集成工具toolboox卸载
 ```
 ./Ascend-cann-toolbox*.run --uninstall
 ```
+安装docker-runtime后删除安装时配置文件/etc/docker/daemon.json中新增的内容
+![image](/uploads/cfc84280-2180-4e4b-8feb-6c398b837e54/1617178154877.png '1617178154877.png')
+同时删除默认挂载目录文件/etc/ascend-docker-runtime.d/base.list
 ## 升级
 
 集成工具toolboox安装方式升级
