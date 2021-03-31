@@ -37,11 +37,10 @@ Ascend Docker在prestart-hook这个钩子函数中，对容器做了以下配置
 # 下载和安装
 ## 安装前准备
 
-- 安装大于18.03版本的docker
+- 安装大于18.03版本的docker，请参考[安装详情](https://mirrors.huaweicloud.com/)
 
-- 安装驱动:下载链接为https://ascend.huawei.com/zh/#/software/cann/commercial
+- 宿主机已安装驱动和固件，详情请参见[《CANN 软件安装指南 (开发&运行场景, 通过命令行方式)》](https://support.huawei.com/enterprise/zh/doc/EDOC1100180788?idPath=23710424|251366513|22892968|251168373)的“准备硬件环境”章节。
 
-- 安装固件:下载链接为https://ascend.huawei.com/zh/#/software/cann/commercial
 
 
 
@@ -76,6 +75,10 @@ chmod +x Ascend-cann-toolbox*.run
 systemctl daemon-reload
 systemctl restart docker
 ```
+安装docker-runtime后修改配置文件/etc/docker/daemon.json
+![image](/uploads/39331d5d-9f97-4c87-a158-4d588fb165e4/1617173956504.png '1617173956504.png')
+同时生成默认挂载目录文件/etc/ascend-docker-runtime.d/base.list
+![image](/uploads/611245b0-4902-4f5b-87ba-4d86f9fc2878/1617174009598.png '1617174009598.png')
 ## 挂载单芯片
 例子：
 ```
