@@ -24,6 +24,7 @@ function install()
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
     chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
 
+    cp -f ./README.md ${INSTALL_PATH}/README.md
     mkdir -p ${INSTALL_PATH}/script
     cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
     chmod 550 ${INSTALL_PATH}/script/uninstall.sh
