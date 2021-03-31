@@ -75,9 +75,9 @@ chmod +x Ascend-cann-toolbox*.run
 systemctl daemon-reload
 systemctl restart docker
 ```
-安装docker-runtime后修改配置文件/etc/docker/daemon.json
+安装docker-runtime后会修改配置文件/etc/docker/daemon.json
 ![image](/uploads/39331d5d-9f97-4c87-a158-4d588fb165e4/1617173956504.png '1617173956504.png')
-同时生成默认挂载目录文件/etc/ascend-docker-runtime.d/base.list
+同时自动生成默认挂载目录文件/etc/ascend-docker-runtime.d/base.list
 ![image](/uploads/611245b0-4902-4f5b-87ba-4d86f9fc2878/1617174009598.png '1617174009598.png')
 ## 挂载单芯片
 例子：
@@ -131,7 +131,7 @@ xxx是新增挂载内容文件名，文件名必须是小写
 ```
 ./Ascend-cann-toolbox*.run --uninstall
 ```
-安装docker-runtime后删除安装时配置文件/etc/docker/daemon.json中新增的内容
+卸载docker-runtime后会自动删除安装时配置文件/etc/docker/daemon.json中新增的内容
 ![image](/uploads/cfc84280-2180-4e4b-8feb-6c398b837e54/1617178154877.png '1617178154877.png')
 同时删除默认挂载目录文件/etc/ascend-docker-runtime.d/base.list
 ## 升级
