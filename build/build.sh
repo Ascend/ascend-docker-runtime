@@ -85,6 +85,7 @@ function build_run_package()
         exit 1
     fi
 
+    /bin/cp -f ${ROOT}/README.md run_pkg
     /bin/cp -f scripts/run_main.sh run_pkg
     chmod 550 run_pkg/run_main.sh
 
