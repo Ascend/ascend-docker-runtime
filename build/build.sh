@@ -109,9 +109,6 @@ function make_unzip()
     /bin/cp -f ${CJSONS} ${CJSONSLIB}
 
     MAKESELF_DIR=$(find . -name "makeself-release-*")
-    cd ${MAKESELF_DIR} && /bin/cp -f ${BUILD}/scripts/mkselfmodify.patch ./
-    patch -p0 < mkselfmodify.patch
-    rm -f mkselfmodify.patch
 
     cd ${PLATFORM}/HuaweiSecureC
     SECURECSRC=$(find . -name "src")
