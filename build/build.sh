@@ -101,12 +101,6 @@ function make_clean()
     [ -d "${OUTPUT}" ] && cd ${OUTPUT}&&rm -rf *
 }
 
-function make_pull()
-{
-    cd ${OPENSRC}
-    wget -O cJSON.tar.gz  https://github.com/DaveGamble/cJSON/archive/v1.7.13.tar.gz --no-check-certificate
-}
-
 function make_unzip()
 {
     cd ${OPENSRC}
@@ -133,10 +127,6 @@ function make_unzip()
 }
 
 make_clean
-if [ "$1" == "pull" ]; then
-    make_pull
-fi
-
 make_unzip
 build_bin
 build_run_package
