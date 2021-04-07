@@ -84,7 +84,7 @@ function build_run_package()
     if [ $FILECNT -ne 6 ]; then
         exit 1
     fi
-
+    /bin/cp -rf ${ROOT}/assets run_pkg
     /bin/cp -f ${ROOT}/README.md run_pkg
     /bin/cp -f scripts/run_main.sh run_pkg
     chmod 550 run_pkg/run_main.sh
