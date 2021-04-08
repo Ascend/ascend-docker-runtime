@@ -27,6 +27,6 @@ add_subdirectory(HuaweiSecureC)
 # 添加链接库 
 #该命令要在add_executable命令下方，否则报错
 target_compile_options(ascend-docker-plugin-install-helper PRIVATE -fstack-protector-all -fpie)
-target_link_libraries(ascend-docker-plugin-install-helper -pie -Wl,-z,now cjson)
-target_link_libraries(ascend-docker-plugin-install-helper -pie -Wl,-z,now HuaweiSecureC)
+target_link_libraries(ascend-docker-plugin-install-helper -pie -Wl,-s,-z,now cjson)
+target_link_libraries(ascend-docker-plugin-install-helper -pie -Wl,-s,-z,now HuaweiSecureC)
 
