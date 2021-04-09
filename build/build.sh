@@ -61,14 +61,14 @@ function build_bin()
     echo "make hook"
     [ -d "${HOOKSRCDIR}/build" ] && rm -rf ${HOOKSRCDIR}/build
     mkdir ${HOOKSRCDIR}/build && cd ${HOOKSRCDIR}/build
-    go build -buildmode=pie -ldflags "-buildid=IdNetCheck" -trimpath ../${HOOKSRCNAME}
+    go build -buildmode=pie  -trimpath ../${HOOKSRCNAME}
     strip main
     mv main ascend-docker-hook
 
     echo "make runtime"
     [ -d "${RUNTIMESRCDIR}/build" ] && rm -rf ${RUNTIMESRCDIR}/build
     mkdir ${RUNTIMESRCDIR}/build&&cd ${RUNTIMESRCDIR}/build
-    go build -buildmode=pie  -ldflags "-buildid=IdNetCheck" -trimpath ../${RUNTIMESRCNAME}
+    go build -buildmode=pie -trimpath ../${RUNTIMESRCNAME}
     strip main
     mv main ascend-docker-runtime
 }
