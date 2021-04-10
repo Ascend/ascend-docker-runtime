@@ -91,7 +91,7 @@ int MakeDirWithParent(const char *path, mode_t mode)
     return 0;
 }
 
-int IsCreateFileSuccess(const char *path, mode_t mode)
+int MakeMountPoints(const char *path, mode_t mode)
 {
     /* directory */
     char parentDir[BUF_SIZE] = {0};

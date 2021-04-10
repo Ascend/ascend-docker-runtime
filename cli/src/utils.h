@@ -16,6 +16,6 @@ int VerifyPathInfo(const struct PathInfo* pathInfo);
 int CheckDirExists(const char *dir);
 int GetParentPathStr(const char *path, char *parent, size_t bufSize);
 int MakeDirWithParent(const char *path, mode_t mode);
-int IsCreateFileSuccess(const char *path, mode_t mode);
+int MakeMountPoints(const char *path, mode_t mode);
 
 #endif
