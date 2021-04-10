@@ -61,14 +61,20 @@ function build_bin()
     echo "make hook"
     [ -d "${HOOKSRCDIR}/build" ] && rm -rf ${HOOKSRCDIR}/build
     mkdir ${HOOKSRCDIR}/build && cd ${HOOKSRCDIR}/build
-    go build -buildmode=pie  -trimpath ../${HOOKSRCNAME}
+    export CGO_ENABLED=1
+    export CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    export CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    go build -buildmode=shared -ldflags "-buildid=IdNetCheck" -trimpath ../${HOOKSRCNAME}
     strip main
     mv main ascend-docker-hook
 
     echo "make runtime"
     [ -d "${RUNTIMESRCDIR}/build" ] && rm -rf ${RUNTIMESRCDIR}/build
     mkdir ${RUNTIMESRCDIR}/build&&cd ${RUNTIMESRCDIR}/build
-    go build -buildmode=pie -trimpath ../${RUNTIMESRCNAME}
+    export CGO_ENABLED=1
+    export CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    export CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    go build -buildmode=shared  -ldflags "-buildid=IdNetCheck" -trimpath ../${RUNTIMESRCNAME}
     strip main
     mv main ascend-docker-runtime
 }
