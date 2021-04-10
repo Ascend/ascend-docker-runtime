@@ -117,13 +117,14 @@ int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDe
         LOG_ERROR("error: failed to check dst %s stat", dst);
         return -1;
     }
-
-    if (CreateFile(dst, srcStat.st_mode) < 0) {
+    ret = IsCreateFileSuccess(dst, srcStat.st_mode);
+    if (ret < 0) {
         LOG_ERROR("error: failed to create mount dst file: %s.", dst);
         return -1;
     }
 
-    if (Mount(src, dst) < 0) {
+    ret = Mount(src, dst);
+    if (ret < 0) {
         LOG_ERROR("error: failed to mount dev.");
         return -1;
     }
@@ -170,7 +171,7 @@ int MountFile(const char *rootfs, const char *filepath)
         return 0;
     }
 
-    ret = CreateFile(dst, srcStat.st_mode);
+    ret = IsCreateFileSuccess(dst, srcStat.st_mode);
     if (ret < 0) {
         LOG_ERROR("error: failed to create mount dst file: %s.", dst);
         return -1;
