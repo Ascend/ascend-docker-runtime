@@ -4,5 +4,5 @@ aux_source_directory(. LIB_SRC)
 
 #生成链接库
 add_library(cjson ${LIB_SRC})
-target_compile_options(cjson PRIVATE -fstack-protector-all -fpie)
+target_compile_options(cjson PRIVATE -fstack-protector-all -fpie -D_FORTIFY_SOURCE=2 -O2)
 
