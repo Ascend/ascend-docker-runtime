@@ -76,7 +76,6 @@ function build_bin()
     export CGO_CPPFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2"
     export CGO_LDFLAGS="-Wl,-s,--build-id=none"
     go build -buildmode=pie -trimpath -ldflags="-w -s" ../${RUNTIMESRCNAME}
-    strip main
     mv main ascend-docker-runtime
 }
 
