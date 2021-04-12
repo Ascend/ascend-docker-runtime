@@ -4,4 +4,4 @@ aux_source_directory(. LIB_SRC)
 
 #生成链接库
 add_library(HuaweiSecureC ${LIB_SRC})
-target_compile_options(HuaweiSecureC PRIVATE -fstack-protector-all -fpie)
+target_compile_options(HuaweiSecureC PRIVATE -fstack-protector-all -fpie -D_FORTIFY_SOURCE=2 -O2)
