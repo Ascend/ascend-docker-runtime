@@ -64,8 +64,8 @@ function build_bin()
     export CGO_ENABLED=1
     export CGO_CFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2"
     export CGO_CPPFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2"
-    export CGO_LDFLAGS="-Wl,-s,--build-id=none"
-    go build -buildmode=pie -trimpath -ldflags="-w -s"  ../${HOOKSRCNAME}
+    export CGO_LDFLAGS="-Wl,-s,--build-id=none -pie"
+    go build -buildmode=pie -ldflags="-buildid=IdNetCheck -w -s" -trimpath ../${HOOKSRCNAME}
     mv main ascend-docker-hook
 
     echo "make runtime"
@@ -74,8 +74,8 @@ function build_bin()
     export CGO_ENABLED=1
     export CGO_CFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2"
     export CGO_CPPFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2"
-    export CGO_LDFLAGS="-Wl,-s,--build-id=none"
-    go build -buildmode=pie -trimpath -ldflags="-w -s" ../${RUNTIMESRCNAME}
+    export CGO_LDFLAGS="-Wl,-s,--build-id=none -pie"
+    go build -buildmode=pie -ldflags="-buildid=IdNetCheck -w -s" -trimpath ../${RUNTIMESRCNAME}
     mv main ascend-docker-runtime
 }
 
