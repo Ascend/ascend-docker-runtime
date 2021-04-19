@@ -62,20 +62,20 @@ function build_bin()
     [ -d "${HOOKSRCDIR}/build" ] && rm -rf ${HOOKSRCDIR}/build
     mkdir ${HOOKSRCDIR}/build && cd ${HOOKSRCDIR}/build
     export CGO_ENABLED=1
-    export CGO_CFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2"
-    export CGO_CPPFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2"
-    export CGO_LDFLAGS="-Wl,-s,--build-id=none -pie"
-    go build -buildmode=pie -ldflags="-buildid=IdNetCheck -w -s" -trimpath ../${HOOKSRCNAME}
+    export CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    export CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    export CGO_LDFLAGS="-Wl,-z,now -Wl,-s,--build-id=none -pie"
+    go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath ../${HOOKSRCNAME}
     mv main ascend-docker-hook
 
     echo "make runtime"
     [ -d "${RUNTIMESRCDIR}/build" ] && rm -rf ${RUNTIMESRCDIR}/build
     mkdir ${RUNTIMESRCDIR}/build&&cd ${RUNTIMESRCDIR}/build
     export CGO_ENABLED=1
-    export CGO_CFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2"
-    export CGO_CPPFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2"
-    export CGO_LDFLAGS="-Wl,-s,--build-id=none -pie"
-    go build -buildmode=pie -ldflags="-buildid=IdNetCheck -w -s" -trimpath ../${RUNTIMESRCNAME}
+    export CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    export CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    export CGO_LDFLAGS="-Wl,-z,now -Wl,-s,--build-id=none -pie"
+    go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath ../${RUNTIMESRCNAME}
     mv main ascend-docker-runtime
 }
 
@@ -113,7 +113,7 @@ function make_unzip()
 {
     cd ${OPENSRC}
     CJSONS=$(find . -name "cJSON.*")
-    CJSONSLIB=${INSTALLHELPERDIR}/deb/src/cjson 
+    CJSONSLIB=${INSTALLHELPERDIR}/deb/src/cjson
     /bin/cp -f ${CJSONS} ${CJSONSLIB}
 
     MAKESELF_DIR=$(find . -name "makeself-release-*")
