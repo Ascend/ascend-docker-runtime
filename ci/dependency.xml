@@ -16,21 +16,4 @@
                         </copy>
                 </copies>
         </artifact>
-        <dependencies>
-                <!-- Platform -->
-                <dependency>
-                    <versionType>BVersion</versionType>
-                    <repoType>Generic</repoType>
-                    <id>
-                        <offering>Huawei Secure C</offering>
-                        <version>Huawei Secure C V100R001C01SPC009B003</version>
-                    </id>
-                    <copies>
-                        <copy>
-                            <source>/*</source>
-                            <dest>platform/</dest>
-                        </copy>
-                    </copies>
-                </dependency>
-        </dependencies>
 </project>
