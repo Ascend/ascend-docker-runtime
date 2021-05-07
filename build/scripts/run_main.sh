@@ -158,7 +158,7 @@ if [ "${INSTALL_PATH_FLAG}" == "y" ] && \
 fi
 
 # 需root用户权限
-if [ "${USER}" != "root" ]; then
+if [ "${UID}" != "0" ]; then
     echo 'please run with root permission'
     exit 1
 fi
