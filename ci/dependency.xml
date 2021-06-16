@@ -4,7 +4,7 @@
                 <versionType>Component</versionType>
                 <repoType>Generic</repoType>
                 <id>
-                        <offering>CANN</offering>
+                        <offering>MindXToolBox</offering>
                         <componentName>ascend-docker-plugin</componentName>
                         <componentVersion>20.10.0.B010</componentVersion>
                 </id>
