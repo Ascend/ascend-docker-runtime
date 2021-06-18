@@ -34,6 +34,7 @@ function install()
         rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
     fi
     mkdir -p ${ASCEND_RUNTIME_CONFIG_DIR}
+    chmod 750 ${ASCEND_RUNTIME_CONFIG_DIR}
     cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
