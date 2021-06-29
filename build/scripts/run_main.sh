@@ -98,7 +98,7 @@ function upgrade()
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
     chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
-    chmod 550 ${INSTALL_PATH}/script/uninstall.sh
+    chmod 500 ${INSTALL_PATH}/script/uninstall.sh
     chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
     echo 'upgrade ascend docker runtime success'
