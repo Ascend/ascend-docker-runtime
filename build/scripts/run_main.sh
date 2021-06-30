@@ -28,7 +28,7 @@ function install()
     cp -f ./README.md ${INSTALL_PATH}/README.md
     mkdir -p ${INSTALL_PATH}/script
     cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
-    chmod 550 ${INSTALL_PATH}/script/uninstall.sh
+    chmod 500 ${INSTALL_PATH}/script/uninstall.sh
 
     if [ -d "${ASCEND_RUNTIME_CONFIG_DIR}" ]; then
         rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
