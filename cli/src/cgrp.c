@@ -18,6 +18,7 @@
 
 #include "utils.h"
 #include "options.h"
+#include "logger.h"
 
 bool TakeNthWord(char **pLine, unsigned int n, char **word)
 {
@@ -73,13 +74,13 @@ int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const 
     char resolvedPath[PATH_MAX] = {0x0};
 
     if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
-        LOG_ERROR("error: cannot canonicalize path %s.", filepath);
+        Logger(FormatMessage("cannot canonicalize path %s.", filepath), 2);
         return -1;
     }
 
     fp = fopen(resolvedPath, "r");
     if (fp == NULL) {
-        LOG_ERROR("cannot open file.");
+        Logger("cannot open file.", 2);
         return -1;
     }
 
@@ -157,20 +158,20 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
 
     ret = sprintf_s(devPath, BUF_SIZE, "/dev/%s", devName);
     if (ret < 0) {
-        LOG_ERROR("error: failed to assemble dev path for %s.", devName);
+        Logger(FormatMessage("failed to assemble dev path for %s.", devName), 2);
         return -1;
     }
 
     ret = stat((const char *)devPath, &devStat);
     if (ret < 0) {
-        LOG_ERROR("error: failed to get stat of %s.", devPath);
+        Logger(FormatMessage("failed to get stat of %s.", devPath), 2);
         return -1;
     }
 
     bool isFailed = fprintf(cgroupAllow, "c %u:%u rw", major(devStat.st_rdev), minor(devStat.st_rdev)) < 0 ||
                     fflush(cgroupAllow) == EOF || ferror(cgroupAllow) < 0;
     if (isFailed) {
-        LOG_ERROR("error: write devices failed.");
+        Logger("write devices failed.", 2);
         return -1;
     }
 
@@ -183,19 +184,19 @@ int SetupDriverCgroup(FILE *cgroupAllow)
 
     ret = SetupDeviceCgroup(cgroupAllow, DAVINCI_MANAGER);
     if (ret < 0) {
-        LOG_ERROR("error: failed to setup cgroup for %s.", DAVINCI_MANAGER);
+        Logger(FormatMessage("failed to setup cgroup for %s.", DAVINCI_MANAGER), 2);
         return -1;
     }
 
     ret = SetupDeviceCgroup(cgroupAllow, DEVMM_SVM);
     if (ret < 0) {
-        LOG_ERROR("error: failed to setup cgroup for %s.", DEVMM_SVM);
+        Logger(FormatMessage("failed to setup cgroup for %s.", DEVMM_SVM), 2);
         return -1;
     }
 
     ret = SetupDeviceCgroup(cgroupAllow, HISI_HDC);
     if (ret < 0) {
-        LOG_ERROR("error: failed to setup cgroup for %s.", HISI_HDC);
+        Logger(FormatMessage("failed to setup cgroup for %s.", HISI_HDC), 2);
         return -1;
     }
 
@@ -210,13 +211,13 @@ int GetCgroupPath(int pid, char *effPath, size_t maxSize)
 
     ret = sprintf_s(mountPath, BUF_SIZE, "/proc/%d/mountinfo", (int)getppid());
     if (ret < 0) {
-        LOG_ERROR("error: assemble mount info path failed: ppid(%d).", getppid());
+        Logger(FormatMessage("assemble mount info path failed: ppid(%d).", getppid()), 2);
         return -1;
     }
 
     ret = ParseFileByLine(mount, BUF_SIZE, GetCgroupMount, mountPath);
     if (ret < 0) {
-        LOG_ERROR("error: cat file content failed.");
+        Logger("cat file content failed.", 2);
         return -1;
     }
 
@@ -224,13 +225,13 @@ int GetCgroupPath(int pid, char *effPath, size_t maxSize)
     char cgroupPath[BUF_SIZE] = {0x0};
     ret = sprintf_s(cgroupPath, BUF_SIZE, "/proc/%d/cgroup", pid);
     if (ret < 0) {
-        LOG_ERROR("error: assemble cgroup path failed: pid(%d).", pid);
+        Logger(FormatMessage("assemble cgroup path failed: pid(%d).", pid), 2);
         return -1;
     }
 
     ret = ParseFileByLine(cgroup, BUF_SIZE, GetCgroupRoot, cgroupPath);
     if (ret < 0) {
-        LOG_ERROR("error: cat file content failed.");
+        Logger("cat file content failed.", 2);
         return -1;
     }
 
@@ -239,7 +240,7 @@ int GetCgroupPath(int pid, char *effPath, size_t maxSize)
 
     ret = sprintf_s(effPath, maxSize, "%s%s%s", mount, cgroup, ALLOW_PATH);
     if (ret < 0) {
-        LOG_ERROR("error: assemble cgroup device path failed.");
+        Logger("assemble cgroup device path failed.", 2);
         return -1;
     }
 
@@ -254,20 +255,20 @@ int SetupCgroup(const struct ParsedConfig *config)
     FILE *cgroupAllow = NULL;
 
     if (realpath(config->cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
-        LOG_ERROR("error: cannot canonicalize cgroup path: %s.", config->cgroupPath);
+        Logger(FormatMessage("cannot canonicalize cgroup path: %s.", config->cgroupPath), 2);
         return -1;
     }
 
     cgroupAllow = fopen((const char *)resolvedCgroupPath, "a");
     if (cgroupAllow == NULL) {
-        LOG_ERROR("error: failed to open cgroup file: %s.", resolvedCgroupPath);
+        Logger(FormatMessage("failed to open cgroup file: %s.", resolvedCgroupPath), 2);
         return -1;
     }
 
     ret = SetupDriverCgroup(cgroupAllow);
     if (ret < 0) {
         fclose(cgroupAllow);
-        LOG_ERROR("error: failed to setup driver cgroup.");
+        Logger("failed to setup driver cgroup.", 2);
         return -1;
     }
 
@@ -277,14 +278,14 @@ int SetupCgroup(const struct ParsedConfig *config)
             config->devices[idx]);
         if (ret < 0) {
             fclose(cgroupAllow);
-            LOG_ERROR("error: failed to assemble device path for no.%u.", config->devices[idx]);
+            Logger(FormatMessage("failed to assemble device path for no.%u.", config->devices[idx]), 2);
             return -1;
         }
 
         ret = SetupDeviceCgroup(cgroupAllow, (const char *)deviceName);
         if (ret < 0) {
             fclose(cgroupAllow);
-            LOG_ERROR("error: failed to setup cgroup for %s.", deviceName);
+            Logger(FormatMessage("failed to setup cgroup for %s.", deviceName), 2);
             return -1;
         }
     }
