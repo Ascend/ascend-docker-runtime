@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include "securec.h"
 #include "basic.h"
 
 #define FILE_MAX_SIZE (1024 * 1024 * 10)
@@ -16,7 +17,7 @@
 #define MONTH_OFFSET 1
 #define LEVEL_LENGTH 20
 
-int GetCurrentLocalTime(const char* buffer, int length)
+int GetCurrentLocalTime(char* buffer, int length)
 {
     time_t rawtime;
     struct tm* timeinfo = NULL;
