@@ -50,7 +50,7 @@ static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
     errno_t err = strcpy_s(args->devices, BUF_SIZE, arg);
     if (err != EOK) {
         char msg[] = "failed to get devices from cmd args.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return false;
     }
 
@@ -85,7 +85,7 @@ static bool RootfsCmdArgParser(struct CmdArgs *args, const char *arg)
     errno_t err = strcpy_s(args->rootfs, BUF_SIZE, arg);
     if (err != EOK) {
         char msg[] = "failed to get rootfs path from cmd args";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return false;
     }
 
@@ -97,7 +97,7 @@ static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
     errno_t err = strcpy_s(args->options, BUF_SIZE, arg);
     if (err != EOK) {
         char msg[] = "failed to get options string from cmd args";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return false;
     }
 
@@ -183,7 +183,8 @@ static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *valu
     bool isOK = g_cmdArgParsers[i].parser(args, value);
     if (!isOK) {
         int iLength = 0;
-        char* str = FormatLogMessage("failed while parsing cmd arg, indicate char: %c, value: %s.", &iLength, indicator, value);
+        char* str = FormatLogMessage("failed while parsing cmd arg, indicate char: %c, value: %s.",
+                                     &iLength, indicator, value);
         Logger(str, LEVEL_ERROR, iLength);
         free(str);
         return -1;
@@ -207,7 +208,8 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
     while (token != NULL) {
         if (idx >= *idListSize) {
             int iLength = 0;
-            char* str = FormatLogMessage("too many devices(%u), support %u devices maximally", &iLength, idx, *idListSize);
+            char* str = FormatLogMessage("too many devices(%u), support %u devices maximally",
+                                         &iLength, idx, *idListSize);
             Logger(str, LEVEL_ERROR, iLength);
             free(str);
             return -1;
@@ -239,14 +241,14 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
     err = strcpy_s(config->rootfs, BUF_SIZE, args->rootfs);
     if (err != EOK) {
         char msg[] = "failed to copy rootfs path to parsed config.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
     ret = ParseDeviceIDs(config->devices, &config->devicesNr, (char *)args->devices);
     if (ret < 0) {
         char msg[] = "failed to parse device ids from cmdline argument";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
@@ -262,7 +264,7 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
     ret = GetCgroupPath(args->pid, config->cgroupPath, BUF_SIZE);
     if (ret < 0) {
         char msg[] = "failed to get cgroup path.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
@@ -270,7 +272,7 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
     ret = GetSelfNsPath("mnt", originNsPath, BUF_SIZE);
     if (ret < 0) {
         char msg[] = "failed to get self ns path.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
@@ -299,7 +301,7 @@ int SetupContainer(struct CmdArgs *args)
     ret = DoPrepare(args, &config);
     if (ret < 0) {
         char msg[] = "failed to prepare nesessary config.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
@@ -317,7 +319,7 @@ int SetupContainer(struct CmdArgs *args)
     ret = DoMounting(&config);
     if (ret < 0) {
         char msg[] = "failed to do mounting.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         close(config.originNsFd);
         return -1;
     }
@@ -325,7 +327,7 @@ int SetupContainer(struct CmdArgs *args)
     ret = SetupCgroup(&config);
     if (ret < 0) {
         char msg[] = "failed to set up cgroup.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         close(config.originNsFd);
         return -1;
     }
@@ -334,7 +336,7 @@ int SetupContainer(struct CmdArgs *args)
     ret = EnterNsByFd(config.originNsFd, CLONE_NEWNS);
     if (ret < 0) {
         char msg[] = "failed to set ns back.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         close(config.originNsFd);
         return -1;
     }
@@ -351,34 +353,34 @@ int Process(int argc, char **argv)
     struct CmdArgs args = {0};
 
     char startMsg[] = "runc start prestart-hook ...";
-    Logger(startMsg, LEVEL_INFO, sizeof(startMsg)/sizeof(char));
+    Logger(startMsg, LEVEL_INFO, sizeof(startMsg) / sizeof(char));
     while ((c = getopt_long(argc, argv, "d:p:r:o:f:i", g_cmdOpts, &optionIndex)) != -1) {
         ret = ParseOneCmdArg(&args, (char)c, optarg);
         if (ret < 0) {
             char msg[] = "failed to parse cmd args.";
-            Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+            Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
             return -1;
         }
     }
     char parametersMsg[] = "verify parameters valid and parse runtime options";
-    Logger(parametersMsg, LEVEL_INFO, sizeof(parametersMsg)/sizeof(char));
+    Logger(parametersMsg, LEVEL_INFO, sizeof(parametersMsg) / sizeof(char));
     if (!IsCmdArgsValid(&args)) {
         char msg[] = "information not completed or valid.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
     ParseRuntimeOptions(args.options);
     char containerMsg[] = "setup container config";
-    Logger(containerMsg, LEVEL_INFO, sizeof(containerMsg)/sizeof(char));
+    Logger(containerMsg, LEVEL_INFO, sizeof(containerMsg) / sizeof(char));
     ret = SetupContainer(&args);
     if (ret < 0) {
         char msg[] = "failed to setup container.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return ret;
     }
     char successMsg[] = "prestart-hook setup container successful.";
-    Logger(successMsg, LEVEL_INFO, sizeof(successMsg)/sizeof(char));
+    Logger(successMsg, LEVEL_INFO, sizeof(successMsg) / sizeof(char));
     return 0;
 }
 

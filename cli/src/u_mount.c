@@ -25,14 +25,14 @@ int Mount(const char *src, const char *dst)
     ret = mount(src, dst, NULL, mountFlags, NULL);
     if (ret < 0) {
         char msg[] = "failed to mount.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
     ret = mount(NULL, dst, NULL, remountFlags, NULL);
     if (ret < 0) {
         char msg[] = "failed to re-mount.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
@@ -97,63 +97,51 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
 int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDeviceName)
 {
     int ret;
+    int iLength = 0;
+    char *str = NULL;
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
     struct PathInfo pathInfo = {src, BUF_SIZE, dst, BUF_SIZE};
-
     ret = GetDeviceMntSrcDst(rootfs, srcDeviceName, dstDeviceName, &pathInfo);
     if (ret < 0) {
-        int iLength = 0;
-        char* str = FormatLogMessage("failed to get device mount src and(or) dst path, device name: %s.", &iLength, srcDeviceName);
+        str = FormatLogMessage("failed to get mount src and dst path, device name: %s.", &iLength, srcDeviceName);
         Logger(str, LEVEL_ERROR, iLength);
-        free(str);
         return -1;
     }
-
     struct stat srcStat;
     ret = stat((const char *)src, &srcStat);
     if (ret < 0) {
-        int iLength = 0;
-        char* str = FormatLogMessage("failed to stat src: %s.", &iLength, src);
+        str = FormatLogMessage("failed to stat src: %s.", &iLength, src);
         Logger(str, LEVEL_ERROR, iLength);
-        free(str);
         return -1;
     }
-
     errno = 0;
     struct stat dstStat;
     ret = stat((const char *)dst, &dstStat);
     if (ret == 0 && S_ISCHR(dstStat.st_mode)) {
         return 0; // 特权容器自动挂载HOST所有设备，故此处跳过
     } else if (ret == 0) {
-        int iLength = 0;
-        char* str = FormatLogMessage("%s already exists but not a char device as expected.", &iLength, dst);
+        str = FormatLogMessage("%s already exists but not a char device as expected.", &iLength, dst);
         Logger(str, LEVEL_ERROR, iLength);
-        free(str);
         return -1;
     } else if (ret < 0 && errno != ENOENT) {
-        int iLength = 0;
-        char* str = FormatLogMessage("failed to check dst %s stat", &iLength, dst);
+        str = FormatLogMessage("failed to check dst %s stat", &iLength, dst);
         Logger(str, LEVEL_ERROR, iLength);
-        free(str);
         return -1;
     }
     ret = MakeMountPoints(dst, srcStat.st_mode);
     if (ret < 0) {
-        int iLength = 0;
-        char* str = FormatLogMessage("failed to create mount dst file: %s.", &iLength, dst);
+        str = FormatLogMessage("failed to create mount dst file: %s.", &iLength, dst);
         Logger(str, LEVEL_ERROR, iLength);
-        free(str);
         return -1;
     }
-
     ret = Mount(src, dst);
     if (ret < 0) {
         char msg[] = "failed to mount dev.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
-
+    free(str);
     return 0;
 }
 
@@ -217,7 +205,7 @@ int MountFile(const char *rootfs, const char *filepath)
     ret = Mount(filepath, dst);
     if (ret < 0) {
         char msg[] = "failed to mount dev.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
@@ -302,7 +290,8 @@ int DoDirectoryMounting(const char *rootfs, const struct MountList *list)
         ret = MountDir(rootfs, (const char *)&list->list[i][0]);
         if (ret < 0) {
             int iLength = 0;
-            char* str = FormatLogMessage("failed to do directory mounting for %s.", &iLength, (const char *)&list->list[i][0]);
+            char* str = FormatLogMessage("failed to do directory mounting for %s.", &iLength,
+                                         (const char *)&list->list[i][0]);
             Logger(str, LEVEL_ERROR, iLength);
             free(str);
             return -1;
@@ -320,7 +309,8 @@ int DoFileMounting(const char *rootfs, const struct MountList *list)
         ret = MountFile(rootfs, (const char *)&list->list[i][0]);
         if (ret < 0) {
             int iLength = 0;
-            char* str = FormatLogMessage("failed to do file mounting for %s.", &iLength, (const char *)&list->list[i][0]);
+            char* str = FormatLogMessage("failed to do file mounting for %s.", &iLength,
+                                         (const char *)&list->list[i][0]);
             Logger(str, LEVEL_ERROR, iLength);
             free(str);
             return -1;
@@ -338,14 +328,14 @@ int DoMounting(const struct ParsedConfig *config)
                            config->devices, config->devicesNr);
     if (ret < 0) {
         char msg[] = "failed to mount devices.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
     ret = DoCtrlDeviceMounting(config->rootfs);
     if (ret < 0) {
         char msg[] = "failed to mount ctrl devices.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
@@ -356,14 +346,14 @@ int DoMounting(const struct ParsedConfig *config)
     ret = DoFileMounting(config->rootfs, config->files);
     if (ret < 0) {
         char msg[] = "failed to mount files.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 
     ret = DoDirectoryMounting(config->rootfs, config->dirs);
     if (ret < 0) {
         char msg[] = "failed to do mount directories.";
-        Logger(msg, LEVEL_ERROR, sizeof(msg)/sizeof(char));
+        Logger(msg, LEVEL_ERROR, sizeof(msg) / sizeof(char));
         return -1;
     }
 

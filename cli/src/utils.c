@@ -15,23 +15,27 @@
 #include "securec.h"
 #include "logger.h"
 
-char *FormatLogMessage(char *format, int* iLength, ...){
+char *FormatLogMessage(char *format, int* iLength, ...)
+{
     va_list list;
     // 获取格式化后字符串的长度
-    va_start(list, format);
+    va_start(list, iLength);
     char buff[1024] = {0};
     int size = vsnprintf_s(buff, sizeof(buff), sizeof(buff), format, list);
     va_end(list);
-    if(size <= 0){
+    if (size <= 0) {
         return NULL;
     }
     size++;
     // 复位va_list, 将格式化字符串写入到buf
-    va_start(list, format);
+    va_start(list, iLength);
     char *buf = (char *)malloc(size);
     *iLength = size;
-    vsnprintf_s(buf, size, size, format, list);
+    int ret = vsnprintf_s(buf, size, size, format, list);
     va_end(list);
+    if (ret <= 0) {
+        return NULL;
+    }
     return buf;
 }
 
