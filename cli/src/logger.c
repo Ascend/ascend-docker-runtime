@@ -15,7 +15,7 @@
 #define TEMP_BUFFER 30
 #define YEAR_OFFSET 1900
 #define MONTH_OFFSET 1
-#define LEVEL_LENGTH 20
+#define LOG_LENGTH 1024
 
 int GetCurrentLocalTime(char* buffer, int length)
 {
@@ -86,14 +86,14 @@ void WriteLogFile(char* filename, long maxSize, char* buffer, unsigned bufferSiz
     }
 }
 
-void Logger(const char *msg, int level, int length)
+void Logger(const char *msg, int level)
 {
     if (msg == NULL) {
         return;
     }
     int iret;
     char *logPath = LOG_PATH_DIR"docker-runtime-log.log";
-    int destMax = length + LEVEL_LENGTH;
+    int destMax = LOG_LENGTH;
     if (destMax <= 0) {
         return;
     }
