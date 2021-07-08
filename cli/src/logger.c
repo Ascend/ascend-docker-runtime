@@ -104,27 +104,19 @@ void Logger(const char *msg, int level)
     switch (level) {
         case LEVEL_DEBUG:
             iret = sprintf_s(buffer, destMax, "[Debug]%s\n", msg);
-            if (iret < 0) {
-                return;
-            }
             break;
         case LEVEL_ERROR:
             iret = sprintf_s(buffer, destMax, "[Error]%s\n", msg);
-            if (iret < 0) {
-                return;
-            }
             break;
         case LEVEL_WARN:
             iret = sprintf_s(buffer, destMax, "[Warn]%s\n", msg);
-            if (iret < 0) {
-                return;
-            }
             break;
         default:
             iret = sprintf_s(buffer, destMax, "[Info]%s\n", msg);
-            if (iret < 0) {
-                return;
-            }
+    }
+    if (iret < 0) {
+        free(buffer);
+        return;
     }
     WriteLogFile(logPath, FILE_MAX_SIZE, buffer, strlen(buffer));
     free(buffer);

@@ -24,13 +24,17 @@ int Mount(const char *src, const char *dst)
 
     ret = mount(src, dst, NULL, mountFlags, NULL);
     if (ret < 0) {
-        Logger("failed to mount.", LEVEL_ERROR);
+        char* str = FormatLogMessage("failed to mount src:%s.", src);
+        Logger(str, LEVEL_ERROR);
+        free(str);
         return -1;
     }
 
     ret = mount(NULL, dst, NULL, remountFlags, NULL);
     if (ret < 0) {
-        Logger("failed to re-mount.", LEVEL_ERROR);
+        char* str = FormatLogMessage("failed to re-mount. dst:%s.", dst);
+        Logger(str, LEVEL_ERROR);
+        free(str);
         return -1;
     }
 
