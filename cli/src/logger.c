@@ -36,14 +36,14 @@ int GetCurrentLocalTime(char* buffer, int length)
 
 long GetLogSize(char* filename)
 {
-    long length = 0;
     FILE *fp = NULL;
     fp = fopen(filename, "rb");
+    long length = 0;
     if (fp != NULL) {
         fseek(fp, 0, SEEK_END);
         length = ftell(fp);
     }
-    if (fp != NULL) {
+    if (NULL != fp) {
         fclose(fp);
         fp = NULL;
     }
