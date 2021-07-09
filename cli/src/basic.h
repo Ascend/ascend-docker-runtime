@@ -21,8 +21,8 @@
 
 #define LEVEL_INFO     0
 #define LEVEL_WARN     1
-#define LEVEL_ERROR     2
-#define LEVEL_DEBUG     3
+#define LEVEL_ERROR    2
+#define LEVEL_DEBUG    3
 
 
 #define LOG_ERROR(fmt, ...)                                           \
