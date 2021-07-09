@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include "basic.h"
 
+char *FormatLogMessage(char *format, ...);
 int IsStrEqual(const char *s1, const char *s2);
 int StrHasPrefix(const char *str, const char *prefix);
 int MkDir(const char *dir, int mode);

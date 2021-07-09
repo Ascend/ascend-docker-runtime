@@ -19,6 +19,12 @@
 #define MAX_DEVICE_NR         1024
 #define MAX_MOUNT_NR          512
 
+#define LEVEL_INFO     0
+#define LEVEL_WARN     1
+#define LEVEL_ERROR    2
+#define LEVEL_DEBUG    3
+
+
 #define LOG_ERROR(fmt, ...)                                           \
     do {                                                              \
         char _content[BUF_SIZE] = {0};                                \

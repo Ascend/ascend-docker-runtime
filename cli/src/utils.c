@@ -13,6 +13,30 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include "securec.h"
+#include "logger.h"
+
+char *FormatLogMessage(char *format, ...)
+{
+    va_list list;
+    // 获取格式化后字符串的长度
+    va_start(list, format);
+    char buff[1024] = {0};
+    int size = vsnprintf_s(buff, sizeof(buff), sizeof(buff), format, list);
+    va_end(list);
+    if (size <= 0) {
+        return NULL;
+    }
+    size++;
+    // 复位va_list, 将格式化字符串写入到buf
+    va_start(list, format);
+    char *buf = (char *)malloc(size);
+    int ret = vsnprintf_s(buf, size, size, format, list);
+    va_end(list);
+    if (ret <= 0) {
+        return NULL;
+    }
+    return buf;
+}
 
 int IsStrEqual(const char *s1, const char *s2)
 {
@@ -99,19 +123,25 @@ int MakeMountPoints(const char *path, mode_t mode)
 
     int ret = MakeDirWithParent(parentDir, DEFAULT_DIR_MODE);
     if (ret < 0) {
-        LOG_ERROR("error: failed to make parent dir for file: %s", path);
+        char* str = FormatLogMessage("failed to make parent dir for file: %s", path);
+        Logger(str, LEVEL_ERROR);
+        free(str);
         return -1;
     }
 
     char resolvedPath[PATH_MAX] = {0};
     if (realpath(path, resolvedPath) == NULL && errno != ENOENT) {
-        LOG_ERROR("error: failed to resolve path %s.", path);
+        char* str = FormatLogMessage("failed to resolve path %s.", path);
+        Logger(str, LEVEL_ERROR);
+        free(str);
         return -1;
     }
 
     int fd = open(resolvedPath, O_NOFOLLOW | O_CREAT, mode);
     if (fd < 0) {
-        LOG_ERROR("error: cannot create file: %s.", resolvedPath);
+        char* str = FormatLogMessage("cannot create file: %s.", resolvedPath);
+        Logger(str, LEVEL_ERROR);
+        free(str);
         return -1;
     }
     close(fd);
