@@ -21,7 +21,7 @@ char *FormatLogMessage(char *format, ...)
     // 获取格式化后字符串的长度
     va_start(list, format);
     char buff[1024] = {0};
-    int size = vsnprintf_s(buff, sizeof(buff), sizeof(buff), format, list);
+    int size = vsnprintf_s(buff, sizeof(buff), sizeof(buff) - 1, format, list);
     va_end(list);
     if (size <= 0) {
         return NULL;
@@ -33,7 +33,7 @@ char *FormatLogMessage(char *format, ...)
     if (buf == NULL) {
         return NULL;
     }
-    int ret = vsnprintf_s(buf, size, size, format, list);
+    int ret = vsnprintf_s(buf, size, size - 1, format, list);
     va_end(list);
     if (ret <= 0) {
         free(buf);

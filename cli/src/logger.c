@@ -19,8 +19,6 @@
 #define MONTH_OFFSET 1
 #define LOG_LENGTH 1024
 
-
-
 int GetCurrentLocalTime(char* buffer, int length)
 {
     time_t rawtime;
@@ -98,7 +96,7 @@ void WriteLogFile(char* filename, long maxSize, const char* buffer, unsigned buf
 {
     if (filename != NULL && buffer != NULL) {
         char path[PATH_MAX + 1] = {0x00};
-        FILE *fp;
+        FILE *fp = NULL;
         int iret;
         long length = GetLogSize(filename);
         if (length < 0) {
