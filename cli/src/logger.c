@@ -51,9 +51,9 @@ int CreateLog(const char* filename)
 
 long GetLogSize(const char* filename)
 {
-    int iret;
-    iret = CreateLog(filename);
-    if (iret < 0) {
+    int ret;
+    ret = CreateLog(filename);
+    if (ret < 0) {
         return -1;
     }
     FILE *fp = NULL;
@@ -77,7 +77,7 @@ long GetLogSize(const char* filename)
 
 int LogLoop(const char* filename)
 {
-    int iret;
+    int ret;
     char* loopPath = LOG_PATH_DIR"docker-runtime-log.log.1";
     int exist;
     exist = access(loopPath, 0);
@@ -85,11 +85,11 @@ int LogLoop(const char* filename)
         unlink(loopPath);
     }
     rename(filename, loopPath);
-    iret = CreateLog(filename);
-    if (iret < 0) {
+    ret = CreateLog(filename);
+    if (ret < 0) {
         return -1;
     }
-    return iret;
+    return ret;
 }
 
 void WriteLogFile(char* filename, long maxSize, const char* buffer, unsigned bufferSize)
@@ -97,14 +97,14 @@ void WriteLogFile(char* filename, long maxSize, const char* buffer, unsigned buf
     if (filename != NULL && buffer != NULL) {
         char path[PATH_MAX + 1] = {0x00};
         FILE *fp = NULL;
-        int iret;
+        int ret;
         long length = GetLogSize(filename);
         if (length < 0) {
             return;
         }
         if (length > maxSize) {
-            iret = LogLoop(filename);
-            if (iret < 0) {
+            ret = LogLoop(filename);
+            if (ret < 0) {
                 return;
             }
         }
@@ -113,7 +113,6 @@ void WriteLogFile(char* filename, long maxSize, const char* buffer, unsigned buf
         }
         fp = fopen(path, "a+");
         if (fp != NULL) {
-            int ret;
             char now[TEMP_BUFFER] = {0};
             ret = GetCurrentLocalTime(now, sizeof(now) / sizeof(char));
             if (ret < 0) {
@@ -136,7 +135,7 @@ void Logger(const char *msg, int level, int screen)
     if (screen == SCREEN_YES) {
         LOG_ERROR(msg);
     }
-    int iret;
+    int ret;
     char *logPath = LOG_PATH_DIR"docker-runtime-log.log";
     if (MakeDirWithParent(LOG_PATH_DIR, DEFAULT_LOGDIR_MODE) < 0) {
         return;
@@ -151,18 +150,18 @@ void Logger(const char *msg, int level, int screen)
     }
     switch (level) {
         case LEVEL_DEBUG:
-            iret = sprintf_s(buffer, destMax, "[Debug]%s\n", msg);
+            ret = sprintf_s(buffer, destMax, "[Debug]%s\n", msg);
             break;
         case LEVEL_ERROR:
-            iret = sprintf_s(buffer, destMax, "[Error]%s\n", msg);
+            ret = sprintf_s(buffer, destMax, "[Error]%s\n", msg);
             break;
         case LEVEL_WARN:
-            iret = sprintf_s(buffer, destMax, "[Warn]%s\n", msg);
+            ret = sprintf_s(buffer, destMax, "[Warn]%s\n", msg);
             break;
         default:
-            iret = sprintf_s(buffer, destMax, "[Info]%s\n", msg);
+            ret = sprintf_s(buffer, destMax, "[Info]%s\n", msg);
     }
-    if (iret < 0) {
+    if (ret < 0) {
         free(buffer);
         return;
     }
