@@ -21,7 +21,7 @@ char *FormatLogMessage(char *format, ...)
     // 获取格式化后字符串的长度
     va_start(list, format);
     char buff[1024] = {0};
-    int size = vsnprintf_s(buff, sizeof(buff), sizeof(buff), format, list);
+    int size = vsnprintf_s(buff, sizeof(buff), sizeof(buff) - 1, format, list);
     va_end(list);
     if (size <= 0) {
         return NULL;
@@ -30,9 +30,13 @@ char *FormatLogMessage(char *format, ...)
     // 复位va_list, 将格式化字符串写入到buf
     va_start(list, format);
     char *buf = (char *)malloc(size);
-    int ret = vsnprintf_s(buf, size, size, format, list);
+    if (buf == NULL) {
+        return NULL;
+    }
+    int ret = vsnprintf_s(buf, size, size - 1, format, list);
     va_end(list);
     if (ret <= 0) {
+        free(buf);
         return NULL;
     }
     return buf;
@@ -124,7 +128,7 @@ int MakeMountPoints(const char *path, mode_t mode)
     int ret = MakeDirWithParent(parentDir, DEFAULT_DIR_MODE);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to make parent dir for file: %s", path);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -132,7 +136,7 @@ int MakeMountPoints(const char *path, mode_t mode)
     char resolvedPath[PATH_MAX] = {0};
     if (realpath(path, resolvedPath) == NULL && errno != ENOENT) {
         char* str = FormatLogMessage("failed to resolve path %s.", path);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -140,7 +144,7 @@ int MakeMountPoints(const char *path, mode_t mode)
     int fd = open(resolvedPath, O_NOFOLLOW | O_CREAT, mode);
     if (fd < 0) {
         char* str = FormatLogMessage("cannot create file: %s.", resolvedPath);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
