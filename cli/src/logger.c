@@ -43,7 +43,7 @@ int CreateLog(const char* filename)
 {
     int exist;
     exist = access(filename, 0);
-    int fd;
+    int fd = 0;
     if (exist != 0) {
         fd = creat(filename, DEFAULT_LOG_MODE);
         if (fd < 0) {
