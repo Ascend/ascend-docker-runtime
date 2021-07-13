@@ -43,8 +43,13 @@ int CreateLog(const char* filename)
 {
     int exist;
     exist = access(filename, 0);
+    int fd;
     if (exist != 0) {
-        return creat(filename, DEFAULT_LOG_MODE);
+        fd = creat(filename, DEFAULT_LOG_MODE);
+        if (fd < 0) {
+            return -1;
+        }
+        close(fd);
     }
     return 0;
 }
@@ -92,7 +97,7 @@ int LogLoop(const char* filename)
     return ret;
 }
 
-void WriteLogFile(char* filename, long maxSize, const char* buffer, unsigned bufferSize)
+void WriteLogFile(const char* filename, long maxSize, const char* buffer, unsigned bufferSize)
 {
     if (filename != NULL && buffer != NULL) {
         char path[PATH_MAX + 1] = {0x00};
