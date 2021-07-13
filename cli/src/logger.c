@@ -138,7 +138,7 @@ void Logger(const char *msg, int level, int screen)
     }
     int iret;
     char *logPath = LOG_PATH_DIR"docker-runtime-log.log";
-    if (MakeDirWithParent(LOG_PATH_DIR, DEFAULT_DIR_MODE) < 0) {
+    if (MakeDirWithParent(LOG_PATH_DIR, DEFAULT_LOGDIR_MODE) < 0) {
         return;
     }
     int destMax = LOG_LENGTH;
