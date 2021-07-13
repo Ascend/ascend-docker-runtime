@@ -15,6 +15,7 @@
 #define DEVMM_SVM             "devmm_svm"
 #define HISI_HDC              "hisi_hdc"
 #define DEFAULT_DIR_MODE      0755
+#define DEFAULT_LOG_MODE      0666
 #define BUF_SIZE              1024
 #define MAX_DEVICE_NR         1024
 #define MAX_MOUNT_NR          512
@@ -23,7 +24,8 @@
 #define LEVEL_WARN     1
 #define LEVEL_ERROR    2
 #define LEVEL_DEBUG    3
-
+#define SCREEN_NO      0
+#define SCREEN_YES     1
 
 #define LOG_ERROR(fmt, ...)                                           \
     do {                                                              \

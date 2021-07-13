@@ -74,14 +74,14 @@ int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const 
 
     if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
         char* str = FormatLogMessage("cannot canonicalize path %s.", filepath);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
 
     fp = fopen(resolvedPath, "r");
     if (fp == NULL) {
-        Logger("cannot open file.", LEVEL_ERROR);
+        Logger("cannot open file.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -160,7 +160,7 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
     ret = sprintf_s(devPath, BUF_SIZE, "/dev/%s", devName);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to assemble dev path for %s.", devName);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -168,7 +168,7 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
     ret = stat((const char *)devPath, &devStat);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to get stat of %s.", devPath);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -176,7 +176,7 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
     bool isFailed = fprintf(cgroupAllow, "c %u:%u rw", major(devStat.st_rdev), minor(devStat.st_rdev)) < 0 ||
                     fflush(cgroupAllow) == EOF || ferror(cgroupAllow) < 0;
     if (isFailed) {
-        Logger("write devices failed.", LEVEL_ERROR);
+        Logger("write devices failed.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -190,7 +190,7 @@ int SetupDriverCgroup(FILE *cgroupAllow)
     ret = SetupDeviceCgroup(cgroupAllow, DAVINCI_MANAGER);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to setup cgroup for %s.", DAVINCI_MANAGER);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -198,7 +198,7 @@ int SetupDriverCgroup(FILE *cgroupAllow)
     ret = SetupDeviceCgroup(cgroupAllow, DEVMM_SVM);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to setup cgroup for %s.", DEVMM_SVM);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -206,7 +206,7 @@ int SetupDriverCgroup(FILE *cgroupAllow)
     ret = SetupDeviceCgroup(cgroupAllow, HISI_HDC);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to setup cgroup for %s.", HISI_HDC);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -223,14 +223,14 @@ int GetCgroupPath(int pid, char *effPath, size_t maxSize)
     ret = sprintf_s(mountPath, BUF_SIZE, "/proc/%d/mountinfo", (int)getppid());
     if (ret < 0) {
         char* str = FormatLogMessage("assemble mount info path failed: ppid(%d).", getppid());
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
 
     ret = ParseFileByLine(mount, BUF_SIZE, GetCgroupMount, mountPath);
     if (ret < 0) {
-        Logger("cat file content failed.", LEVEL_ERROR);
+        Logger("cat file content failed.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -239,14 +239,14 @@ int GetCgroupPath(int pid, char *effPath, size_t maxSize)
     ret = sprintf_s(cgroupPath, BUF_SIZE, "/proc/%d/cgroup", pid);
     if (ret < 0) {
         char* str = FormatLogMessage("assemble cgroup path failed: pid(%d).", pid);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
 
     ret = ParseFileByLine(cgroup, BUF_SIZE, GetCgroupRoot, cgroupPath);
     if (ret < 0) {
-        Logger("cat file content failed.", LEVEL_ERROR);
+        Logger("cat file content failed.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -255,7 +255,7 @@ int GetCgroupPath(int pid, char *effPath, size_t maxSize)
 
     ret = sprintf_s(effPath, maxSize, "%s%s%s", mount, cgroup, ALLOW_PATH);
     if (ret < 0) {
-        Logger("assemble cgroup device path failed.", LEVEL_ERROR);
+        Logger("assemble cgroup device path failed.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -272,21 +272,23 @@ int SetupCgroup(const struct ParsedConfig *config)
 
     if (realpath(config->cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
         str = FormatLogMessage("cannot canonicalize cgroup path: %s.", config->cgroupPath);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
+        free(str);
         return -1;
     }
 
     cgroupAllow = fopen((const char *)resolvedCgroupPath, "a");
     if (cgroupAllow == NULL) {
         str = FormatLogMessage("failed to open cgroup file: %s.", resolvedCgroupPath);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
+        free(str);
         return -1;
     }
 
     ret = SetupDriverCgroup(cgroupAllow);
     if (ret < 0) {
         fclose(cgroupAllow);
-        Logger("failed to setup driver cgroup.", LEVEL_ERROR);
+        Logger("failed to setup driver cgroup.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -297,14 +299,16 @@ int SetupCgroup(const struct ParsedConfig *config)
         if (ret < 0) {
             fclose(cgroupAllow);
             str = FormatLogMessage("failed to assemble device path for no.%u.", config->devices[idx]);
-            Logger(str, LEVEL_ERROR);
+            Logger(str, LEVEL_ERROR, SCREEN_YES);
+            free(str);
             return -1;
         }
         ret = SetupDeviceCgroup(cgroupAllow, (const char *)deviceName);
         if (ret < 0) {
             fclose(cgroupAllow);
             str = FormatLogMessage("failed to setup cgroup for %s.", deviceName);
-            Logger(str, LEVEL_ERROR);
+            Logger(str, LEVEL_ERROR, SCREEN_YES);
+            free(str);
             return -1;
         }
     }

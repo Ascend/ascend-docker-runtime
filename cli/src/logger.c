@@ -5,17 +5,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include <time.h>
 #include <unistd.h>
 #include "securec.h"
 #include "basic.h"
+#include "utils.h"
 
 #define FILE_MAX_SIZE (1024 * 1024 * 10)
-#define LOG_PATH_DIR "/var/log/"
+#define LOG_PATH_DIR "/var/log/ascend-docker-runtime/"
 #define TEMP_BUFFER 30
 #define YEAR_OFFSET 1900
 #define MONTH_OFFSET 1
 #define LOG_LENGTH 1024
+
+
 
 int GetCurrentLocalTime(char* buffer, int length)
 {
@@ -23,6 +27,9 @@ int GetCurrentLocalTime(char* buffer, int length)
     struct tm* timeinfo = NULL;
     time(&rawtime);
     timeinfo = localtime(&rawtime);
+    if (timeinfo == NULL) {
+        return -1;
+    }
     return sprintf_s(buffer,
                      TEMP_BUFFER,
                      "[%04d-%02d-%02d %02d:%02d:%02d]",
@@ -34,10 +41,29 @@ int GetCurrentLocalTime(char* buffer, int length)
                      (timeinfo->tm_sec));
 }
 
-long GetLogSize(char* filename)
+int CreateLog(const char* filename)
 {
+    int exist;
+    exist = access(filename, 0);
+    if (exist != 0) {
+        return creat(filename, DEFAULT_LOG_MODE);
+    }
+    return 0;
+}
+
+long GetLogSize(const char* filename)
+{
+    int iret;
+    iret = CreateLog(filename);
+    if (iret < 0) {
+        return -1;
+    }
     FILE *fp = NULL;
-    fp = fopen(filename, "rb");
+    char path[PATH_MAX + 1] = {0x00};
+    if (strlen(filename) > PATH_MAX || NULL == realpath(filename, path)) {
+        return -1;
+    }
+    fp = fopen(path, "rb");
     long length = 0;
     if (fp != NULL) {
         fseek(fp, 0, SEEK_END);
@@ -50,8 +76,10 @@ long GetLogSize(char* filename)
     return length;
 }
 
-void LogLoop(char* filename)
+
+int LogLoop(const char* filename)
 {
+    int iret;
     char* loopPath = LOG_PATH_DIR"docker-runtime-log.log.1";
     int exist;
     exist = access(loopPath, 0);
@@ -59,17 +87,33 @@ void LogLoop(char* filename)
         unlink(loopPath);
     }
     rename(filename, loopPath);
+    iret = CreateLog(filename);
+    if (iret < 0) {
+        return -1;
+    }
+    return iret;
 }
 
-void WriteLogFile(char* filename, long maxSize, char* buffer, unsigned bufferSize)
+void WriteLogFile(char* filename, long maxSize, const char* buffer, unsigned bufferSize)
 {
     if (filename != NULL && buffer != NULL) {
-        long length = GetLogSize(filename);
-        if (length > maxSize) {
-            LogLoop(filename);
-        }
+        char path[PATH_MAX + 1] = {0x00};
         FILE *fp;
-        fp = fopen(filename, "a+");
+        int iret;
+        long length = GetLogSize(filename);
+        if (length < 0) {
+            return;
+        }
+        if (length > maxSize) {
+            iret = LogLoop(filename);
+            if (iret < 0) {
+                return;
+            }
+        }
+        if (strlen(filename) > PATH_MAX || NULL == realpath(filename, path)) {
+            return;
+        }
+        fp = fopen(path, "a+");
         if (fp != NULL) {
             int ret;
             char now[TEMP_BUFFER] = {0};
@@ -86,13 +130,19 @@ void WriteLogFile(char* filename, long maxSize, char* buffer, unsigned bufferSiz
     }
 }
 
-void Logger(const char *msg, int level)
+void Logger(const char *msg, int level, int screen)
 {
     if (msg == NULL) {
         return;
     }
+    if (screen == SCREEN_YES) {
+        LOG_ERROR(msg);
+    }
     int iret;
     char *logPath = LOG_PATH_DIR"docker-runtime-log.log";
+    if (MakeDirWithParent(LOG_PATH_DIR, DEFAULT_DIR_MODE) < 0) {
+        return;
+    }
     int destMax = LOG_LENGTH;
     if (destMax <= 0) {
         return;

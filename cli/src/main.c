@@ -49,7 +49,7 @@ static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     errno_t err = strcpy_s(args->devices, BUF_SIZE, arg);
     if (err != EOK) {
-        Logger("failed to get devices from cmd args.", LEVEL_ERROR);
+        Logger("failed to get devices from cmd args.", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -62,14 +62,14 @@ static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
     args->pid = strtol(optarg, NULL, DECIMAL);
     if (errno != 0) {
         char* str = FormatLogMessage("failed to convert pid string from cmd args, pid string: %s.", arg);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return false;
     }
 
     if (args->pid <= 0) {
         char* str = FormatLogMessage("invalid pid %d.", args->pid);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return false;
     }
@@ -81,7 +81,7 @@ static bool RootfsCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     errno_t err = strcpy_s(args->rootfs, BUF_SIZE, arg);
     if (err != EOK) {
-        Logger("failed to get rootfs path from cmd args", LEVEL_ERROR);
+        Logger("failed to get rootfs path from cmd args", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -92,7 +92,7 @@ static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     errno_t err = strcpy_s(args->options, BUF_SIZE, arg);
     if (err != EOK) {
-        Logger("failed to get options string from cmd args", LEVEL_ERROR);
+        Logger("failed to get options string from cmd args", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -103,7 +103,7 @@ static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     if (args->files.count == MAX_MOUNT_NR) {
         char* str = FormatLogMessage("too many files to mount, max number is %u", MAX_MOUNT_NR);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -112,7 +112,7 @@ static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
     errno_t err = strcpy_s(dst, PATH_MAX, arg);
     if (err != EOK) {
         char* str = FormatLogMessage("failed to copy mount file path: %s", arg);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return false;
     }
@@ -124,7 +124,7 @@ static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     if (args->dirs.count == MAX_MOUNT_NR) {
         char* str = FormatLogMessage("too many directories to mount, max number is %u", MAX_MOUNT_NR);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -133,7 +133,7 @@ static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
     errno_t  err = strcpy_s(dst, PATH_MAX, arg);
     if (err != EOK) {
         char* str = FormatLogMessage("error: failed to copy mount directory path: %s", arg);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return false;
     }
@@ -166,14 +166,14 @@ static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *valu
 
     if (i == NUM_OF_CMD_ARGS) {
         char* str = FormatLogMessage("unrecognized cmd arg: indicate char: %c, value: %s.", indicator, value);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
     bool isOK = g_cmdArgParsers[i].parser(args, value);
     if (!isOK) {
         char* str = FormatLogMessage("failed while parsing cmd arg, indicate char: %c, value: %s.", indicator, value);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -196,7 +196,7 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
     while (token != NULL) {
         if (idx >= *idListSize) {
             char* str = FormatLogMessage("too many devices(%u), support %u devices maximally", idx, *idListSize);
-            Logger(str, LEVEL_ERROR);
+            Logger(str, LEVEL_ERROR, SCREEN_YES);
             free(str);
             return -1;
         }
@@ -205,7 +205,7 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
         idList[idx] = strtoul((const char *)token, NULL, DECIMAL);
         if (errno != 0) {
             char* str = FormatLogMessage("failed to convert device id (%s) from cmd args", token);
-            Logger(str, LEVEL_ERROR);
+            Logger(str, LEVEL_ERROR, SCREEN_YES);
             free(str);
             return -1;
         }
@@ -225,41 +225,41 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 
     err = strcpy_s(config->rootfs, BUF_SIZE, args->rootfs);
     if (err != EOK) {
-        Logger("failed to copy rootfs path to parsed config.", LEVEL_ERROR);
+        Logger("failed to copy rootfs path to parsed config.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
     ret = ParseDeviceIDs(config->devices, &config->devicesNr, (char *)args->devices);
     if (ret < 0) {
-        Logger("failed to parse device ids from cmdline argument", LEVEL_ERROR);
+        Logger("failed to parse device ids from cmdline argument", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
     ret = GetNsPath(args->pid, "mnt", config->containerNsPath, BUF_SIZE);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to get container mnt ns path: pid(%d).", args->pid);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
 
     ret = GetCgroupPath(args->pid, config->cgroupPath, BUF_SIZE);
     if (ret < 0) {
-        Logger("failed to get cgroup path.", LEVEL_ERROR);
+        Logger("failed to get cgroup path.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
     char originNsPath[BUF_SIZE] = {0};
     ret = GetSelfNsPath("mnt", originNsPath, BUF_SIZE);
     if (ret < 0) {
-        Logger("failed to get self ns path.", LEVEL_ERROR);
+        Logger("failed to get self ns path.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
     config->originNsFd = open((const char *)originNsPath, O_RDONLY); // proc接口，非外部输入
     if (config->originNsFd < 0) {
         char* str = FormatLogMessage("failed to get self ns fd: %s.", originNsPath);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -277,43 +277,43 @@ int SetupContainer(struct CmdArgs *args)
 
     InitParsedConfig(&config);
 
-    Logger("prepare necessary config", LEVEL_INFO);
+    Logger("prepare necessary config", LEVEL_INFO, SCREEN_YES);
     ret = DoPrepare(args, &config);
     if (ret < 0) {
-        Logger("failed to prepare nesessary config.", LEVEL_ERROR);
+        Logger("failed to prepare nesessary config.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
     // enter container's mount namespace
-    Logger("enter container's mount namespace", LEVEL_INFO);
+    Logger("enter container's mount namespace", LEVEL_INFO, SCREEN_YES);
     ret = EnterNsByPath((const char *)config.containerNsPath, CLONE_NEWNS);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to set to container ns: %s.", config.containerNsPath);
-        Logger(str, LEVEL_ERROR);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         close(config.originNsFd);
         return -1;
     }
-    Logger("do mounting", LEVEL_INFO);
+    Logger("do mounting", LEVEL_INFO, SCREEN_YES);
     ret = DoMounting(&config);
     if (ret < 0) {
-        Logger("failed to do mounting.", LEVEL_ERROR);
+        Logger("failed to do mounting.", LEVEL_ERROR, SCREEN_YES);
         close(config.originNsFd);
         return -1;
     }
-    Logger("setup up cgroup", LEVEL_INFO);
+    Logger("setup up cgroup", LEVEL_INFO, SCREEN_YES);
     ret = SetupCgroup(&config);
     if (ret < 0) {
-        Logger("failed to set up cgroup.", LEVEL_ERROR);
+        Logger("failed to set up cgroup.", LEVEL_ERROR, SCREEN_YES);
         close(config.originNsFd);
         return -1;
     }
 
     // back to original namespace
-    Logger("back to original namespace", LEVEL_INFO);
+    Logger("back to original namespace", LEVEL_INFO, SCREEN_YES);
     ret = EnterNsByFd(config.originNsFd, CLONE_NEWNS);
     if (ret < 0) {
-        Logger("failed to set ns back.", LEVEL_ERROR);
+        Logger("failed to set ns back.", LEVEL_ERROR, SCREEN_YES);
         close(config.originNsFd);
         return -1;
     }
@@ -329,28 +329,28 @@ int Process(int argc, char **argv)
     int optionIndex;
     struct CmdArgs args = {0};
 
-    Logger("runc start prestart-hook ...", LEVEL_INFO);
+    Logger("runc start prestart-hook ...", LEVEL_INFO, SCREEN_YES);
     while ((c = getopt_long(argc, argv, "d:p:r:o:f:i", g_cmdOpts, &optionIndex)) != -1) {
         ret = ParseOneCmdArg(&args, (char)c, optarg);
         if (ret < 0) {
-            Logger("failed to parse cmd args.", LEVEL_ERROR);
+            Logger("failed to parse cmd args.", LEVEL_ERROR, SCREEN_YES);
             return -1;
         }
     }
-    Logger("verify parameters valid and parse runtime options", LEVEL_INFO);
+    Logger("verify parameters valid and parse runtime options", LEVEL_INFO, SCREEN_YES);
     if (!IsCmdArgsValid(&args)) {
-        Logger("information not completed or valid.", LEVEL_ERROR);
+        Logger("information not completed or valid.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
     ParseRuntimeOptions(args.options);
-    Logger("setup container config ...", LEVEL_INFO);
+    Logger("setup container config ...", LEVEL_INFO, SCREEN_YES);
     ret = SetupContainer(&args);
     if (ret < 0) {
-        Logger("failed to setup container.", LEVEL_ERROR);
+        Logger("failed to setup container.", LEVEL_ERROR, SCREEN_YES);
         return ret;
     }
-    Logger("prestart-hook setup container successful.", LEVEL_INFO);
+    Logger("prestart-hook setup container successful.", LEVEL_INFO, SCREEN_YES);
     return 0;
 }
 

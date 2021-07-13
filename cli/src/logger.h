@@ -6,6 +6,6 @@
 #ifndef _LOGGER_H
 #define _LOGGER_H
 
-void Logger(const char *msg, int level);
+void Logger(const char *msg, int level, int screen);
 
 #endif
