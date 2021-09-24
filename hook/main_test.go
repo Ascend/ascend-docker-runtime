@@ -96,9 +96,9 @@ func TestDoPrestartHookCase5(t *testing.T) {
 
 func TestGetValueByKeyCase1(t *testing.T) {
 	data := []string{"ASCEND_VISIBLE_DEVICES=0-3,5,7"}
-	kWord := "ASCEND_VISIBLE_DEVICES"
+	word := "ASCEND_VISIBLE_DEVICES"
 	expectVal := "0-3,5,7"
-	actualVal := getValueByKey(data, kWord)
+	actualVal := getValueByKey(data, word)
 	if actualVal != expectVal {
 		t.Fail()
 	}
@@ -106,14 +106,14 @@ func TestGetValueByKeyCase1(t *testing.T) {
 
 func TestGetValueByKeyCase2(t *testing.T) {
 	data := []string{"ASCEND_VISIBLE_DEVICES"}
-	kWord := "ASCEND_VISIBLE_DEVICES"
+	word := "ASCEND_VISIBLE_DEVICES"
 	expectVal := ""
 	defer func() {
 		if err := recover(); err != nil {
 			t.Log("exception occur")
 		}
 	}()
-	actualVal := getValueByKey(data, kWord)
+	actualVal := getValueByKey(data, word)
 	if actualVal != expectVal {
 		t.Fail()
 	}
@@ -121,9 +121,9 @@ func TestGetValueByKeyCase2(t *testing.T) {
 
 func TestGetValueByKeyCase3(t *testing.T) {
 	data := []string{"ASCEND_VISIBLE_DEVICES=0-3,5,7"}
-	kWord := "ASCEND_VISIBLE_DEVICE"
+	word := "ASCEND_VISIBLE_DEVICE"
 	expectVal := ""
-	actualVal := getValueByKey(data, kWord)
+	actualVal := getValueByKey(data, word)
 	if actualVal != expectVal {
 		t.Fail()
 	}
