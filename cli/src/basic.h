@@ -16,6 +16,7 @@
 #define HISI_HDC              "hisi_hdc"
 #define DEFAULT_DIR_MODE      0755
 #define DEFAULT_LOG_MODE      0640
+#define DUMP_LOG_MODE         0440
 #define DEFAULT_LOGDIR_MODE   0750
 #define BUF_SIZE              1024
 #define MAX_DEVICE_NR         1024

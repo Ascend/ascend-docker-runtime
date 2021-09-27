@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <time.h>
 #include <unistd.h>
@@ -90,6 +91,9 @@ int LogLoop(const char* filename)
         unlink(loopPath);
     }
     rename(filename, loopPath);
+    if (chmod(loopPath, DUMP_LOG_MODE) != 0) {
+        return -1;
+    }
     ret = CreateLog(filename);
     if (ret < 0) {
         return -1;
