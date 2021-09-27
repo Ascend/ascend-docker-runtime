@@ -259,9 +259,15 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
     if (realpath(originNsPath, realPath) == NULL) {
         Logger("failed to check reaplath GetSelfNsPath", LEVEL_ERROR, SCREEN_YES);
     }
-    config->originNsFd = open((const char *)realPath, O_RDONLY); // proc接口，非外部输入
+    char* str1 = FormatLogMessage("::::realPath %s.", realPath);
+    Logger(str1, LEVEL_ERROR, SCREEN_YES);
+    free(str1);
+    char* str2 = FormatLogMessage("::::originNsPath %s.", originNsPath);
+    Logger(str2, LEVEL_ERROR, SCREEN_YES);
+    free(str2);
+    config->originNsFd = open((const char *)originNsPath, O_RDONLY); // proc接口，非外部输入
     if (config->originNsFd < 0) {
-        char* str = FormatLogMessage("failed to get self ns fd: %s.", realPath);
+        char* str = FormatLogMessage("failed to get self ns fd: %s.", originNsPath);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
