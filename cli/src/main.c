@@ -218,6 +218,15 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
     return 0;
 }
 
+void testpath(char *originNsPath,char *realPath) 
+{
+    char* str2 = FormatLogMessage("::::originNsPath %s.", originNsPath);
+    Logger(str2, LEVEL_ERROR, SCREEN_YES);
+    free(str2);
+    char* str1 = FormatLogMessage("::::realPath %s.", realPath);
+    Logger(str1, LEVEL_ERROR, SCREEN_YES);
+    free(str1);
+}
 int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 {
     int ret;
@@ -259,12 +268,7 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
     if (realpath(originNsPath, realPath) == NULL) {
         Logger("failed to check reaplath GetSelfNsPath", LEVEL_ERROR, SCREEN_YES);
     }
-    char* str1 = FormatLogMessage("::::realPath %s.", realPath);
-    Logger(str1, LEVEL_ERROR, SCREEN_YES);
-    free(str1);
-    char* str2 = FormatLogMessage("::::originNsPath %s.", originNsPath);
-    Logger(str2, LEVEL_ERROR, SCREEN_YES);
-    free(str2);
+    testpath(originNsPath, realPath);
     config->originNsFd = open((const char *)originNsPath, O_RDONLY); // proc接口，非外部输入
     if (config->originNsFd < 0) {
         char* str = FormatLogMessage("failed to get self ns fd: %s.", originNsPath);
