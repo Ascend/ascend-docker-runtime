@@ -40,12 +40,15 @@ int EnterNsByFd(int fd, int nsType)
 
 int EnterNsByPath(const char *path, int nsType)
 {
-    int fd;
+    int fd = 0;
     int ret;
-
-    fd = open(path, O_RDONLY); // proc文件接口，非外部输入
+    char realPath[PATH_MAX] = {0};
+    if (realpath(path, realPath) == NULL) {
+        Logger("failed to check reaplath: EnterNsByPath", LEVEL_ERROR, SCREEN_YES);
+    }
+    fd = open(realPath, O_RDONLY); // proc文件接口，非外部输入
     if (fd < 0) {
-        char* str = FormatLogMessage("failed to open ns path: %s.", path);
+        char* str = FormatLogMessage("failed to open ns path: %s.", realPath);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
@@ -53,7 +56,7 @@ int EnterNsByPath(const char *path, int nsType)
 
     ret = EnterNsByFd(fd, nsType);
     if (ret < 0) {
-        char* str = FormatLogMessage("failed to set ns: %s.", path);
+        char* str = FormatLogMessage("failed to set ns: %s.", realPath);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         close(fd);
