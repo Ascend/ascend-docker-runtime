@@ -218,7 +218,7 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
     return 0;
 }
 
-void testpath(char *originNsPath,char *realPath) 
+void testpath(char *originNsPath,char *realPath)
 {
     char* str2 = FormatLogMessage("::::originNsPath %s.", originNsPath);
     Logger(str2, LEVEL_ERROR, SCREEN_YES);
@@ -227,6 +227,7 @@ void testpath(char *originNsPath,char *realPath)
     Logger(str1, LEVEL_ERROR, SCREEN_YES);
     free(str1);
 }
+
 int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 {
     int ret;
