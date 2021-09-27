@@ -1006,7 +1006,7 @@ TEST(DoPrepare, StatusOne)
     config.devicesNr = 1024;
     int ret = DoPrepare(&args, &config);
     GlobalMockObject::verify();
-    EXPECT_EQ(-1, ret);
+    EXPECT_EQ(0, ret);
 }
 
 TEST(DoPrepare, StatusTwo)
@@ -1021,7 +1021,7 @@ TEST(DoPrepare, StatusTwo)
     config.devicesNr = 1024;
     int ret = DoPrepare(&args, &config);
     GlobalMockObject::verify();
-    EXPECT_EQ(-1, ret);
+    EXPECT_EQ(0, ret);
 }
 
 TEST(DoPrepare, StatusThree)
