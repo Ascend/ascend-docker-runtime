@@ -7,6 +7,7 @@
                         <offering>MindX</offering>
                         <componentName>ascend-docker-plugin</componentName>
                         <componentVersion>20.10.0.B010</componentVersion>
+                        <snapshot></snapshot>
                 </id>
                 <isClear>N</isClear>
                 <copies>
