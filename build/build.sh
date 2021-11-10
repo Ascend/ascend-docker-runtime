@@ -32,7 +32,7 @@ HOOKSRCDIR=${HOOKSRCPATH%/${HOOKSRCNAME}}
 RUNTIMESRCPATH=$(find ${RUNTIMEDIR} -name "${RUNTIMESRCNAME}")
 RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
-VERSION=$(cat $TOP_DIR/CI/config/version.ini | grep "PackageName" | cut -d "=" -f 2)
+VERSION=$(cat $TOP_DIR/Toolbox_CI/config/version.ini | grep "PackageName" | cut -d "=" -f 2)
 PACKAGENAME="Ascend-docker-runtime"
 CPUARCH=$(uname -m)
 
