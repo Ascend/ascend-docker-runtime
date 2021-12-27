@@ -22,10 +22,9 @@
 
 int GetCurrentLocalTime(char* buffer, int length)
 {
-    time_t rawtime;
-    struct tm* timeinfo = NULL;
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
+    time_t timep = time(NULL);
+    struct tm result = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    struct tm *timeinfo = localtime_r(&timep, &result);
     if (timeinfo == NULL) {
         return -1;
     }
