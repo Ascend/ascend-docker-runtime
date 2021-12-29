@@ -34,7 +34,6 @@ int EnterNsByFd(int fd, int nsType)
         free(str);
         return -1;
     }
-
     return 0;
 }
 
