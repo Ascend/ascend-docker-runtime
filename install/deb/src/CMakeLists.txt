@@ -21,8 +21,8 @@ aux_source_directory(. SRC)
 add_executable(ascend-docker-plugin-install-helper ${SRC})
 
 # 添加子目录
-add_subdirectory(cjson)
-add_subdirectory(HuaweiSecureC)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../build/cjson ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/cjson)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../build/HuaweiSecureC ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/HuaweiSecureC)
 
 # 添加链接库 
 #该命令要在add_executable命令下方，否则报错
