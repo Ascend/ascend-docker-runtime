@@ -10,8 +10,8 @@ set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
 #导入头文件所在路径
 #PROJECT_SOURCE_DIR为cmake宏
-include_directories("${PROJECT_SOURCE_DIR}/cjson")
-include_directories("${PROJECT_SOURCE_DIR}/HuaweiSecureC")
+include_directories("../../../opensource/cJSON-1.7.14")
+include_directories("../../../platform/HuaweiSecureC/include")
 
 # 查找当前目录下的所有源文件
 # 并将名称保存到 SRC 变量

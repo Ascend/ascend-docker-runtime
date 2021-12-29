@@ -6,7 +6,7 @@ set(CMAKE_C_STANDARD 11)
 message(STATUS "CMAKE_SHARED_LIBRARY_LINK_C_FLAGS = " ${CMAKE_SHARED_LIBRARY_LINK_C_FLAGS})
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
-include_directories("${PROJECT_SOURCE_DIR}/HuaweiSecureC")
+include_directories("${PROJECT_SOURCE_DIR}/../../platform/HuaweiSecureC/include")
 aux_source_directory(. SRC)
 add_subdirectory(HuaweiSecureC)
 add_executable(ascend-docker-cli ${SRC})

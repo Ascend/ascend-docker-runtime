@@ -95,39 +95,16 @@ function build_run_package()
 
     RUN_PKG_NAME="${PACKAGENAME}-${VERSION}-${CPUARCH}.run"
     DATE=$(date -u "+%Y-%m-%d")
-    bash ${OPENSRC}/${MAKESELF_DIR}/makeself.sh --nomd5 --nocrc --help-header scripts/help.info --packaging-date ${DATE} \
+    bash ${OPENSRC}/makeself-release-2.4.2/makeself.sh --nomd5 --nocrc --help-header scripts/help.info --packaging-date ${DATE} \
     --tar-extra "--mtime=${DATE}" run_pkg "${RUN_PKG_NAME}" ascend-docker-runtime ./run_main.sh
     mv ${RUN_PKG_NAME} ${OUTPUT}
 }
 
-function make_clean()
+function clean()
 {
     [ -d "${OUTPUT}" ] && cd ${OUTPUT}&&rm -rf *
 }
 
-function make_unzip()
-{
-    cd ${OPENSRC}
-    CJSONS=$(find . -name "cJSON.*")
-    CJSONSLIB=${INSTALLHELPERDIR}/deb/src/cjson
-    /bin/cp -f ${CJSONS} ${CJSONSLIB}
-
-    MAKESELF_DIR=$(find . -name "makeself-release-*")
-
-    cd ${PLATFORM}/HuaweiSecureC
-    SECURECSRC=$(find . -name "src")
-    SECURECINC=$(find . -name "include")
-
-    SECURECLIB=${INSTALLHELPERDIR}/deb/src/HuaweiSecureC
-    /bin/cp -f ${SECURECSRC}/* ${SECURECLIB}
-    /bin/cp -f ${SECURECINC}/* ${SECURECLIB}
-
-    SECURECLIB=${CLIDIR}/src/HuaweiSecureC
-    /bin/cp -f ${SECURECSRC}/* ${SECURECLIB}
-    /bin/cp -f ${SECURECINC}/* ${SECURECLIB}
-}
-
-make_clean
-make_unzip
+clean
 build_bin
 build_run_package
