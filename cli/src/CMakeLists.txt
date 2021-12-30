@@ -8,7 +8,7 @@ set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
 include_directories("${PROJECT_SOURCE_DIR}/../../platform/HuaweiSecureC/include")
 aux_source_directory(. SRC)
-add_subdirectory(HuaweiSecureC)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../build/HuaweiSecureC ${CMAKE_CURRENT_SOURCE_DIR}/../../build/HuaweiSecureC)
 add_executable(ascend-docker-cli ${SRC})
 target_compile_options(ascend-docker-cli PRIVATE -fstack-protector-all -fpie -D_FORTIFY_SOURCE=2 -O2)
 target_link_libraries(ascend-docker-cli -pie -Wl,-s,-z,now HuaweiSecureC)

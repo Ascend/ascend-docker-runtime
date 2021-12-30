@@ -39,16 +39,17 @@ CPUARCH=$(uname -m)
 function build_bin()
 {
     echo "make cli"
-    [ -d "${CLISRCDIR}/build" ] && rm -rf ${CLISRCDIR}/build
-    mkdir ${CLISRCDIR}/build && cd ${CLISRCDIR}/build
-    cmake ../
+    [ -d "${BUILD}/build/cli/build" ] && rm -rf ${BUILD}/build/cli/build
+    mkdir -p ${BUILD}/build/cli/build && cd ${BUILD}/build/cli/build
+
+    cmake ${CLISRCDIR}
     make clean
     make
 
     echo "make installhelper"
-    [ -d "${INSTALLHELPERSRCDIR}/build" ] && rm -rf ${INSTALLHELPERSRCDIR}/build
-    mkdir ${INSTALLHELPERSRCDIR}/build && cd ${INSTALLHELPERSRCDIR}/build
-    cmake ../
+    [ -d "${BUILD}/build/helper/build" ] && rm -rf ${BUILD}/build/helper/build
+    mkdir -p ${BUILD}/build/helper/build && cd ${BUILD}/build/helper/build
+    cmake ${INSTALLHELPERSRCDIR}
     make clean
     make
 
@@ -80,7 +81,7 @@ function build_run_package()
     cd ${BUILD}
     mkdir run_pkg
 
-    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${INSTALLHELPERSRCDIR},${CLISRCDIR}}/build/ascend-docker*  run_pkg
+    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli}/build/ascend-docker*  run_pkg
     /bin/cp -f scripts/uninstall.sh run_pkg
     /bin/cp -f scripts/base.list run_pkg
     FILECNT=$(ls -l run_pkg |grep "^-"|wc -l)
