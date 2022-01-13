@@ -55,11 +55,14 @@ function build_bin()
 
     [ -d "${ROOT}/opensource/src" ] && rm -rf ${ROOT}/opensource/src
     mkdir ${ROOT}/opensource/src
-    /bin/cp -rf ${HOOKSRCDIR}/vendor/* ${ROOT}/opensource/src
+    cd ${HOOKDIR}
     export GOPATH="${GOPATH}:${ROOT}/opensource"
-    export GO111MODULE=off
+    export GO111MODULE=on
+    export GOPROXY="http://mirrors.tools.huawei.com/goproxy/"
+    export GONOSUMDB="*"
 
     echo "make hook"
+    go mod tidy
     [ -d "${HOOKSRCDIR}/build" ] && rm -rf ${HOOKSRCDIR}/build
     mkdir ${HOOKSRCDIR}/build && cd ${HOOKSRCDIR}/build
     export CGO_ENABLED=1
@@ -68,8 +71,12 @@ function build_bin()
     export CGO_LDFLAGS="-Wl,-z,now -Wl,-s,--build-id=none -pie"
     go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath ../${HOOKSRCNAME}
     mv main ascend-docker-hook
+    echo `pwd`
+    ls
 
     echo "make runtime"
+    go mod tidy
+    cd ${RUNTIMEDIR}
     [ -d "${RUNTIMESRCDIR}/build" ] && rm -rf ${RUNTIMESRCDIR}/build
     mkdir ${RUNTIMESRCDIR}/build&&cd ${RUNTIMESRCDIR}/build
     go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath ../${RUNTIMESRCNAME}
