@@ -56,7 +56,7 @@ function build_bin()
     [ -d "${ROOT}/opensource/src" ] && rm -rf ${ROOT}/opensource/src
     mkdir ${ROOT}/opensource/src
     cd ${HOOKDIR}
-    export GOPATH="${GOPATH}:${ROOT}/opensource"
+    export GOPATH="${ROOT}/opensource"
     export GO111MODULE=on
     export GOPROXY="http://mirrors.tools.huawei.com/goproxy/"
     export GONOSUMDB="*"
