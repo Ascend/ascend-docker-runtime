@@ -58,7 +58,6 @@ function build_bin()
     cd ${HOOKDIR}
     export GOPATH="${ROOT}/opensource"
     export GO111MODULE=on
-    export GOPROXY="http://mirrors.tools.huawei.com/goproxy/"
     export GONOSUMDB="*"
 
     echo "make hook"
