@@ -66,6 +66,9 @@ long GetLogSize(const char* filename)
     if (strlen(filename) > PATH_MAX || NULL == realpath(filename, path)) {
         return -1;
     }
+    if (CheckLegality(path) != 0) {
+        return -1;
+    }
     fp = fopen(path, "rb");
     long length = 0;
     if (fp != NULL) {
@@ -117,6 +120,9 @@ void WriteLogFile(const char* filename, long maxSize, const char* buffer, unsign
             }
         }
         if (strlen(filename) > PATH_MAX || NULL == realpath(filename, path)) {
+            return;
+        }
+        if (CheckLegality(path) != 0) {
             return;
         }
         fp = fopen(path, "a+");
