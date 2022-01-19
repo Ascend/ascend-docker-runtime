@@ -37,20 +37,6 @@ function install()
     chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
     echo 'install executable files success'
-
-    if [ ! -d "${DOCKER_CONFIG_DIR}" ]; then
-        mkdir -p ${DOCKER_CONFIG_DIR}
-    fi
-
-    SRC="${DOCKER_CONFIG_DIR}/daemon.json.${PPID}"
-    DST="${DOCKER_CONFIG_DIR}/daemon.json"
-    if [ "$?" != "0" ]; then
-        echo 'create damon.json failed'
-        exit 1
-    fi
-
-    mv ${SRC} ${DST} 
-    echo 'create damom.json success'
     echo 'please reboot docker daemon to take effect'
 }
 
