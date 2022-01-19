@@ -18,11 +18,9 @@ function install()
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
-    cp -f ./ascend-docker-plugin-install-helper ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     chmod 550 ${INSTALL_PATH}/ascend-docker-runtime
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
-    chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
 
     cp -rf ./assets ${INSTALL_PATH}/assets
     cp -f ./README.md ${INSTALL_PATH}/README.md
@@ -46,7 +44,6 @@ function install()
 
     SRC="${DOCKER_CONFIG_DIR}/daemon.json.${PPID}"
     DST="${DOCKER_CONFIG_DIR}/daemon.json"
-    ./ascend-docker-plugin-install-helper add ${DST} ${SRC} ${INSTALL_PATH}/ascend-docker-runtime
     if [ "$?" != "0" ]; then
         echo 'create damon.json failed'
         exit 1
@@ -92,13 +89,11 @@ function upgrade()
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
-    cp -f ./ascend-docker-plugin-install-helper ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
     cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     chmod 550 ${INSTALL_PATH}/ascend-docker-runtime
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
-    chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     chmod 500 ${INSTALL_PATH}/script/uninstall.sh
     chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
