@@ -78,7 +78,9 @@ int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const 
         free(str);
         return -1;
     }
-
+    if (CheckLegality(resolvedPath) != 0) {
+        Logger("Check file legality failed.", LEVEL_ERROR, SCREEN_YES);
+    }
     fp = fopen(resolvedPath, "r");
     if (fp == NULL) {
         Logger("cannot open file.", LEVEL_ERROR, SCREEN_YES);
@@ -271,16 +273,17 @@ int SetupCgroup(const struct ParsedConfig *config)
     FILE *cgroupAllow = NULL;
 
     if (realpath(config->cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
-        str = FormatLogMessage("cannot canonicalize cgroup path: %s.", config->cgroupPath);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
+        Logger("cannot canonicalize cgroup.", LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
-
+    if (CheckLegality(resolvedCgroupPath) != 0) {
+        Logger("Check file legality failed.", LEVEL_ERROR, SCREEN_YES);
+        return -1;
+    }
     cgroupAllow = fopen((const char *)resolvedCgroupPath, "a");
     if (cgroupAllow == NULL) {
-        str = FormatLogMessage("failed to open cgroup file: %s.", resolvedCgroupPath);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
+        Logger("failed to open cgroup file.", LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
@@ -306,8 +309,7 @@ int SetupCgroup(const struct ParsedConfig *config)
         ret = SetupDeviceCgroup(cgroupAllow, (const char *)deviceName);
         if (ret < 0) {
             fclose(cgroupAllow);
-            str = FormatLogMessage("failed to setup cgroup for %s.", deviceName);
-            Logger(str, LEVEL_ERROR, SCREEN_YES);
+            Logger("failed to setup cgroup.", LEVEL_ERROR, SCREEN_YES);
             free(str);
             return -1;
         }

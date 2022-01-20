@@ -151,3 +151,20 @@ int MakeMountPoints(const char *path, mode_t mode)
     close(fd);
     return 0;
 }
+
+int CheckLegality(const char* filename)
+{
+    struct stat fileStat;
+    if (stat(filename, &fileStat) != 0) {
+        return -1;
+    }
+    if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
+        fprintf(stderr, "Please check the folder owner!\n");
+        return -1;
+    }
+    if ((fileStat.st_mode & S_IWOTH) != 0) { // 操作文件对other用户可写
+        fprintf(stderr, "Please check the write permission!\n");
+        return -1;
+    }
+    return 0;
+}
