@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <libgen.h>
 #include "securec.h"
 #include "logger.h"
 
@@ -154,17 +155,25 @@ int MakeMountPoints(const char *path, mode_t mode)
 
 int CheckLegality(const char* filename)
 {
-    struct stat fileStat;
-    if (stat(filename, &fileStat) != 0) {
+    char buf[PATH_MAX + 1] = {0x00};
+    errno_t ret = strncpy_s(buf, PATH_MAX + 1, filename, strlen(filename));
+    if (ret != EOK) {
         return -1;
     }
-    if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
-        fprintf(stderr, "Please check the folder owner!\n");
-        return -1;
-    }
-    if ((fileStat.st_mode & S_IWOTH) != 0) { // 操作文件对other用户可写
-        fprintf(stderr, "Please check the write permission!\n");
-        return -1;
-    }
+    do {
+        struct stat fileStat;
+        if (stat(buf, &fileStat) != 0) {
+            return -1;
+        }
+        if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
+            fprintf(stderr, "Please check the folder owner!\n");
+            return -1;
+        }
+        if ((fileStat.st_mode & S_IWOTH) != 0) { // 操作文件对other用户可写
+            fprintf(stderr, "Please check the write permission!\n");
+            return -1;
+        }
+    } while(strcmp(dirname(buf), "/"));
+    
     return 0;
 }

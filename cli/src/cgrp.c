@@ -80,6 +80,7 @@ int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const 
     }
     if (CheckLegality(resolvedPath) != 0) {
         Logger("Check file legality failed.", LEVEL_ERROR, SCREEN_YES);
+        return -1;
     }
     fp = fopen(resolvedPath, "r");
     if (fp == NULL) {
