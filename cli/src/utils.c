@@ -173,7 +173,7 @@ int CheckLegality(const char* filename)
             fprintf(stderr, "Please check the write permission!\n");
             return -1;
         }
-    } while(strcmp(dirname(buf), "/"));
+    } while (strcmp(dirname(buf), "/"));
     
     return 0;
 }
