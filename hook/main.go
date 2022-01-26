@@ -340,11 +340,15 @@ func doPrestartHook() error {
 
 	args := append([]string{cliPath},
 		"--devices", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(devices)), ","), "[]"),
-		"--pid", fmt.Sprintf("%d", containerConfig.Pid), "--rootfs", containerConfig.Rootfs)
+		"--pid", fmt.Sprintf("%d", containerConfig.Pid),
+		"--rootfs", containerConfig.Rootfs)
 
-	args, mountError := addMounts(fileMountList, args, dirMountList)
-	if mountError != nil {
-		return mountError
+	for _, filePath := range fileMountList {
+		args = append(args, "--mount-file", filePath)
+	}
+
+	for _, dirPath := range dirMountList {
+		args = append(args, "--mount-dir", dirPath)
 	}
 
 	if len(parsedOptions) > 0 {
@@ -356,31 +360,6 @@ func doPrestartHook() error {
 	}
 
 	return nil
-}
-
-func addMounts(fileMountList []string, args []string, dirMountList []string) ([]string, error) {
-	for _, filePath := range fileMountList {
-		fileInfo, err := os.Lstat(filePath)
-		if err != nil {
-			return nil, fmt.Errorf("cannot get the path for mounting")
-		}
-		if fileInfo.Mode()&os.ModeSymlink == os.ModeSymlink {
-			return nil, fmt.Errorf("try to mount symlink")
-		}
-		args = append(args, "--mount-file", filePath)
-	}
-
-	for _, dirPath := range dirMountList {
-		fileInfo, err := os.Lstat(dirPath)
-		if err != nil {
-			return nil, fmt.Errorf("cannot get the path for mounting")
-		}
-		if fileInfo.Mode()&os.ModeSymlink == os.ModeSymlink {
-			return nil, fmt.Errorf("try to mount symlink")
-		}
-		args = append(args, "--mount-dir", dirPath)
-	}
-	return args, nil
 }
 
 func main() {

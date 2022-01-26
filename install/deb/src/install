@@ -1,0 +1,10 @@
+#! /bin/bash
+echo "extract files\n"
+if [ ! -d "../cjson" ];then
+   mkdir ../src
+else 
+  rm -rf ../src
+fi
+/bin/cp -rf ${files} ../cjson 
+tar -zxvf ../*.tar.gz   
+files=`find ../ -name "cJSON.*"`

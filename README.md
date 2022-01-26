@@ -80,7 +80,7 @@ chmod +x Ascend-cann-toolbox*.run
 systemctl daemon-reload
 systemctl restart docker
 ```
-安装docker-runtime后会需要修改配置文件/etc/docker/daemon.json
+安装docker-runtime后会修改配置文件/etc/docker/daemon.json
 
 ![image](assets/20210329103157123.png)
 
