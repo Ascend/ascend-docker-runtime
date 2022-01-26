@@ -50,7 +50,6 @@ function uninstall()
     fi
 
     ${INSTALL_PATH}/script/uninstall.sh
-    echo 'remove daemon.json setting success'
 
     [ -n "${INSTALL_PATH}" ] && rm -rf ${INSTALL_PATH}
     echo 'remove executable files success'
