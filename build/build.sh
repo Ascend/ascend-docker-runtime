@@ -14,6 +14,8 @@ BUILD=${ROOT}/build
 CLIDIR=${ROOT}/cli
 CLISRCNAME="main.c"
 
+INSTALLHELPERDIR=${ROOT}/install
+INSTALLHELPERSRCNAME="main.c"
 
 HOOKDIR=${ROOT}/hook
 HOOKSRCNAME="main.go"
@@ -23,7 +25,8 @@ RUNTIMESRCNAME="main.go"
 
 CLISRCPATH=$(find ${CLIDIR} -name "${CLISRCNAME}")
 CLISRCDIR=${CLISRCPATH%/${CLISRCNAME}}
-
+INSTALLHELPERSRCPATH=$(find ${INSTALLHELPERDIR} -name "${INSTALLHELPERSRCNAME}")
+INSTALLHELPERSRCDIR=${INSTALLHELPERSRCPATH%/${INSTALLHELPERSRCNAME}}
 HOOKSRCPATH=$(find ${HOOKDIR} -name "${HOOKSRCNAME}")
 HOOKSRCDIR=${HOOKSRCPATH%/${HOOKSRCNAME}}
 RUNTIMESRCPATH=$(find ${RUNTIMEDIR} -name "${RUNTIMESRCNAME}")
@@ -40,6 +43,13 @@ function build_bin()
     mkdir -p ${BUILD}/build/cli/build && cd ${BUILD}/build/cli/build
 
     cmake ${CLISRCDIR}
+    make clean
+    make
+
+    echo "make installhelper"
+    [ -d "${BUILD}/build/helper/build" ] && rm -rf ${BUILD}/build/helper/build
+    mkdir -p ${BUILD}/build/helper/build && cd ${BUILD}/build/helper/build
+    cmake ${INSTALLHELPERSRCDIR}
     make clean
     make
 
@@ -77,12 +87,12 @@ function build_run_package()
     cd ${BUILD}
     mkdir run_pkg
 
-    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/cli}/build/ascend-docker*  run_pkg
+    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli}/build/ascend-docker*  run_pkg
     /bin/cp -f scripts/uninstall.sh run_pkg
     /bin/cp -f scripts/base.list run_pkg
     FILECNT=$(ls -l run_pkg |grep "^-"|wc -l)
     echo "prepare package $FILECNT bins"
-    if [ $FILECNT -ne 5 ]; then
+    if [ $FILECNT -ne 6 ]; then
         exit 1
     fi
     /bin/cp -rf ${ROOT}/assets run_pkg
