@@ -22,6 +22,11 @@
 
 int GetCurrentLocalTime(char* buffer, int length)
 {
+    if (buffer == NULL) {
+        fprintf(stderr, "buffer pointer is null!\n");
+        return -1;
+    }
+
     time_t timep = time(NULL);
     struct tm result = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     struct tm *timeinfo = localtime_r(&timep, &result);
@@ -56,6 +61,11 @@ int CreateLog(const char* filename)
 
 long GetLogSize(const char* filename)
 {
+    if (filename == NULL) {
+        fprintf(stderr, "filename pointer is null!\n");
+        return -1;
+    }
+
     int ret;
     ret = CreateLog(filename);
     if (ret < 0) {
@@ -85,6 +95,11 @@ long GetLogSize(const char* filename)
 
 int LogLoop(const char* filename)
 {
+    if (filename == NULL) {
+        fprintf(stderr, "filename pointer is null!\n");
+        return -1;
+    }
+
     int ret;
     char* loopPath = LOG_PATH_DIR"docker-runtime-log.log.1";
     int exist;
@@ -105,6 +120,11 @@ int LogLoop(const char* filename)
 
 void WriteLogFile(const char* filename, long maxSize, const char* buffer, unsigned bufferSize)
 {
+    if (filename == NULL || buffer == NULL) {
+        fprintf(stderr, "filename, buffer pointer is null!\n");
+        return;
+    }
+    
     if (filename != NULL && buffer != NULL) {
         char path[PATH_MAX + 1] = {0x00};
         FILE *fp = NULL;
