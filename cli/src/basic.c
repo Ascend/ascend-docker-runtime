@@ -6,5 +6,10 @@
 
 void InitParsedConfig(struct ParsedConfig *parsedConfig)
 {
+    if (parsedConfig != NULL)
+    {
+        Logger("parsedConfig Pointer is null!.");
+        return;
+    }
     parsedConfig->devicesNr = MAX_DEVICE_NR;
 }
