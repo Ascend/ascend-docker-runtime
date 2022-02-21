@@ -21,6 +21,11 @@
 
 bool TakeNthWord(char **pLine, unsigned int n, char **word)
 {
+    if (pLine == NULL || word == NULL) {
+        fprintf(stderr, "pLine, word pointer is null!\n");
+        return false;
+    }
+
     char *w = NULL;
     for (unsigned int i = 0; i < n; i++) {
         w = strsep(pLine, " ");
@@ -35,6 +40,11 @@ bool TakeNthWord(char **pLine, unsigned int n, char **word)
 
 bool CheckRootDir(char **pLine)
 {
+    if (pLine == NULL) {
+        fprintf(stderr, "pLine pointer is null!\n");
+        return false;
+    }
+
     char *rootDir = NULL;
     if (!TakeNthWord(pLine, ROOT_GAP, &rootDir)) {
         return false;
@@ -45,6 +55,11 @@ bool CheckRootDir(char **pLine)
 
 bool CheckFsType(char **pLine)
 {
+    if (pLine == NULL) {
+        fprintf(stderr, "pLine pointer is null!\n");
+        return false;
+    }
+
     char* fsType = NULL;
     if (!TakeNthWord(pLine, FSTYPE_GAP, &fsType)) {
         return false;
@@ -55,6 +70,11 @@ bool CheckFsType(char **pLine)
 
 bool CheckSubStr(char **pLine, const char *subsys)
 {
+    if (pLine == NULL || subsys == NULL) {
+        fprintf(stderr, "pLine, subsys pointer is null!\n");
+        return false;
+    }
+
     char* substr = NULL;
     if (!TakeNthWord(pLine, MOUNT_SUBSTR_GAP, &substr)) {
         return false;
@@ -66,6 +86,11 @@ bool CheckSubStr(char **pLine, const char *subsys)
 typedef char *(*ParseFileLine)(char *, const char *);
 int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const char* filepath)
 {
+    if (buffer == NULL || filepath == NULL) {
+        fprintf(stderr, "buffer, filepath pointer is null!\n");
+        return -1;
+    }
+
     FILE *fp = NULL;
     char *result = NULL;
     char *line = NULL;
@@ -107,6 +132,11 @@ int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const 
 
 char *GetCgroupMount(char *line, const char *subsys)
 {
+    if (line == NULL || subsys == NULL) {
+        fprintf(stderr, "line, subsys pointer is null!\n");
+        return NULL;
+    }
+    
     if (!CheckRootDir(&line)) {
         return NULL;
     }
@@ -131,6 +161,11 @@ char *GetCgroupMount(char *line, const char *subsys)
 
 char *GetCgroupRoot(char *line, const char *subSystem)
 {
+    if (line == NULL || subSystem == NULL) {
+        fprintf(stderr, "line, subSystem pointer is null!\n");
+        return NULL;
+    }
+    
     char *token = NULL;
     int i;
     for (i = 0; i < ROOT_SUBSTR_GAP; ++i) {
@@ -156,6 +191,11 @@ char *GetCgroupRoot(char *line, const char *subSystem)
 
 int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
 {
+    if (cgroupAllow == NULL || devName == NULL) {
+        fprintf(stderr, "cgroupAllow, devName pointer is null!\n");
+        return -1;
+    }
+
     int ret;
     struct stat devStat;
     char devPath[BUF_SIZE];
@@ -188,8 +228,12 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
 
 int SetupDriverCgroup(FILE *cgroupAllow)
 {
-    int ret;
+    if (cgroupAllow == NULL) {
+        fprintf(stderr, "cgroupAllow pointer is null!\n");
+        return -1;
+    }
 
+    int ret;
     ret = SetupDeviceCgroup(cgroupAllow, DAVINCI_MANAGER);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to setup cgroup for %s.", DAVINCI_MANAGER);
@@ -219,6 +263,11 @@ int SetupDriverCgroup(FILE *cgroupAllow)
 
 int GetCgroupPath(int pid, char *effPath, size_t maxSize)
 {
+    if (effPath == NULL) {
+        fprintf(stderr, "effPath pointer is null!\n");
+        return -1;
+    }
+
     int ret;
     char mountPath[BUF_SIZE] = {0x0};
     char mount[BUF_SIZE] = {0x0};
@@ -267,12 +316,15 @@ int GetCgroupPath(int pid, char *effPath, size_t maxSize)
 
 int SetupCgroup(const struct ParsedConfig *config)
 {
-    int ret;
+    if (config == NULL) {
+        fprintf(stderr, "config pointer is null!\n");
+        return -1;
+    }
+
     char *str = NULL;
     char deviceName[BUF_SIZE] = {0};
     char resolvedCgroupPath[PATH_MAX] = {0};
     FILE *cgroupAllow = NULL;
-
     if (realpath(config->cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
         Logger("cannot canonicalize cgroup.", LEVEL_ERROR, SCREEN_YES);
         free(str);
@@ -289,26 +341,23 @@ int SetupCgroup(const struct ParsedConfig *config)
         return -1;
     }
 
-    ret = SetupDriverCgroup(cgroupAllow);
-    if (ret < 0) {
+    if (SetupDriverCgroup(cgroupAllow) < 0) {
         fclose(cgroupAllow);
         Logger("failed to setup driver cgroup.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
-
     for (size_t idx = 0; idx < config->devicesNr; idx++) {
-        int ret = sprintf_s(deviceName, BUF_SIZE, "%s%u",
+        if (sprintf_s(deviceName, BUF_SIZE, "%s%u",
             (IsVirtual() ? VDEVICE_NAME : DEVICE_NAME),
-            config->devices[idx]);
-        if (ret < 0) {
+            config->devices[idx]) < 0) {
             fclose(cgroupAllow);
             str = FormatLogMessage("failed to assemble device path for no.%u.", config->devices[idx]);
             Logger(str, LEVEL_ERROR, SCREEN_YES);
             free(str);
             return -1;
         }
-        ret = SetupDeviceCgroup(cgroupAllow, (const char *)deviceName);
-        if (ret < 0) {
+
+        if (SetupDeviceCgroup(cgroupAllow, (const char *)deviceName) < 0) {
             fclose(cgroupAllow);
             Logger("failed to setup cgroup.", LEVEL_ERROR, SCREEN_YES);
             free(str);

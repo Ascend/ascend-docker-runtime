@@ -4,18 +4,14 @@
 */
 #include "basic.h"
 #include <stdlib.h>
-#include "logger.h"
+#include <stdio.h>
 
 void InitParsedConfig(struct ParsedConfig *parsedConfig)
 {
-<<<<<<< HEAD
-    if (parsedConfig != NULL) {
-=======
-    if (parsedConfig != NULL)
-    {
->>>>>>> fd706c08945c4519bcefe0d295d55c42c7ad1711
-        Logger("parsedConfig Pointer is null!.");
+    if (parsedConfig == NULL) {
+        fprintf(stderr, "parsedConfig pointer is null!\n");
         return;
     }
+    
     parsedConfig->devicesNr = MAX_DEVICE_NR;
 }
