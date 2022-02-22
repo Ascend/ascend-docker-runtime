@@ -3,8 +3,15 @@
  * Description: ascend-docker-cli工具公共宏和结构体定义
 */
 #include "basic.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 void InitParsedConfig(struct ParsedConfig *parsedConfig)
 {
+    if (parsedConfig == NULL) {
+        fprintf(stderr, "parsedConfig pointer is null!\n");
+        return;
+    }
+    
     parsedConfig->devicesNr = MAX_DEVICE_NR;
 }

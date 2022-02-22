@@ -47,6 +47,11 @@ typedef bool (*CmdArgParser)(struct CmdArgs *args, const char *arg);
 
 static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
 {
+    if (args == NULL || arg == NULL) {
+        fprintf(stderr, "args, arg pointer is null!\n");
+        return false;
+    }
+
     errno_t err = strcpy_s(args->devices, BUF_SIZE, arg);
     if (err != EOK) {
         Logger("failed to get devices from cmd args.", LEVEL_ERROR, SCREEN_YES);
@@ -58,6 +63,11 @@ static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
 
 static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
 {
+    if (args == NULL || arg == NULL) {
+        fprintf(stderr, "args, arg pointer is null!\n");
+        return false;
+    }
+
     errno = 0;
     args->pid = strtol(optarg, NULL, DECIMAL);
     if (errno != 0) {
@@ -79,6 +89,11 @@ static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
 
 static bool RootfsCmdArgParser(struct CmdArgs *args, const char *arg)
 {
+    if (args == NULL || arg == NULL) {
+        fprintf(stderr, "args, arg pointer is null!\n");
+        return false;
+    }
+
     errno_t err = strcpy_s(args->rootfs, BUF_SIZE, arg);
     if (err != EOK) {
         Logger("failed to get rootfs path from cmd args", LEVEL_ERROR, SCREEN_YES);
@@ -90,6 +105,11 @@ static bool RootfsCmdArgParser(struct CmdArgs *args, const char *arg)
 
 static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
 {
+    if (args == NULL || arg == NULL) {
+        fprintf(stderr, "args, arg pointer is null!\n");
+        return false;
+    }
+
     errno_t err = strcpy_s(args->options, BUF_SIZE, arg);
     if (err != EOK) {
         Logger("failed to get options string from cmd args", LEVEL_ERROR, SCREEN_YES);
@@ -101,6 +121,11 @@ static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
 
 static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
 {
+    if (args == NULL || arg == NULL) {
+        fprintf(stderr, "args, arg pointer is null!\n");
+        return false;
+    }
+
     if (args->files.count == MAX_MOUNT_NR) {
         char* str = FormatLogMessage("too many files to mount, max number is %u", MAX_MOUNT_NR);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
@@ -122,6 +147,11 @@ static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
 
 static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
 {
+    if (args == NULL || arg == NULL) {
+        fprintf(stderr, "args, arg pointer is null!\n");
+        return false;
+    }
+
     if (args->dirs.count == MAX_MOUNT_NR) {
         char* str = FormatLogMessage("too many directories to mount, max number is %u", MAX_MOUNT_NR);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
@@ -157,6 +187,11 @@ static struct {
 
 static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *value)
 {
+    if (args == NULL || value == NULL) {
+        fprintf(stderr, "args, value pointer is null!\n");
+        return -1;
+    }
+
     int i;
     for (i = 0; i < NUM_OF_CMD_ARGS; i++) {
         if (g_cmdArgParsers[i].c == indicator) {
@@ -182,11 +217,20 @@ static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *valu
 
 static inline bool IsCmdArgsValid(const struct CmdArgs *args)
 {
+    if (args == NULL) {
+        fprintf(stderr, "args pointer is null!\n");
+        return false;
+    }
     return (strlen(args->devices) > 0) && (strlen(args->rootfs) > 0) && (args->pid > 0);
 }
 
 static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *devices)
 {
+    if (idList == NULL || idListSize == NULL || devices == NULL) {
+        fprintf(stderr, "idList, idListSize, devices pointer is null!\n");
+        return -1;
+    }
+
     static const char *sep = ",";
     char *token = NULL;
     char *context = NULL;
@@ -220,6 +264,11 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
 
 int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 {
+    if (args == NULL || config == NULL) {
+        fprintf(stderr, "args, config pointer is null!\n");
+        return -1;
+    }
+
     int ret;
     errno_t err;
 
@@ -272,6 +321,11 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 
 int SetupContainer(struct CmdArgs *args)
 {
+    if (args == NULL) {
+        fprintf(stderr, "args pointer is null!\n");
+        return -1;
+    }
+
     int ret;
     struct ParsedConfig config;
 
@@ -324,6 +378,10 @@ int SetupContainer(struct CmdArgs *args)
 
 int Process(int argc, char **argv)
 {
+    if (argv == NULL) {
+        fprintf(stderr, "argv pointer is null!\n");
+        return -1;
+    }
     int c;
     int ret;
     int optionIndex;
