@@ -127,6 +127,8 @@ static int DelJsonContent(cJSON *root, const char *key)
     removedItem = cJSON_DetachItemViaPointer(root, existItem);
     if (removedItem == NULL) {
         fprintf(stderr, "remove %s failed\n", key);
+        free(existItem);
+        existItem = NULL;
         return -1;
     }
 
@@ -334,6 +336,10 @@ static int CreateRevisedJsonFile(const char *filePath, const char *tempPath)
 
     if (newContent == NULL) {
         fprintf(stderr, "error: failed to create json\n");
+        if (pf != NULL) {
+            (void)fclose(pf);
+            pf = NULL;
+        }
         return -1;
     }
 
@@ -347,10 +353,14 @@ static int CreateRevisedJsonFile(const char *filePath, const char *tempPath)
     if (fprintf(pf, "%s", cJSON_Print(newContent)) < 0) {
         fprintf(stderr, "error: failed to create file\n");
         cJSON_Delete(newContent);
+        if (pf != NULL) {
+            (void)fclose(pf);
+            pf = NULL;
+        }
         return -1;
     }
     (void)fclose(pf);
-
+    pf = NULL;
     cJSON_Delete(newContent);
 
     return 0;
