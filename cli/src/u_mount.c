@@ -18,6 +18,11 @@
 
 int Mount(const char *src, const char *dst)
 {
+    if (src == NULL || dst == NULL) {
+        fprintf(stderr, "src pointer or dst pointer is null!\n");
+        return -1;
+    }
+
     static const unsigned long mountFlags = MS_BIND;
     static const unsigned long remountFlags = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID;
     int ret;
@@ -44,6 +49,11 @@ int Mount(const char *src, const char *dst)
 static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
                               const char *dstDeviceName, struct PathInfo* pathInfo)
 {
+    if (rootfs == NULL || srcDeviceName == NULL || dstDeviceName == NULL || pathInfo == NULL) {
+        fprintf(stderr, "rootfs, srcDeviceName, dstDeviceName, pathInfo pointer are null!\n");
+        return -1;
+    }
+
     int ret;
     errno_t err;
     char unresolvedDst[BUF_SIZE] = {0};
@@ -96,21 +106,23 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
 
 int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDeviceName)
 {
-    int ret;
+    if (rootfs == NULL || srcDeviceName == NULL || dstDeviceName == NULL) {
+        fprintf(stderr, "rootfs, srcDeviceName, dstDeviceName pointer is null!\n");
+        return -1;
+    }
+
     char *str = NULL;
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
     struct PathInfo pathInfo = {src, BUF_SIZE, dst, BUF_SIZE};
-    ret = GetDeviceMntSrcDst(rootfs, srcDeviceName, dstDeviceName, &pathInfo);
-    if (ret < 0) {
+    if (GetDeviceMntSrcDst(rootfs, srcDeviceName, dstDeviceName, &pathInfo) < 0) {
         str = FormatLogMessage("failed to get mount src and dst path, device name: %s.", srcDeviceName);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
     struct stat srcStat;
-    ret = stat((const char *)src, &srcStat);
-    if (ret < 0) {
+    if (stat((const char *)src, &srcStat) < 0) {
         str = FormatLogMessage("failed to stat src: %s.", src);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
@@ -118,6 +130,7 @@ int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDe
     }
     errno = 0;
     struct stat dstStat;
+    int ret;
     ret = stat((const char *)dst, &dstStat);
     if (ret == 0 && S_ISCHR(dstStat.st_mode)) {
         return 0; // 特权容器自动挂载HOST所有设备，故此处跳过
@@ -130,15 +143,15 @@ int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDe
         Logger("failed to check dst stat", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
-    ret = MakeMountPoints(dst, srcStat.st_mode);
-    if (ret < 0) {
+
+    if (MakeMountPoints(dst, srcStat.st_mode) < 0) {
         str = FormatLogMessage("failed to create mount dst file: %s.", dst);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
     }
-    ret = Mount(src, dst);
-    if (ret < 0) {
+
+    if (Mount(src, dst) < 0) {
         Logger("failed to mount dev.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
@@ -148,6 +161,11 @@ int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDe
 
 int DoDeviceMounting(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr)
 {
+    if (rootfs == NULL || device_name == NULL) {
+        fprintf(stderr, "rootfs, device_name pointer is null!\n");
+        return -1;
+    }
+
     char srcDeviceName[BUF_SIZE] = {0};
     char dstDeviceName[BUF_SIZE] = {0};
 
@@ -174,6 +192,11 @@ int DoDeviceMounting(const char *rootfs, const char *device_name, const unsigned
 
 int MountFile(const char *rootfs, const char *filepath)
 {
+    if (rootfs == NULL || filepath == NULL) {
+        fprintf(stderr, "rootfs, filepath pointer is null!\n");
+        return -1;
+    }
+
     int ret;
     char dst[BUF_SIZE] = {0};
 
@@ -210,6 +233,11 @@ int MountFile(const char *rootfs, const char *filepath)
 
 int MountDir(const char *rootfs, const char *src)
 {
+    if (rootfs == NULL || src == NULL) {
+        fprintf(stderr, "rootfs, src pointer is null!\n");
+        return -1;
+    }
+
     int ret;
     char dst[BUF_SIZE] = {0};
 
@@ -245,6 +273,11 @@ int MountDir(const char *rootfs, const char *src)
 
 int DoCtrlDeviceMounting(const char *rootfs)
 {
+    if (rootfs == NULL) {
+        fprintf(stderr, "rootfs pointer is null!\n");
+        return -1;
+    }
+
     /* device */
     int ret = MountDevice(rootfs, DAVINCI_MANAGER, NULL);
     if (ret < 0) {
@@ -275,8 +308,12 @@ int DoCtrlDeviceMounting(const char *rootfs)
 
 int DoDirectoryMounting(const char *rootfs, const struct MountList *list)
 {
-    int ret;
+    if (rootfs == NULL || list == NULL) {
+        fprintf(stderr, "rootfs, list pointer is null!\n");
+        return -1;
+    }
 
+    int ret;
     for (unsigned int i = 0; i < list->count; i++) {
         ret = MountDir(rootfs, (const char *)&list->list[i][0]);
         if (ret < 0) {
@@ -292,8 +329,12 @@ int DoDirectoryMounting(const char *rootfs, const struct MountList *list)
 
 int DoFileMounting(const char *rootfs, const struct MountList *list)
 {
-    int ret;
+    if (rootfs == NULL || list == NULL) {
+        fprintf(stderr, "rootfs, list pointer is null!\n");
+        return -1;
+    }
 
+    int ret;
     for (unsigned int i = 0; i < list->count; i++) {
         ret = MountFile(rootfs, (const char *)&list->list[i][0]);
         if (ret < 0) {
@@ -309,6 +350,11 @@ int DoFileMounting(const char *rootfs, const struct MountList *list)
 
 int DoMounting(const struct ParsedConfig *config)
 {
+    if (config == NULL) {
+        fprintf(stderr, "config pointer is null!\n");
+        return -1;
+    }
+
     int ret;
     ret = DoDeviceMounting(config->rootfs,
                            (IsVirtual() ? VDEVICE_NAME : DEVICE_NAME),

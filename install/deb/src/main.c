@@ -26,6 +26,11 @@
 
 static void ReadJsonFile(FILE *pf, char *text, int maxBufferSize)
 {
+    if (pf == NULL || text == NULL) {
+        fprintf(stderr, "file pointer or text pointer are null!\n");
+        return;
+    }
+
     (void)fseek(pf, 0, SEEK_END);
 
     int size = (int)ftell(pf);
@@ -43,6 +48,11 @@ static void ReadJsonFile(FILE *pf, char *text, int maxBufferSize)
 
 static cJSON *CreateAscendRuntimeInfo(const char *runtimePath)
 {
+    if (runtimePath == NULL) {
+        fprintf(stderr, "runtimePath pointer are null!\n");
+        return NULL;
+    }
+
     cJSON *root = NULL;
     root = cJSON_CreateObject();
     if (root == NULL) {
@@ -75,6 +85,11 @@ static cJSON *CreateAscendRuntimeInfo(const char *runtimePath)
 
 static cJSON *CreateRuntimes(const char *runtimePath)
 {
+    if (runtimePath == NULL) {
+        fprintf(stderr, "runtimePath pointer is null!\n");
+        return NULL;
+    }
+
     cJSON *ascendRuntime = NULL;
     ascendRuntime = CreateAscendRuntimeInfo(runtimePath);
     if (ascendRuntime == NULL) {
@@ -97,6 +112,11 @@ static cJSON *CreateRuntimes(const char *runtimePath)
 
 static int DelJsonContent(cJSON *root, const char *key)
 {
+    if (root == NULL || key == NULL) {
+        fprintf(stderr, "userInfo  pointer is null!\n");
+        return -1;
+    }
+
     cJSON *existItem = NULL;
     existItem = cJSON_GetObjectItem(root, key);
     if (existItem == NULL) {
@@ -116,6 +136,11 @@ static int DelJsonContent(cJSON *root, const char *key)
 
 static cJSON *CreateContent(const char *runtimePath)
 {
+    if (runtimePath == NULL) {
+        fprintf(stderr, "runtimePath pointer is null!\n");
+        return NULL;
+    }
+
     /* 插入ascend runtime */
     cJSON *runtimes = NULL;
     runtimes = CreateRuntimes(runtimePath);
@@ -150,6 +175,11 @@ static cJSON *CreateContent(const char *runtimePath)
 
 static cJSON *ModifyContent(FILE *pf, const char *runtimePath)
 {
+    if (pf == NULL || runtimePath == NULL) {
+        fprintf(stderr, "file pointer or runtimePath pointer is null!\n");
+        return NULL;
+    }
+
     char jsonStr[MAX_JSON_FILE_SIZE] = {0x0};
     ReadJsonFile(pf, &jsonStr[0], MAX_JSON_FILE_SIZE);
 
@@ -203,6 +233,11 @@ static cJSON *ModifyContent(FILE *pf, const char *runtimePath)
 
 static cJSON *RemoveContent(FILE *pf)
 {
+    if (pf == NULL) {
+        fprintf(stderr, "file pointer is null!\n");
+        return NULL;
+    }
+
     char jsonStr[MAX_JSON_FILE_SIZE] = {0x0};
     ReadJsonFile(pf, &jsonStr[0], MAX_JSON_FILE_SIZE);
 
@@ -241,6 +276,11 @@ static cJSON *RemoveContent(FILE *pf)
 
 static int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, const char *runtimePath)
 {
+    if (filePath == NULL || tempPath == NULL || runtimePath == NULL) {
+        fprintf(stderr, "filePath, tempPath or runtimePath are null!\n");
+        return -1;
+    }
+    
     cJSON *root = NULL;
     FILE *pf = NULL;
     pf = fopen(filePath, "r+");
@@ -277,6 +317,11 @@ static int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, c
 
 static int CreateRevisedJsonFile(const char *filePath, const char *tempPath)
 {
+    if (filePath == NULL || tempPath == NULL) {
+        fprintf(stderr, "filePath or tempPath are null!\n");
+        return -1;
+    }
+
     FILE *pf = NULL;
     pf = fopen(filePath, "r+");
     if (pf == NULL) {
