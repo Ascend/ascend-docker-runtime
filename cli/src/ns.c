@@ -44,17 +44,13 @@ int EnterNsByPath(const char *path, int nsType)
 
     fd = open(path, O_RDONLY); // proc文件接口，非外部输入
     if (fd < 0) {
-        char* str = FormatLogMessage("failed to open ns path: %s.", path);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
+        Logger("Failed to open ns path.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
     ret = EnterNsByFd(fd, nsType);
     if (ret < 0) {
-        char* str = FormatLogMessage("failed to set ns: %s.", path);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
+        Logger("failed to set ns.", LEVEL_ERROR, SCREEN_YES);
         close(fd);
         return -1;
     }
