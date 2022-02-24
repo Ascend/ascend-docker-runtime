@@ -49,8 +49,7 @@ extern "C" char *GetCgroupRoot(char *line, const char *subSystem);
 extern "C" int ParseFileByLine(char* buffer, int bufferSize, ParseFileLine fn, const char* filepath);
 extern "C" int SetupDeviceCgroup(FILE *cgroupAllow, const char *devPath);
 extern "C" int SetupDriverCgroup(FILE *cgroupAllow);
-//extern "C" int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSize);
-extern "C" int GetCgroupPath(int pid, char *effPath, size_t maxSize);
+extern "C" int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSize);
 extern "C" int SetupCgroup(const struct ParsedConfig *config);
 extern "C" int SetupContainer(struct CmdArgs *args);
 extern "C" int Process(int argc, char **argv);
@@ -797,7 +796,7 @@ TEST(GetCgroupPath, StatusOne)
     MOCKER(ParseFileByLine).stubs().will(invoke(Stub_ParseFileByLine_Success));
 
     char cgroupPath[BUF_SIZE] = {0};
-    int ret = GetCgroupPath(args.pid, cgroupPath, BUF_SIZE);
+    int ret = GetCgroupPath(&args, cgroupPath, BUF_SIZE);
     EXPECT_EQ(0, ret);
 }
 
