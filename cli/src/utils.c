@@ -18,6 +18,11 @@
 
 char *FormatLogMessage(char *format, ...)
 {
+    if (format == NULL) {
+        fprintf(stderr, "format pointer is null!\n");
+        return NULL;
+    }
+
     va_list list;
     // 获取格式化后字符串的长度
     va_start(list, format);
@@ -55,6 +60,11 @@ int StrHasPrefix(const char *str, const char *prefix)
 
 int MkDir(const char *dir, int mode)
 {
+    if (dir == NULL) {
+        fprintf(stderr, "dir pointer is null!\n");
+        return -1;
+    }
+
     return mkdir(dir, mode);
 }
 
@@ -68,6 +78,11 @@ int VerifyPathInfo(const struct PathInfo* pathInfo)
 
 int CheckDirExists(const char *dir)
 {
+    if (dir == NULL) {
+        fprintf(stderr, "dir pointer is null!\n");
+        return -1;
+    }
+
     DIR *ptr = opendir(dir);
     if (NULL == ptr) {
         return -1;
@@ -79,6 +94,11 @@ int CheckDirExists(const char *dir)
 
 int GetParentPathStr(const char *path, char *parent, size_t bufSize)
 {
+    if (path == NULL || parent == NULL) {
+        fprintf(stderr, "path pointer or parentPath is null!\n");
+        return -1;
+    }
+
     char *ptr = strrchr(path, '/');
     if (ptr == NULL) {
         return 0;
@@ -99,6 +119,11 @@ int GetParentPathStr(const char *path, char *parent, size_t bufSize)
 
 int MakeDirWithParent(const char *path, mode_t mode)
 {
+    if (path == NULL) {
+        fprintf(stderr, "path pointer is null!\n");
+        return -1;
+    }
+
     if (*path == '\0' || *path == '.') {
         return 0;
     }
@@ -122,6 +147,11 @@ int MakeDirWithParent(const char *path, mode_t mode)
 
 int MakeMountPoints(const char *path, mode_t mode)
 {
+    if (path == NULL) {
+        fprintf(stderr, "path pointer is null!\n");
+        return -1;
+    }
+
     /* directory */
     char parentDir[BUF_SIZE] = {0};
     GetParentPathStr(path, parentDir, BUF_SIZE);
@@ -149,6 +179,11 @@ int MakeMountPoints(const char *path, mode_t mode)
 
 int CheckLegality(const char* filename)
 {
+    if (filename == NULL) {
+        fprintf(stderr, "filename pointer is null!\n");
+        return -1;
+    }
+    
     char buf[PATH_MAX + 1] = {0x00};
     errno_t ret = strncpy_s(buf, PATH_MAX + 1, filename, strlen(filename));
     if (ret != EOK) {
@@ -167,7 +202,7 @@ int CheckLegality(const char* filename)
             fprintf(stderr, "Please check the write permission!\n");
             return -1;
         }
-    } while (strcmp(dirname(buf), "/"));
+    } while (strncmp(dirname(buf), "/", strlen(dirname(buf))));
 
     return 0;
 }

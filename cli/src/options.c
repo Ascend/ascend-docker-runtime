@@ -24,6 +24,11 @@ static struct {
 
 void ParseRuntimeOptions(const char *options)
 {
+    if (options == NULL) {
+        fprintf(stderr, "options pointer is null!\n");
+        return;
+    }
+
     // set defaults value
     g_runtimeOptions.noDrv = false;
     g_runtimeOptions.isVirtual = false;
