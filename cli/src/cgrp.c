@@ -98,9 +98,7 @@ int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const 
     char resolvedPath[PATH_MAX] = {0x0};
 
     if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
-        char* str = FormatLogMessage("cannot canonicalize path %s.", filepath);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
+        Logger("Cannot canonicalize path.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
     if (CheckLegality(resolvedPath) != 0) {
@@ -210,9 +208,7 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
 
     ret = stat((const char *)devPath, &devStat);
     if (ret < 0) {
-        char* str = FormatLogMessage("failed to get stat of %s.", devPath);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
+        Logger("Failed to get stat of devpath.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -327,7 +323,6 @@ int SetupCgroup(const struct ParsedConfig *config)
     FILE *cgroupAllow = NULL;
     if (realpath(config->cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
         Logger("cannot canonicalize cgroup.", LEVEL_ERROR, SCREEN_YES);
-        free(str);
         return -1;
     }
     if (CheckLegality(resolvedCgroupPath) != 0) {
@@ -337,7 +332,6 @@ int SetupCgroup(const struct ParsedConfig *config)
     cgroupAllow = fopen((const char *)resolvedCgroupPath, "a");
     if (cgroupAllow == NULL) {
         Logger("failed to open cgroup file.", LEVEL_ERROR, SCREEN_YES);
-        free(str);
         return -1;
     }
 
@@ -360,7 +354,6 @@ int SetupCgroup(const struct ParsedConfig *config)
         if (SetupDeviceCgroup(cgroupAllow, (const char *)deviceName) < 0) {
             fclose(cgroupAllow);
             Logger("failed to setup cgroup.", LEVEL_ERROR, SCREEN_YES);
-            free(str);
             return -1;
         }
     }

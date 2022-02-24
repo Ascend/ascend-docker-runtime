@@ -158,25 +158,19 @@ int MakeMountPoints(const char *path, mode_t mode)
 
     int ret = MakeDirWithParent(parentDir, DEFAULT_DIR_MODE);
     if (ret < 0) {
-        char* str = FormatLogMessage("failed to make parent dir for file: %s", path);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
+        Logger("Failed to make parent dir for file.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
     char resolvedPath[PATH_MAX] = {0};
     if (realpath(path, resolvedPath) == NULL && errno != ENOENT) {
-        char* str = FormatLogMessage("failed to resolve path %s.", path);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
+        Logger("failed to resolve path.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
     int fd = open(resolvedPath, O_NOFOLLOW | O_CREAT, mode);
     if (fd < 0) {
-        char* str = FormatLogMessage("cannot create file: %s.", resolvedPath);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
+        Logger("cannot create file.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
     close(fd);
@@ -189,7 +183,7 @@ int CheckLegality(const char* filename)
         fprintf(stderr, "filename pointer is null!\n");
         return -1;
     }
-    
+
     char buf[PATH_MAX + 1] = {0x00};
     errno_t ret = strncpy_s(buf, PATH_MAX + 1, filename, strlen(filename));
     if (ret != EOK) {
@@ -208,7 +202,7 @@ int CheckLegality(const char* filename)
             fprintf(stderr, "Please check the write permission!\n");
             return -1;
         }
-    } while (strcmp(dirname(buf), "/"));
-    
+    } while (strncmp(dirname(buf), "/", strlen(dirname(buf))));
+
     return 0;
 }
