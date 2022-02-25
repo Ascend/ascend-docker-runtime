@@ -48,7 +48,7 @@ typedef bool (*CmdArgParser)(struct CmdArgs *args, const char *arg);
 static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     if (args == NULL || arg == NULL) {
-        fprintf(stderr, "args, arg pointer is null!\n");
+        Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -64,7 +64,7 @@ static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
 static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     if (args == NULL || arg == NULL) {
-        fprintf(stderr, "args, arg pointer is null!\n");
+        Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -90,7 +90,7 @@ static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
 static bool RootfsCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     if (args == NULL || arg == NULL) {
-        fprintf(stderr, "args, arg pointer is null!\n");
+        Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -106,7 +106,7 @@ static bool RootfsCmdArgParser(struct CmdArgs *args, const char *arg)
 static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     if (args == NULL || arg == NULL) {
-        fprintf(stderr, "args, arg pointer is null!\n");
+        Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -122,7 +122,7 @@ static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
 static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     if (args == NULL || arg == NULL) {
-        fprintf(stderr, "args, arg pointer is null!\n");
+        Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -148,7 +148,7 @@ static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
 static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
 {
     if (args == NULL || arg == NULL) {
-        fprintf(stderr, "args, arg pointer is null!\n");
+        Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -188,7 +188,7 @@ static struct {
 static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *value)
 {
     if (args == NULL || value == NULL) {
-        fprintf(stderr, "args, value pointer is null!\n");
+        Logger("args, value pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -218,7 +218,7 @@ static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *valu
 static inline bool IsCmdArgsValid(const struct CmdArgs *args)
 {
     if (args == NULL) {
-        fprintf(stderr, "args pointer is null!\n");
+        Logger("args pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
     return (strlen(args->devices) > 0) && (strlen(args->rootfs) > 0) && (args->pid > 0);
@@ -227,7 +227,7 @@ static inline bool IsCmdArgsValid(const struct CmdArgs *args)
 static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *devices)
 {
     if (idList == NULL || idListSize == NULL || devices == NULL) {
-        fprintf(stderr, "idList, idListSize, devices pointer is null!\n");
+        Logger("idList, idListSize, devices pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -265,7 +265,7 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
 int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 {
     if (args == NULL || config == NULL) {
-        fprintf(stderr, "args, config pointer is null!\n");
+        Logger("args, config pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -322,7 +322,7 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
 int SetupContainer(struct CmdArgs *args)
 {
     if (args == NULL) {
-        fprintf(stderr, "args pointer is null!\n");
+        Logger("args pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -379,7 +379,7 @@ int SetupContainer(struct CmdArgs *args)
 int Process(int argc, char **argv)
 {
     if (argv == NULL) {
-        fprintf(stderr, "argv pointer is null!\n");
+        Logger("argv pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
     int c;
