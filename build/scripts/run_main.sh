@@ -53,6 +53,7 @@ function install()
     fi
 
     mv ${SRC} ${DST} 
+    chmod 600 ${DST}
     echo 'create damom.json success'
     echo 'please reboot docker daemon to take effect'
     if [ -f "/var/log/ascend_seclog/ascend_toolbox_install.log" ];then

@@ -8,9 +8,10 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <libgen.h>
+#include <ctype.h>
 #include "basic.h"
-
-#define ROOT_UID 0
 
 char *FormatLogMessage(char *format, ...);
 int IsStrEqual(const char *s1, const char *s2);
@@ -21,6 +22,7 @@ int CheckDirExists(const char *dir);
 int GetParentPathStr(const char *path, char *parent, size_t bufSize);
 int MakeDirWithParent(const char *path, mode_t mode);
 int MakeMountPoints(const char *path, mode_t mode);
-int CheckLegality(const char* filename);
+bool CheckExternalFile(const char* filePath, const size_t filePathLen,
+    const size_t maxFileSzieMb, const bool checkOwner);
 
 #endif
