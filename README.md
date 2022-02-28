@@ -51,7 +51,7 @@ Ascend Docker在prestart-hook这个钩子函数中，对容器做了以下配置
 
 ## 下载
 ### run包
-开发人员可从昇腾社区下载Toolbox,下载链接为：https://ascend.huawei.com/zh/#/software/cann/commercial，
+开发人员可从昇腾社区下载Toolbox,下载链接为：https://www.hiascend.com/software/mindx-dl，
 下载后安装Toolbox，Ascend-docker-runtime，已集成至实用工具包toolbox中。
 
 # 功能
