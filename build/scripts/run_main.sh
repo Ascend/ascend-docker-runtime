@@ -53,6 +53,7 @@ function install()
     fi
 
     mv ${SRC} ${DST} 
+    chmod 600 ${DST}
     echo 'create damom.json success'
     echo 'please reboot docker daemon to take effect'
 }
