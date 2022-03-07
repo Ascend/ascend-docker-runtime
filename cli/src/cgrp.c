@@ -22,7 +22,7 @@
 bool TakeNthWord(char **pLine, unsigned int n, char **word)
 {
     if (pLine == NULL || word == NULL) {
-        fprintf(stderr, "pLine, word pointer is null!\n");
+        (void)fprintf(stderr, "pLine, word pointer is null!\n");
         return false;
     }
 
@@ -41,7 +41,7 @@ bool TakeNthWord(char **pLine, unsigned int n, char **word)
 bool CheckRootDir(char **pLine)
 {
     if (pLine == NULL) {
-        fprintf(stderr, "pLine pointer is null!\n");
+        (void)fprintf(stderr, "pLine pointer is null!\n");
         return false;
     }
 
@@ -56,7 +56,7 @@ bool CheckRootDir(char **pLine)
 bool CheckFsType(char **pLine)
 {
     if (pLine == NULL) {
-        fprintf(stderr, "pLine pointer is null!\n");
+        (void)fprintf(stderr, "pLine pointer is null!\n");
         return false;
     }
 
@@ -71,7 +71,7 @@ bool CheckFsType(char **pLine)
 bool CheckSubStr(char **pLine, const char *subsys)
 {
     if (pLine == NULL || subsys == NULL) {
-        fprintf(stderr, "pLine, subsys pointer is null!\n");
+        (void)fprintf(stderr, "pLine, subsys pointer is null!\n");
         return false;
     }
 
@@ -87,7 +87,7 @@ typedef char *(*ParseFileLine)(char *, const char *);
 int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const char* filepath)
 {
     if (buffer == NULL || filepath == NULL) {
-        fprintf(stderr, "buffer, filepath pointer is null!\n");
+        (void)fprintf(stderr, "buffer, filepath pointer is null!\n");
         return -1;
     }
 
@@ -101,7 +101,8 @@ int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const 
         Logger("Cannot canonicalize path.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
-    if (CheckLegality(resolvedPath) != 0) {
+    const size_t maxFileSzieMb = 1024; // max 1G
+    if (!CheckExternalFile(resolvedPath, strlen(resolvedPath), maxFileSzieMb, true)) {
         Logger("Check file legality failed.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
@@ -131,7 +132,7 @@ int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const 
 char *GetCgroupMount(char *line, const char *subsys)
 {
     if (line == NULL || subsys == NULL) {
-        fprintf(stderr, "line, subsys pointer is null!\n");
+        (void)fprintf(stderr, "line, subsys pointer is null!\n");
         return NULL;
     }
     
@@ -160,7 +161,7 @@ char *GetCgroupMount(char *line, const char *subsys)
 char *GetCgroupRoot(char *line, const char *subSystem)
 {
     if (line == NULL || subSystem == NULL) {
-        fprintf(stderr, "line, subSystem pointer is null!\n");
+        (void)fprintf(stderr, "line, subSystem pointer is null!\n");
         return NULL;
     }
     
@@ -190,7 +191,7 @@ char *GetCgroupRoot(char *line, const char *subSystem)
 int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
 {
     if (cgroupAllow == NULL || devName == NULL) {
-        fprintf(stderr, "cgroupAllow, devName pointer is null!\n");
+        (void)fprintf(stderr, "cgroupAllow, devName pointer is null!\n");
         return -1;
     }
 
@@ -225,7 +226,7 @@ int SetupDeviceCgroup(FILE *cgroupAllow, const char *devName)
 int SetupDriverCgroup(FILE *cgroupAllow)
 {
     if (cgroupAllow == NULL) {
-        fprintf(stderr, "cgroupAllow pointer is null!\n");
+        (void)fprintf(stderr, "cgroupAllow pointer is null!\n");
         return -1;
     }
 
@@ -260,7 +261,7 @@ int SetupDriverCgroup(FILE *cgroupAllow)
 int GetCgroupPath(int pid, char *effPath, size_t maxSize)
 {
     if (effPath == NULL) {
-        fprintf(stderr, "effPath pointer is null!\n");
+        (void)fprintf(stderr, "effPath pointer is null!\n");
         return -1;
     }
 
@@ -313,7 +314,7 @@ int GetCgroupPath(int pid, char *effPath, size_t maxSize)
 int SetupCgroup(const struct ParsedConfig *config)
 {
     if (config == NULL) {
-        fprintf(stderr, "config pointer is null!\n");
+        (void)fprintf(stderr, "config pointer is null!\n");
         return -1;
     }
 
@@ -325,7 +326,8 @@ int SetupCgroup(const struct ParsedConfig *config)
         Logger("cannot canonicalize cgroup.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
-    if (CheckLegality(resolvedCgroupPath) != 0) {
+    const size_t maxFileSzieMb = 1024; // max 1G
+    if (!CheckExternalFile(resolvedCgroupPath, strlen(resolvedCgroupPath), maxFileSzieMb, true)) {
         Logger("Check file legality failed.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
