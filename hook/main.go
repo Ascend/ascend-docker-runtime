@@ -7,7 +7,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -364,7 +363,6 @@ func doPrestartHook() error {
 
 func main() {
 	log.SetPrefix(loggingPrefix)
-	flag.Parse()
 
 	if err := doPrestartHook(); err != nil {
 		log.Fatal(err)

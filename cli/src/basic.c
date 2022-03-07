@@ -9,7 +9,7 @@
 void InitParsedConfig(struct ParsedConfig *parsedConfig)
 {
     if (parsedConfig == NULL) {
-        fprintf(stderr, "parsedConfig pointer is null!\n");
+        (void)fprintf(stderr, "parsedConfig pointer is null!\n");
         return;
     }
     

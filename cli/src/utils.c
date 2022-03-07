@@ -13,13 +13,14 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <libgen.h>
+#include <ctype.h>
 #include "securec.h"
 #include "logger.h"
 
 char *FormatLogMessage(char *format, ...)
 {
     if (format == NULL) {
-        fprintf(stderr, "format pointer is null!\n");
+        (void)fprintf(stderr, "format pointer is null!\n");
         return NULL;
     }
 
@@ -61,7 +62,7 @@ int StrHasPrefix(const char *str, const char *prefix)
 int MkDir(const char *dir, int mode)
 {
     if (dir == NULL) {
-        fprintf(stderr, "dir pointer is null!\n");
+        (void)fprintf(stderr, "dir pointer is null!\n");
         return -1;
     }
 
@@ -79,7 +80,7 @@ int VerifyPathInfo(const struct PathInfo* pathInfo)
 int CheckDirExists(const char *dir)
 {
     if (dir == NULL) {
-        fprintf(stderr, "dir pointer is null!\n");
+        (void)fprintf(stderr, "dir pointer is null!\n");
         return -1;
     }
 
@@ -95,7 +96,7 @@ int CheckDirExists(const char *dir)
 int GetParentPathStr(const char *path, char *parent, size_t bufSize)
 {
     if (path == NULL || parent == NULL) {
-        fprintf(stderr, "path pointer or parentPath is null!\n");
+        (void)fprintf(stderr, "path pointer or parentPath is null!\n");
         return -1;
     }
 
@@ -120,7 +121,7 @@ int GetParentPathStr(const char *path, char *parent, size_t bufSize)
 int MakeDirWithParent(const char *path, mode_t mode)
 {
     if (path == NULL) {
-        fprintf(stderr, "path pointer is null!\n");
+        (void)fprintf(stderr, "path pointer is null!\n");
         return -1;
     }
 
@@ -148,7 +149,7 @@ int MakeDirWithParent(const char *path, mode_t mode)
 int MakeMountPoints(const char *path, mode_t mode)
 {
     if (path == NULL) {
-        fprintf(stderr, "path pointer is null!\n");
+        (void)fprintf(stderr, "path pointer is null!\n");
         return -1;
     }
 
@@ -177,32 +178,73 @@ int MakeMountPoints(const char *path, mode_t mode)
     return 0;
 }
 
-int CheckLegality(const char* filename)
+static bool ShowExceptionInfo(const char* exceptionInfo)
 {
-    if (filename == NULL) {
-        fprintf(stderr, "filename pointer is null!\n");
-        return -1;
+    (void)fprintf(stderr, exceptionInfo);
+    (void)fprintf(stderr, "\n");
+    return false;
+}
+ 
+static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen,
+    const unsigned long long maxFileSzieMb, const bool checkOwner)
+{
+    const unsigned long long maxFileSzieB = maxFileSzieMb * 1024 * 1024;
+    char buf[PATH_MAX] = {0};
+    if (strncpy_s(buf, sizeof(buf), resolvedPath, resolvedPathLen) != EOK) {
+        return false;
     }
-    
-    char buf[PATH_MAX + 1] = {0x00};
-    errno_t ret = strncpy_s(buf, PATH_MAX + 1, filename, strlen(filename));
-    if (ret != EOK) {
-        return -1;
+    struct stat fileStat;
+    if ((stat(buf, &fileStat) != 0) ||
+        ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
+        return ShowExceptionInfo("resolvedPath does not exist or is not a file!");
     }
-    do {
-        struct stat fileStat;
-        if (stat(buf, &fileStat) != 0) {
-            return -1;
-        }
-        if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
-            fprintf(stderr, "Please check the folder owner!\n");
-            return -1;
+    if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
+        return ShowExceptionInfo("fileSize out of bounds!");
+    }
+    for (int iLoop = 0; iLoop < PATH_MAX; iLoop++) {
+        if (checkOwner) {
+            if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
+                return ShowExceptionInfo("Please check the folder owner!");
+            }
         }
         if ((fileStat.st_mode & S_IWOTH) != 0) { // 操作文件对other用户可写
-            fprintf(stderr, "Please check the write permission!\n");
-            return -1;
+            return ShowExceptionInfo("Please check the write permission!");
         }
-    } while (strncmp(dirname(buf), "/", strlen(dirname(buf))));
-
-    return 0;
+        if ((strcmp(buf, "/") == 0) || (strstr(buf, "/") == NULL)) {
+            break;
+        }
+        if (strcmp(dirname(buf), ".") == 0) {
+            break;
+        }
+        if (stat(buf, &fileStat) != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+ 
+bool CheckExternalFile(const char* filePath, const size_t filePathLen,
+    const size_t maxFileSzieMb, const bool checkOwner)
+{
+    int iLoop;
+    if ((filePathLen > PATH_MAX) || (filePathLen <= 0)) { // 长度越界
+        return ShowExceptionInfo("filePathLen out of bounds!");
+    }
+    if (strstr(filePath, "..") != NULL) { // 存在".."
+        return ShowExceptionInfo("filePath has an illegal character!");
+    }
+    for (iLoop = 0; iLoop < filePathLen; iLoop++) {
+        if ((isalnum(filePath[iLoop]) == 0) && (filePath[iLoop] != '.') && (filePath[iLoop] != '_') &&
+            (filePath[iLoop] != '-') && (filePath[iLoop] != '/') && (filePath[iLoop] != '~')) { // 非法字符
+            return ShowExceptionInfo("filePath has an illegal character!");
+        }
+    }
+    char resolvedPath[PATH_MAX] = {0};
+    if (realpath(filePath, resolvedPath) == NULL && errno != ENOENT) {
+        return ShowExceptionInfo("realpath failed!");
+    }
+    if (strstr(resolvedPath, filePath) == NULL) { // 存在软链接
+        return ShowExceptionInfo("filePath has a soft link!");
+    }
+    return CheckLegality(resolvedPath, strlen(resolvedPath), maxFileSzieMb, checkOwner);
 }

@@ -22,6 +22,8 @@
 #define MAX_DEVICE_NR         1024
 #define MAX_MOUNT_NR          512
 
+#define ROOT_UID              0
+
 #define LEVEL_INFO     0
 #define LEVEL_WARN     1
 #define LEVEL_ERROR    2
@@ -34,9 +36,9 @@
         char _content[BUF_SIZE] = {0};                                \
         int _ret = sprintf_s(_content, BUF_SIZE, fmt, ##__VA_ARGS__); \
         if (_ret < 0) {                                               \
-            fprintf(stderr, "cannot assemble log content");           \
+            (void)fprintf(stderr, "cannot assemble log content");           \
         } else {                                                      \
-            fprintf(stderr, "%s", (const char *)_content);            \
+            (void)fprintf(stderr, "%s", (const char *)_content);            \
         }                                                             \
     } while (0)
 

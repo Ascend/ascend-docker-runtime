@@ -23,7 +23,7 @@
 int GetCurrentLocalTime(char* buffer, int length)
 {
     if (buffer == NULL) {
-        fprintf(stderr, "buffer pointer is null!\n");
+        (void)fprintf(stderr, "buffer pointer is null!\n");
         return -1;
     }
 
@@ -62,7 +62,7 @@ int CreateLog(const char* filename)
 long GetLogSize(const char* filename)
 {
     if (filename == NULL) {
-        fprintf(stderr, "filename pointer is null!\n");
+        (void)fprintf(stderr, "filename pointer is null!\n");
         return -1;
     }
 
@@ -73,11 +73,15 @@ long GetLogSize(const char* filename)
     }
     FILE *fp = NULL;
     char path[PATH_MAX + 1] = {0x00};
-    if (strlen(filename) > PATH_MAX || NULL == realpath(filename, path)) {
+    if (strlen(filename) > PATH_MAX || realpath(filename, path) == NULL) {
         return -1;
     }
-    if (CheckLegality(path) != 0) {
-        return -1;
+    struct stat fileStat;
+    if ((stat(path, &fileStat) == 0) && (S_ISREG(fileStat.st_mode) != 0)) {
+        const size_t maxFileSzieMb = 50; // max 50MB
+        if (!CheckExternalFile(path, strlen(path), maxFileSzieMb, true)) {
+            return -1;
+        }
     }
     fp = fopen(path, "rb");
     long length = 0;
@@ -96,7 +100,7 @@ long GetLogSize(const char* filename)
 int LogLoop(const char* filename)
 {
     if (filename == NULL) {
-        fprintf(stderr, "filename pointer is null!\n");
+        (void)fprintf(stderr, "filename pointer is null!\n");
         return -1;
     }
 
@@ -121,7 +125,7 @@ int LogLoop(const char* filename)
 void WriteLogFile(const char* filename, long maxSize, const char* buffer, unsigned bufferSize)
 {
     if (filename == NULL || buffer == NULL) {
-        fprintf(stderr, "filename, buffer pointer is null!\n");
+        (void)fprintf(stderr, "filename, buffer pointer is null!\n");
         return;
     }
     
@@ -139,11 +143,15 @@ void WriteLogFile(const char* filename, long maxSize, const char* buffer, unsign
                 return;
             }
         }
-        if (strlen(filename) > PATH_MAX || NULL == realpath(filename, path)) {
+        if (strlen(filename) > PATH_MAX || realpath(filename, path) == NULL) {
             return;
         }
-        if (CheckLegality(path) != 0) {
-            return;
+        struct stat fileStat;
+        if ((stat(path, &fileStat) == 0) && (S_ISREG(fileStat.st_mode) != 0)) {
+            const size_t maxFileSzieMb = 50; // max 50MB
+            if (!CheckExternalFile(path, strlen(path), maxFileSzieMb, true)) {
+                return;
+            }
         }
         fp = fopen(path, "a+");
         if (fp != NULL) {

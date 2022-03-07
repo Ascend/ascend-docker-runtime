@@ -25,7 +25,7 @@ static struct {
 void ParseRuntimeOptions(const char *options)
 {
     if (options == NULL) {
-        fprintf(stderr, "options pointer is null!\n");
+        (void)fprintf(stderr, "options pointer is null!\n");
         return;
     }
 
