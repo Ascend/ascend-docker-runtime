@@ -35,7 +35,13 @@ function install()
     fi
     mkdir -p ${ASCEND_RUNTIME_CONFIG_DIR}
     chmod 750 ${ASCEND_RUNTIME_CONFIG_DIR}
-    cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    if [ "${a500}" == "y" ]; then
+        cp -f ./base.list_A500 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    elif [ "${a200}" == "y" ]; then
+        cp -f ./base.list_A200 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    else
+        cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    fi
     chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
     echo 'install executable files success'
@@ -114,6 +120,8 @@ INSTALL_PATH_FLAG=n
 UNINSTALL_FLAG=n
 UPGRADE_FLAG=n
 DEVEL_FLAG=n
+a500=n
+a200=n
 
 while true
 do
@@ -138,6 +146,15 @@ do
             ;;
         --devel)
             DEVEL_FLAG=y
+            shift
+            ;;
+        --install-type=*)
+            # 去除指定安装目录后所有的 "/"
+            if [ "$3" == "--install-type=A500" ]; then
+                a500=y
+            elif [ "$3" == "--install-type=A200" ]; then
+                a200=y
+            fi
             shift
             ;;
         *)
