@@ -243,7 +243,7 @@ int SetupDriverCgroup(FILE *cgroupAllow)
     char hisiPath[PATH_MAX] = {0};
     if ((sprintf_s(devmmPath, PATH_MAX, "/dev/%s", DEVMM_SVM) < 0) ||
         (sprintf_s(hisiPath, PATH_MAX, "/dev/%s", HISI_HDC) < 0)) {
-        Logger("failed to assemble dev path.", LEVEL_ERROR, SCREEN_YES);
+        Logger("failed to assemble path.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
     struct stat devStat; // 200 soc 不需要挂载此两个设备
