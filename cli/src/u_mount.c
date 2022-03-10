@@ -78,17 +78,14 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
     if (ret < 0) {
         return -1;
     }
-
     ret = sprintf_s(unresolvedDst, BUF_SIZE, "%s%s", rootfs, src);
     if (ret < 0) {
         return -1;
     }
-
     if (realpath(unresolvedDst, resolvedDst) == NULL && errno != ENOENT) {
         Logger("cannot canonicalize device dst.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
-
     if (dstDeviceName != NULL) {
         ret = sprintf_s(dst, dstBufSize, "%s/dev/%s", rootfs, dstDeviceName);
         if (ret < 0) {
@@ -271,9 +268,9 @@ int DoCtrlDeviceMounting(const char *rootfs)
 
     char devmmPath[PATH_MAX] = {0};
     char hisiPath[PATH_MAX] = {0};
-    if ((sprintf_s(devmmPath, PATH_MAX, "%s/dev/%s", rootfs, DEVMM_SVM) < 0) &&
-        (sprintf_s(hisiPath, PATH_MAX, "%s/dev/%s", rootfs, HISI_HDC) < 0)) {
-        Logger("failed to assemble path.", LEVEL_ERROR, SCREEN_YES);
+    if ((sprintf_s(devmmPath, PATH_MAX, "/dev/%s", DEVMM_SVM) < 0) ||
+        (sprintf_s(hisiPath, PATH_MAX, "/dev/%s", HISI_HDC) < 0)) {
+        Logger("failed to assemble dev path.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
     struct stat devStat; // 200 soc 不需要挂载此两个设备
