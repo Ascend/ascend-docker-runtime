@@ -1,0 +1,5 @@
+/usr/local/Ascend/driver/lib64
+/usr/local/sbin/npu-smi
+/usr/local/Ascend/driver/tools
+/etc/hdcBasic.cfg
+/etc/sys_version.conf

@@ -31,7 +31,7 @@ int Mount(const char *src, const char *dst)
         ((S_ISREG(fileStat.st_mode) != 0) || (S_ISDIR(fileStat.st_mode) != 0))) { // 只校验文件和目录
             const size_t maxFileSzieMb = 10 * 1024; // max 10 G
             if (!CheckExternalFile(src, strlen(src), maxFileSzieMb, false)) {
-                char* str = FormatLogMessage("failed to mount src hehe:%s.", src);
+                char* str = FormatLogMessage("failed to mount src: %s.", src);
                 Logger(str, LEVEL_ERROR, SCREEN_YES);
                 return -1;
             }
@@ -267,6 +267,19 @@ int DoCtrlDeviceMounting(const char *rootfs)
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return -1;
+    }
+
+    char devmmPath[PATH_MAX] = {0};
+    char hisiPath[PATH_MAX] = {0};
+    if ((sprintf_s(devmmPath, PATH_MAX, "%s/dev/%s", rootfs, DEVMM_SVM) < 0) &&
+        (sprintf_s(hisiPath, PATH_MAX, "%s/dev/%s", rootfs, HISI_HDC) < 0)) {
+        Logger("failed to assemble path.", LEVEL_ERROR, SCREEN_YES);
+        return -1;
+    }
+    struct stat devStat; // 200 soc 不需要挂载此两个设备
+    if ((stat(devmmPath, &devStat) != 0) && (stat(hisiPath, &devStat) != 0)) {
+        Logger("200 Soc.", LEVEL_ERROR, SCREEN_YES);
+        return 0;
     }
 
     ret = MountDevice(rootfs, DEVMM_SVM, NULL);

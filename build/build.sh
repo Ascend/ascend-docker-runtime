@@ -90,9 +90,11 @@ function build_run_package()
     /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli}/build/ascend-docker*  run_pkg
     /bin/cp -f scripts/uninstall.sh run_pkg
     /bin/cp -f scripts/base.list run_pkg
+    /bin/cp -f scripts/base.list_A500 run_pkg
+    /bin/cp -f scripts/base.list_A200 run_pkg
     FILECNT=$(ls -l run_pkg |grep "^-"|wc -l)
     echo "prepare package $FILECNT bins"
-    if [ $FILECNT -ne 6 ]; then
+    if [ $FILECNT -ne 8 ]; then
         exit 1
     fi
     /bin/cp -rf ${ROOT}/assets run_pkg
