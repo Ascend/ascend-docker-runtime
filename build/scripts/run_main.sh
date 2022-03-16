@@ -124,38 +124,66 @@ while true
 do
     case "$3" in
         --install)
+            if [ "${INSTALL_FLAG}" == "y" ]; then
+                echo "warning :Repeat parameter!"
+                exit 1
+            fi
             INSTALL_FLAG=y
             shift
             ;;
         --uninstall)
+            if [ "${UNINSTALL_FLAG}" == "y" ]; then
+                echo "warning :Repeat parameter!"
+                exit 1
+            fi
             UNINSTALL_FLAG=y
             shift
             ;;
         --install-path=*)
+            if [ "${INSTALL_PATH_FLAG}" == "y" ]; then
+                echo "warning :Repeat parameter!"
+                exit 1
+            fi
             INSTALL_PATH_FLAG=y
             INSTALL_PATH=$(echo $3 | cut -d"=" -f2)
             INSTALL_PATH=$(echo ${INSTALL_PATH} | sed "s/\/*$//g")
             shift
             ;;
         --upgrade)
+            if [ "${UPGRADE_FLAG}" == "y" ]; then
+                echo "warning :Repeat parameter!"
+                exit 1
+            fi
             UPGRADE_FLAG=y
             shift
             ;;
         --devel)
+            if [ "${DEVEL_FLAG}" == "y" ]; then
+                echo "warning :Repeat parameter!"
+                exit 1
+            fi
             DEVEL_FLAG=y
             shift
             ;;
         --install-type=*)
+            if [ "${a500}" == "y" ] || [ "${a200}" == "y" ]; then
+                echo "warning :Repeat parameter!"
+                exit 1
+            fi
             # 去除指定安装目录后所有的 "/"
             if [ "$3" == "--install-type=A500" ]; then
                 a500=y
             elif [ "$3" == "--install-type=A200" ]; then
                 a200=y
+            else
+                echo "error :Please check the parameter of --install-type=<type>"
+                exit 1
             fi
             shift
             ;;
         *)
-            break
+            echo "warning :Unsupported parameters: $3"
+            exit 1
             ;;
     esac
 done
