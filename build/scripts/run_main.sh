@@ -182,8 +182,11 @@ do
             shift
             ;;
         *)
-            echo "warning :Unsupported parameters: $3"
-            exit 1
+            if [ "x$3" != "x" ]; then
+                echo "warning :Unsupported parameters: $3"
+                exit 1
+            fi
+            break
             ;;
     esac
 done
