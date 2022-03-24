@@ -19,10 +19,12 @@ function install()
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
     cp -f ./ascend-docker-plugin-install-helper ${INSTALL_PATH}/ascend-docker-plugin-install-helper
+    cp -f ./ascend-docker-destroy ${INSTALL_PATH}/ascend-docker-destroy
     chmod 550 ${INSTALL_PATH}/ascend-docker-runtime
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
     chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
+    chmod 550 ${INSTALL_PATH}/ascend-docker-destroy
 
     cp -rf ./assets ${INSTALL_PATH}/assets
     cp -f ./README.md ${INSTALL_PATH}/README.md
@@ -100,12 +102,14 @@ function upgrade()
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
     cp -f ./ascend-docker-plugin-install-helper ${INSTALL_PATH}/ascend-docker-plugin-install-helper
+    cp -f ./ascend-docker-destroy ${INSTALL_PATH}/ascend-docker-destroy
     cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
     cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     chmod 550 ${INSTALL_PATH}/ascend-docker-runtime
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
     chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
+    chmod 550 ${INSTALL_PATH}/ascend-docker-destroy
     chmod 500 ${INSTALL_PATH}/script/uninstall.sh
     chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
