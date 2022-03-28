@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2020-2022. All rights reserved.
  * Description: ascend-docker-hook工具，配置容器挂载Ascend NPU设备
  */
 package main
@@ -19,6 +19,8 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
+
+	"mindxcheckutils"
 )
 
 const (
@@ -191,6 +193,10 @@ var getContainerConfig = func() (*containerConfig, error) {
 	}
 
 	configPath := path.Join(state.Bundle, "config.json")
+	if _, err := mindxcheckutils.FileChecker(configPath, false, false, 0); err != nil {
+		return nil, err
+	}
+
 	ociSpec, err := parseOciSpecFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse OCI spec: %v", err)
@@ -233,6 +239,9 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 	}
 
 	fileInfo, err := os.Stat(baseConfigFilePath)
+	if _, err := mindxcheckutils.FileChecker(baseConfigFilePath, false, true, 0); err != nil {
+		return nil, nil, err
+	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot stat base configuration file %s : %v", baseConfigFilePath, err)
 	}
@@ -336,6 +345,9 @@ func doPrestartHook() error {
 	cliPath := path.Join(path.Dir(currentExecPath), ascendDockerCliName)
 	if _, err = os.Stat(cliPath); err != nil {
 		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %v", cliPath, err)
+	}
+	if _, err := mindxcheckutils.FileChecker(cliPath, false, true, 0); err != nil {
+		return err
 	}
 
 	args := append([]string{cliPath},

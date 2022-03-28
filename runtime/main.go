@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2020-2022. All rights reserved.
  * Description: ascend-docker-runtime工具，配置容器挂载Ascend NPU设备
  */
 package main
@@ -16,6 +16,8 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
+
+	"mindxcheckutils"
 )
 
 const (
@@ -63,6 +65,9 @@ var execRunc = func() error {
 			return fmt.Errorf("failed to find the path of runc: %v", err)
 		}
 	}
+	if _, err := mindxcheckutils.FileChecker(runcPath, false, true, 0); err != nil {
+		return err
+	}
 
 	if err = syscall.Exec(runcPath, append([]string{runcPath}, os.Args[1:]...), os.Environ()); err != nil {
 		return fmt.Errorf("failed to exec runc: %v", err)
@@ -78,6 +83,9 @@ func addHook(spec *specs.Spec) error {
 	}
 
 	hookCliPath = path.Join(path.Dir(currentExecPath), hookCli)
+	if _, err := mindxcheckutils.FileChecker(hookCliPath, false, true, 0); err != nil {
+		return err
+	}
 	if _, err = os.Stat(hookCliPath); err != nil {
 		return fmt.Errorf("cannot find ascend-docker-hook executable file at %s: %v", hookCliPath, err)
 	}
@@ -105,6 +113,9 @@ func modifySpecFile(path string) error {
 	stat, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("spec file doesnt exist %s: %v", path, err)
+	}
+	if _, err := mindxcheckutils.FileChecker(path, false, true, 0); err != nil {
+		return err
 	}
 
 	jsonFile, err := os.OpenFile(path, os.O_RDWR, stat.Mode())
