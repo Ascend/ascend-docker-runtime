@@ -1,8 +1,7 @@
-/*
+// Package mindxcheckutils is a check utils package
+/**
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2022. All rights reserved.
  */
-
-// Package mindxcheckutils is a check utils package
 package mindxcheckutils
 
 import (
@@ -19,27 +18,27 @@ func TestNormalFileCheckRegularFile(t *testing.T) {
 		t.Fatalf("create symlink failed %q: %s", filePath, err)
 	}
 
-	if _, _, err = normalFileCheck(tmpDir, true); err != nil {
+	if _, _, err = normalFileCheck(tmpDir, true, false); err != nil {
 		t.Fatalf("check allow dir failed %q: %s", tmpDir+"/__test__", err)
 	}
 
-	if _, _, err = normalFileCheck(tmpDir, false); !strings.Contains(err.Error(), "not regular file") {
+	if _, _, err = normalFileCheck(tmpDir, false, false); !strings.Contains(err.Error(), "not regular file") {
 		t.Fatalf("check not allow dir failed %q: %s", tmpDir+"/__test__", err)
 	}
 
-	if _, _, err = normalFileCheck("/dev/zero", true); !strings.Contains(err.Error(), "not regular file/dir") {
+	if _, _, err = normalFileCheck("/dev/zero", true, false); !strings.Contains(err.Error(), "not regular file/dir") {
 		t.Fatalf("check /dev/zero failed %q: %s", tmpDir+"/__test__", err)
 	}
 
-	if _, _, err = normalFileCheck(tmpDir+"/syslink", false); !strings.Contains(err.Error(), "symlinks") {
+	if _, _, err = normalFileCheck(tmpDir+"/syslink", false, false); !strings.Contains(err.Error(), "symlinks") {
 		t.Fatalf("check symlinks failed %q: %s", tmpDir+"/syslink", err)
 	}
 
-	if _, _, err = normalFileCheck(filePath, false); err != nil {
+	if _, _, err = normalFileCheck(filePath, false, false); err != nil {
 		t.Fatalf("check failed %q: %s", filePath, err)
 	}
 
-	if _, _, err = normalFileCheck(tmpDir+"/notexisted", false); !strings.Contains(err.Error(), "not existed") {
+	if _, _, err = normalFileCheck(tmpDir+"/notexisted", false, false); !strings.Contains(err.Error(), "not existed") {
 		t.Fatalf("check symlinks failed %q: %s", tmpDir+"/syslink", err)
 	}
 }
@@ -52,15 +51,16 @@ func TestFileCheckRegularFile(t *testing.T) {
 		t.Fatalf("create symlink failed %q: %s", filePath, err)
 	}
 
-	if _, err = FileChecker(tmpDir, true, false, 0); err != nil {
+	if _, err = FileChecker(tmpDir, true, false, false, 0); err != nil {
 		t.Fatalf("check allow dir failed %q: %s", tmpDir+"/__test__", err)
 	}
 
-	if _, err = FileChecker(tmpDir, false, false, 0); err != nil && !strings.Contains(err.Error(), "not regular file") {
+	if _, err = FileChecker(tmpDir, false, false, false, 0); err != nil &&
+		!strings.Contains(err.Error(), "not regular file") {
 		t.Fatalf("check not allow dir failed %q: %s", tmpDir+"/__test__", err)
 	}
 
-	if _, err = FileChecker("/dev/zero", true, false, 0); err != nil &&
+	if _, err = FileChecker("/dev/zero", true, false, false, 0); err != nil &&
 		!strings.Contains(err.Error(), "not regular file/dir") {
 		t.Fatalf("check /dev/zero failed %q: %s", tmpDir+"/__test__", err)
 	}

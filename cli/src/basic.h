@@ -21,6 +21,7 @@
 #define BUF_SIZE              1024
 #define MAX_DEVICE_NR         1024
 #define MAX_MOUNT_NR          512
+#define WHITE_LIST_NUM        4
  
 #define ROOT_UID              0
 

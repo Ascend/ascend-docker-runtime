@@ -325,20 +325,31 @@ static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen
     }
     return true;
 }
- 
+
+static bool IsValidChar(const char c)
+{
+    if (isalnum(c) != 0) {
+        return true;
+    }
+    // ._-/~为合法字符
+    if ((c == '.') || (c == '_') ||
+        (c == '-') || (c == '/') || (c == '~')) {
+        return true;
+    }
+    return false;
+}
+
 static bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     const size_t maxFileSzieMb, const bool checkOwner)
 {
-    int iLoop;
     if ((filePathLen > PATH_MAX) || (filePathLen <= 0)) { // 长度越界
         return ShowExceptionInfo("filePathLen out of bounds!");
     }
     if (strstr(filePath, "..") != NULL) { // 存在".."
         return ShowExceptionInfo("filePath has an illegal character!");
     }
-    for (iLoop = 0; iLoop < filePathLen; iLoop++) {
-        if ((isalnum(filePath[iLoop]) == 0) && (filePath[iLoop] != '.') && (filePath[iLoop] != '_') &&
-            (filePath[iLoop] != '-') && (filePath[iLoop] != '/') && (filePath[iLoop] != '~')) { // 非法字符
+    for (size_t iLoop = 0; iLoop < filePathLen; iLoop++) {
+        if (!IsValidChar(filePath[iLoop])) { // 非法字符
             return ShowExceptionInfo("filePath has an illegal character!");
         }
     }

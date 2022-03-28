@@ -65,7 +65,7 @@ var execRunc = func() error {
 			return fmt.Errorf("failed to find the path of runc: %v", err)
 		}
 	}
-	if _, err := mindxcheckutils.FileChecker(runcPath, false, true, 0); err != nil {
+	if _, err := mindxcheckutils.FileChecker(runcPath, false, true, false, 0); err != nil {
 		return err
 	}
 
@@ -83,7 +83,7 @@ func addHook(spec *specs.Spec) error {
 	}
 
 	hookCliPath = path.Join(path.Dir(currentExecPath), hookCli)
-	if _, err := mindxcheckutils.FileChecker(hookCliPath, false, true, 0); err != nil {
+	if _, err := mindxcheckutils.FileChecker(hookCliPath, false, true, false, 0); err != nil {
 		return err
 	}
 	if _, err = os.Stat(hookCliPath); err != nil {
@@ -114,7 +114,7 @@ func modifySpecFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("spec file doesnt exist %s: %v", path, err)
 	}
-	if _, err := mindxcheckutils.FileChecker(path, false, true, 0); err != nil {
+	if _, err := mindxcheckutils.FileChecker(path, false, true, true, 0); err != nil {
 		return err
 	}
 
