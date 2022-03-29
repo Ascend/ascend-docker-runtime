@@ -193,7 +193,7 @@ var getContainerConfig = func() (*containerConfig, error) {
 	}
 
 	configPath := path.Join(state.Bundle, "config.json")
-	if _, err := mindxcheckutils.FileChecker(configPath, false, false, 0); err != nil {
+	if _, err := mindxcheckutils.FileChecker(configPath, false, false, true, 0); err != nil {
 		return nil, err
 	}
 
@@ -239,7 +239,7 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 	}
 
 	fileInfo, err := os.Stat(baseConfigFilePath)
-	if _, err := mindxcheckutils.FileChecker(baseConfigFilePath, false, true, 0); err != nil {
+	if _, err := mindxcheckutils.FileChecker(baseConfigFilePath, false, true, false, 0); err != nil {
 		return nil, nil, err
 	}
 	if err != nil {
@@ -346,7 +346,7 @@ func doPrestartHook() error {
 	if _, err = os.Stat(cliPath); err != nil {
 		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %v", cliPath, err)
 	}
-	if _, err := mindxcheckutils.FileChecker(cliPath, false, true, 0); err != nil {
+	if _, err := mindxcheckutils.FileChecker(cliPath, false, true, false, 0); err != nil {
 		return err
 	}
 

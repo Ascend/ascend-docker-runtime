@@ -12,6 +12,7 @@
 #include <sched.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "securec.h"
 
 #include "basic.h"
@@ -51,6 +52,12 @@ static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
         Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
+    for (size_t iLoop = 0; iLoop < strlen(arg); iLoop++) {
+        if ((isdigit(arg[iLoop]) == 0) && (arg[iLoop] != ',')) {
+            Logger("failed to check devices.", LEVEL_ERROR, SCREEN_YES);
+            return false;
+        }
+    }
 
     errno_t err = strcpy_s(args->devices, BUF_SIZE, arg);
     if (err != EOK) {
@@ -63,27 +70,71 @@ static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
 
 static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
 {
+    char buff[PATH_MAX] = {0};
+
     if (args == NULL || arg == NULL) {
         Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
-
     errno = 0;
     args->pid = strtol(optarg, NULL, DECIMAL);
+    const char* pidMax = "/proc/sys/kernel/pid_max";
+    const size_t maxFileSzieMb = 10; // max 10MB
+    if (!CheckExternalFile(pidMax, strlen(pidMax), maxFileSzieMb, true)) {
+        Logger("failed to check pid_max path.", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+    FILE* pFile = NULL;
+    pFile = fopen(pidMax, "r");
+    if ((pFile == NULL) || (fgets(buff, PATH_MAX, pFile) == NULL)) {
+        Logger("failed to get pid_max buff.", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+    (void)fclose(pFile);
+    if ((strlen(buff) > 0) && (buff[strlen(buff) -1] == '\n')) {
+        buff[strlen(buff) -1] = '\0';
+    }
+    for (size_t iLoop = 0; iLoop < strlen(buff); iLoop++) {
+        if (isdigit(buff[iLoop]) == 0) {
+            Logger("failed to get pid_max value.", LEVEL_ERROR, SCREEN_YES);
+            return false;
+        }
+    }
+    if ((args->pid < 0) || (args->pid >= strtol(buff, NULL, DECIMAL))) {
+        Logger("The PID out of bounds.", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
     if (errno != 0) {
         char* str = FormatLogMessage("failed to convert pid string from cmd args, pid string: %s.", arg);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
         return false;
     }
+    return true;
+}
 
-    if (args->pid <= 0) {
-        char* str = FormatLogMessage("invalid pid %d.", args->pid);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
+static bool CheckFileLegality(const char* filePath, const size_t filePathLen,
+    const size_t maxFileSzieMb)
+{
+    if ((filePathLen > PATH_MAX) || (filePathLen <= 0)) { // 长度越界
+        Logger("filePathLen out of bounds!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
-
+    for (size_t iLoop = 0; iLoop < filePathLen; iLoop++) {
+        if (!IsValidChar(filePath[iLoop])) { // 非法字符
+            Logger("filePath has an illegal character!", LEVEL_ERROR, SCREEN_YES);
+            return false;
+        }
+    }
+    char resolvedPath[PATH_MAX] = {0};
+    if (realpath(filePath, resolvedPath) == NULL && errno != ENOENT) {
+        Logger("realpath failed!", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+    if (strstr(resolvedPath, filePath) == NULL) { // 存在软链接
+        Logger("filePath has a soft link!", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
     return true;
 }
 
@@ -97,6 +148,11 @@ static bool RootfsCmdArgParser(struct CmdArgs *args, const char *arg)
     errno_t err = strcpy_s(args->rootfs, BUF_SIZE, arg);
     if (err != EOK) {
         Logger("failed to get rootfs path from cmd args", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+    const size_t maxFileSzieMb = 50; // max 50MB
+    if (!CheckFileLegality(args->rootfs, strlen(args->rootfs), maxFileSzieMb)) {
+        Logger("failed to check rootf.", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
 
@@ -116,6 +172,35 @@ static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
         return false;
     }
 
+    if ((strcmp(args->options, "NODRV,VIRTUAL") != 0) &&
+        (strcmp(args->options, "NODRV") != 0) &&
+        (strcmp(args->options, "VIRTUAL") != 0)) {
+        Logger("Whitelist check failed.", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+
+    return true;
+}
+
+static bool CheckWhiteList(const char* fileName)
+{
+    bool fileExists = false;
+    const char mountWhiteList[WHITE_LIST_NUM][PATH_MAX] = {{"/usr/local/Ascend/driver/lib64"},
+        {"/usr/local/Ascend/driver/include"},
+        {"/usr/local/dcmi"},
+        {"/usr/local/bin/npu-smi"}};
+
+    for (size_t iLoop = 0; iLoop < WHITE_LIST_NUM; iLoop++) {
+        if (strcmp(mountWhiteList[iLoop], fileName) == 0) {
+            fileExists = true;
+        }
+    }
+    if (!fileExists) {
+        char* str = FormatLogMessage("failed to check whiteList value: %s.", fileName);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
+        free(str);
+        return false;
+    }
     return true;
 }
 
@@ -142,7 +227,15 @@ static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
         return false;
     }
 
-    return true;
+    const size_t maxFileSzieMb = 50; // max 50MB
+    if (!CheckFileLegality(dst, strlen(dst), maxFileSzieMb)) {
+        char* str = FormatLogMessage("failed to check files: %s", dst);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
+        free(str);
+        return false;
+    }
+
+    return CheckWhiteList(dst) ? true : false;
 }
 
 static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
@@ -167,8 +260,13 @@ static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
         free(str);
         return false;
     }
+    const size_t maxFileSzieMb = 50; // max 50MB
+    if (!CheckFileLegality(dst, strlen(dst), maxFileSzieMb)) {
+        Logger("failed to check dir.", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
 
-    return true;
+    return CheckWhiteList(dst) ? true : false;
 }
 
 #define NUM_OF_CMD_ARGS 6

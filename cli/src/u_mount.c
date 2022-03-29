@@ -31,10 +31,9 @@ int Mount(const char *src, const char *dst)
         ((S_ISREG(fileStat.st_mode) != 0) || (S_ISDIR(fileStat.st_mode) != 0))) { // 只校验文件和目录
             const size_t maxFileSzieMb = 10 * 1024; // max 10 G
             if (!CheckExternalFile(src, strlen(src), maxFileSzieMb, false)) {
-                char* str = FormatLogMessage("failed to mount src hehe:%s.", src);
+                char* str = FormatLogMessage("failed to Check src: %s.", src);
                 Logger(str, LEVEL_ERROR, SCREEN_YES);
                 free(str);
-                Logger("failed to Check src.", LEVEL_ERROR, SCREEN_YES);
                 return -1;
             }
     }

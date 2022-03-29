@@ -841,21 +841,6 @@ TEST(SetupCgroup, StatusThree)
     EXPECT_EQ(-1, ret);
 }
 
-TEST(SetupCgroup, StatusFour)
-{
-    MOCKER(SetupDriverCgroup).stubs().will(invoke(Stub_SetupDriverCgroup_Success));
-    MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Success));
-    struct ParsedConfig config;
-    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
-    config.devices[0] = 1;
-    config.devices[1] = 2;
-    config.devicesNr = 2;
-    (void)strcpy_s(config.cgroupPath, sizeof(config.cgroupPath), "devices.allow");
-    int ret = SetupCgroup(&config);
-    GlobalMockObject::verify();
-    EXPECT_EQ(0, ret);
-}
-
 TEST(SetupContainer, StatusOne)
 {
     struct CmdArgs args;

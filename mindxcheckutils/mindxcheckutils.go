@@ -1,8 +1,7 @@
+// Package mindxcheckutils is a check utils package
 /**
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2022. All rights reserved.
  */
-
-// Package mindxcheckutils is a check utils package
 package mindxcheckutils
 
 import (
@@ -14,7 +13,7 @@ import (
 )
 
 // FileChecker check if a file/dir is safe to use
-func FileChecker(path string, allowDir, checkParent bool, deep int) (bool, error) {
+func FileChecker(path string, allowDir, checkParent, allowLink bool, deep int) (bool, error) {
 	const maxDepth, groupWriteIndex, otherWriteIndex, permLength int = 99, 5, 8, 10
 	if deep > maxDepth {
 		return false, fmt.Errorf("over maxDepth %v", maxDepth)
@@ -26,7 +25,7 @@ func FileChecker(path string, allowDir, checkParent bool, deep int) (bool, error
 	if err != nil {
 		return false, fmt.Errorf("get abs path failed %v", err)
 	}
-	fileInfo, ok, err := normalFileCheck(filePath, allowDir)
+	fileInfo, ok, err := normalFileCheck(filePath, allowDir, allowLink)
 	if err != nil {
 		return ok, err
 	}
@@ -52,14 +51,14 @@ func FileChecker(path string, allowDir, checkParent bool, deep int) (bool, error
 		return false, fmt.Errorf("owner not right %v %v", filePath, uid)
 	}
 	if filePath != "/" && checkParent {
-		return FileChecker(filepath.Dir(filePath), true, true, deep+1)
+		return FileChecker(filepath.Dir(filePath), true, true, allowLink, deep+1)
 	}
 	return true, nil
 }
 
-func normalFileCheck(filePath string, allowDir bool) (os.FileInfo, bool, error) {
+func normalFileCheck(filePath string, allowDir bool, allowLink bool) (os.FileInfo, bool, error) {
 	realPath, err := filepath.EvalSymlinks(filePath)
-	if err != nil || realPath != filePath {
+	if err != nil || (realPath != filePath && !allowLink) {
 		return nil, false, fmt.Errorf("symlinks or not existed, failed %v, %v", filePath, err)
 	}
 	fileInfo, err := os.Stat(filePath)

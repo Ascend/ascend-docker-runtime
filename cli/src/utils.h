@@ -22,6 +22,7 @@ int CheckDirExists(const char *dir);
 int GetParentPathStr(const char *path, char *parent, size_t bufSize);
 int MakeDirWithParent(const char *path, mode_t mode);
 int MakeMountPoints(const char *path, mode_t mode);
+bool IsValidChar(const char c);
 bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     const size_t maxFileSzieMb, const bool checkOwner);
 
