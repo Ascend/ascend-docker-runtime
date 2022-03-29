@@ -61,7 +61,7 @@ function build_bin()
     export GONOSUMDB="*"
 
     echo "make hook"
-    go mod tidy
+    go mod download
     [ -d "${HOOKSRCDIR}/build" ] && rm -rf ${HOOKSRCDIR}/build
     mkdir ${HOOKSRCDIR}/build && cd ${HOOKSRCDIR}/build
     export CGO_ENABLED=1
@@ -74,7 +74,7 @@ function build_bin()
     ls
 
     echo "make runtime"
-    go mod tidy
+    go mod download
     cd ${RUNTIMEDIR}
     [ -d "${RUNTIMESRCDIR}/build" ] && rm -rf ${RUNTIMESRCDIR}/build
     mkdir ${RUNTIMESRCDIR}/build&&cd ${RUNTIMESRCDIR}/build
