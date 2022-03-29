@@ -35,39 +35,9 @@ package dcmi
 	  CALL_FUNC(dcmi_get_device_num_in_card,card_id,device_num)
   }
 
-  int (*dcmi_get_device_id_in_card_func)(int card_id, int *device_id_max, int *mcu_id, int *cpu_id);
-  int dcmi_get_device_id_in_card(int card_id, int *device_id_max, int *mcu_id, int *cpu_id){
-	  CALL_FUNC(dcmi_get_device_id_in_card,card_id,device_id_max,mcu_id,cpu_id)
-  }
-
   int (*dcmi_get_device_logic_id_func)(int *device_logic_id, int card_id, int device_id);
   int dcmi_get_device_logic_id(int *device_logic_id, int card_id, int device_id){
 	  CALL_FUNC(dcmi_get_device_logic_id,device_logic_id,card_id,device_id)
-  }
-
-  int (*dcmi_set_create_vdevice_func)(int card_id, int device_id, struct dcmi_vdev_create_info *info);
-  int dcmi_set_create_vdevice(int card_id, int device_id, struct dcmi_vdev_create_info *info){
-	  CALL_FUNC(dcmi_set_create_vdevice,card_id,device_id,info)
-  }
-
-  int (*dcmi_set_destroy_vdevice_func)(int card_id, int device_id, unsigned int VDevid);
-  int dcmi_set_destroy_vdevice(int card_id, int device_id, unsigned int VDevid){
-	  CALL_FUNC(dcmi_set_destroy_vdevice,card_id,device_id,VDevid)
-  }
-
-  int (*dcmi_get_vdevice_info_func)(int card_id, int device_id, struct dcmi_vdev_info *info);
-  int dcmi_get_vdevice_info(int card_id, int device_id, struct dcmi_vdev_info *info){
-	  CALL_FUNC(dcmi_get_vdevice_info,card_id,device_id,info)
-  }
-
-  int (*dcmi_get_device_health_func)(int card_id, int device_id, unsigned int *health);
-  int dcmi_get_device_health(int card_id, int device_id, unsigned int *health){
-	  CALL_FUNC(dcmi_get_device_health,card_id,device_id,health)
-  }
-
-  int (*dcmi_get_device_chip_info_func)(int card_id, int device_id, struct dcmi_chip_info *chip_info);
-  int dcmi_get_device_chip_info(int card_id, int device_id, struct dcmi_chip_info *chip_info){
-	  CALL_FUNC(dcmi_get_device_chip_info,card_id,device_id,chip_info)
   }
 
   int (*dcmi_create_vdevice_func)(int card_id, int device_id, int vdev_id, const char *template_name,
@@ -75,6 +45,11 @@ package dcmi
   int dcmi_create_vdevice(int card_id, int device_id, int vdev_id, const char *template_name,
     struct dcmi_create_vdev_out *out){
 	  CALL_FUNC(dcmi_create_vdevice,card_id,device_id,vdev_id,template_name,out)
+  }
+
+  int (*dcmi_set_destroy_vdevice_func)(int card_id, int device_id, unsigned int VDevid);
+  int dcmi_set_destroy_vdevice(int card_id, int device_id, unsigned int VDevid){
+	  CALL_FUNC(dcmi_set_destroy_vdevice,card_id,device_id,VDevid)
   }
 
   // load .so files and functions
@@ -91,21 +66,11 @@ package dcmi
 
 	  dcmi_get_device_num_in_card_func = dlsym(dcmiHandle,"dcmi_get_device_num_in_card");
 
-	  dcmi_get_device_id_in_card_func = dlsym(dcmiHandle,"dcmi_get_device_id_in_card");
-
 	  dcmi_get_device_logic_id_func = dlsym(dcmiHandle,"dcmi_get_device_logic_id");
 
-	  dcmi_set_create_vdevice_func = dlsym(dcmiHandle,"dcmi_set_create_vdevice");
+      dcmi_create_vdevice_func = dlsym(dcmiHandle,"dcmi_create_vdevice");
 
 	  dcmi_set_destroy_vdevice_func = dlsym(dcmiHandle,"dcmi_set_destroy_vdevice");
-
-	  dcmi_get_vdevice_info_func = dlsym(dcmiHandle,"dcmi_get_vdevice_info");
-
-	  dcmi_get_device_health_func = dlsym(dcmiHandle,"dcmi_get_device_health");
-
-	  dcmi_get_device_chip_info_func = dlsym(dcmiHandle,"dcmi_get_device_chip_info");
-
-      dcmi_create_vdevice_func = dlsym(dcmiHandle,"dcmi_create_vdevice");
 
 	  return SUCCESS;
   }
@@ -212,9 +177,8 @@ func getCardList() (int32, []int32, error) {
 		return retError, nil, errInfo
 	}
 	var cardNum = int32(cNum)
-	var i int32
 	var cardIDList []int32
-	for i = 0; i < cardNum && i < hiAIMaxCardNum; i++ {
+	for i := int32(0); i < cardNum && i < hiAIMaxCardNum; i++ {
 		cardID := int32(ids[i])
 		if cardID < 0 {
 			continue
@@ -265,7 +229,6 @@ func SetCreateVDevice(cardID, deviceID int32, coreNum string) (uint32, error) {
 		errInfo := fmt.Errorf("create virtual device failed, error code: %d", int32(err))
 		return uint32(math.MaxUint32), errInfo
 	}
-	println("vdevId", createInfo.vdev_id)
 	return uint32(createInfo.vdev_id), nil
 }
 
@@ -302,7 +265,6 @@ func CreateVDevice(spec *specs.Spec) (VDeviceInfo, error) {
 		}
 		for deviceID := int32(0); deviceID < deviceCount; deviceID++ {
 			logicID, err := GetDeviceLogicID(cardID, deviceID)
-			println(cardID, deviceID, logicID, dsmiLogicID)
 			if err != nil {
 				return invalidVDevice, fmt.Errorf("cannot get logic id : %v", err)
 			}
@@ -316,7 +278,6 @@ func CreateVDevice(spec *specs.Spec) (VDeviceInfo, error) {
 	if err != nil || int(vdeviceID) < 0 {
 		return invalidVDevice, fmt.Errorf("cannot create vd or vdevice is wrong: %v %v", vdeviceID, err)
 	}
-	fmt.Printf("%v", VDeviceInfo{CardID: targetCardID, DeviceID: targetDeviceID, VdeviceID: int32(vdeviceID)})
 	return VDeviceInfo{CardID: targetCardID, DeviceID: targetDeviceID, VdeviceID: int32(vdeviceID)}, nil
 }
 
