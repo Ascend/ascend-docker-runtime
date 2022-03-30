@@ -284,7 +284,7 @@ func CreateVDevice(spec *specs.Spec) (VDeviceInfo, error) {
 func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 	visibleDevice, splitDevice, needSplit, visibleDeviceLine := int32(-1), "", false, ""
 	allowSplit := map[string]string{
-		"1C": "vir01", "2C": "vir02", "4C": "vir04", "8C": "vir08", "16C": "vir16",
+		"vir01": "vir01", "vir02": "vir02", "vir04": "vir04", "vir08": "vir08", "vir16": "vir16",
 	}
 
 	for _, line := range spec.Process.Env {
@@ -296,7 +296,7 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 		if strings.TrimSpace(words[0]) == "ASCEND_VISIBLE_DEVICES" {
 			visibleDeviceLine = words[1]
 		}
-		if strings.TrimSpace(words[0]) == "ASCEND_VISIBLE_VPU_DEVICES" {
+		if strings.TrimSpace(words[0]) == "ASCEND_VNPU_SPECS" {
 			if split := allowSplit[words[1]]; split != "" {
 				splitDevice = split
 				needSplit = true
