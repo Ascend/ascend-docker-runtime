@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"main/dcmi"
 	"os"
 	"os/exec"
 	"path"
@@ -21,6 +22,7 @@ import (
 const (
 	loggingPrefix       = "ascend-docker-runtime"
 	hookCli             = "ascend-docker-hook"
+	destroyHookCli      = "ascend-docker-destroy"
 	hookDefaultFilePath = "/usr/local/bin/ascend-docker-hook"
 	dockerRuncFile      = "docker-runc"
 	runcFile            = "runc"
@@ -84,21 +86,68 @@ func addHook(spec *specs.Spec) error {
 
 	if spec.Hooks == nil {
 		spec.Hooks = &specs.Hooks{}
-	} else if len(spec.Hooks.Prestart) != 0 {
-		for _, hook := range spec.Hooks.Prestart {
-			if !strings.Contains(hook.Path, hookCli) {
-				continue
-			}
-			return nil
+	}
+	needUpdate := true
+	for _, hook := range spec.Hooks.Prestart {
+		if strings.Contains(hook.Path, hookCli) {
+			needUpdate = false
 		}
 	}
+	if needUpdate {
+		spec.Hooks.Prestart = append(spec.Hooks.Prestart, specs.Hook{
+			Path: hookCliPath,
+			Args: []string{hookCliPath},
+		})
+	}
 
-	spec.Hooks.Prestart = append(spec.Hooks.Prestart, specs.Hook{
-		Path: hookCliPath,
-		Args: []string{hookCliPath},
-	})
+	vdevice, err := dcmi.CreateVDevice(spec)
+	fmt.Printf("create vdevice %v \n", vdevice)
+
+	if err != nil {
+		return err
+	}
+
+	if vdevice.VdeviceID != -1 {
+		updateEnvAndPostHook(spec, vdevice)
+	}
 
 	return nil
+}
+
+func updateEnvAndPostHook(spec *specs.Spec, vdevice dcmi.VDeviceInfo) {
+	newEnv := make([]string, 0)
+	needAddVirtualFlag := true
+	for _, line := range spec.Process.Env {
+		words := strings.Split(line, "=")
+		const LENGTH int = 2
+		if len(words) == LENGTH && strings.TrimSpace(words[0]) == "ASCEND_VISIBLE_DEVICES" {
+			newEnv = append(newEnv, fmt.Sprintf("ASCEND_VISIBLE_DEVICES=%d", vdevice.VdeviceID))
+			continue
+		}
+		if len(words) == LENGTH && strings.TrimSpace(words[0]) == "ASCEND_RUNTIME_OPTIONS" {
+			needAddVirtualFlag = false
+			if strings.Contains(words[1], "VIRTUAL") {
+				newEnv = append(newEnv, line)
+				continue
+			} else {
+				newEnv = append(newEnv, strings.TrimSpace(line)+",VIRTUAL")
+				continue
+			}
+		}
+		newEnv = append(newEnv, line)
+	}
+	if needAddVirtualFlag {
+		newEnv = append(newEnv, fmt.Sprintf("ASCEND_RUNTIME_OPTIONS=VIRTUAL"))
+	}
+	spec.Process.Env = newEnv
+	if currentExecPath, err := os.Executable(); err == nil {
+		postHookCliPath := path.Join(path.Dir(currentExecPath), destroyHookCli)
+		spec.Hooks.Poststop = append(spec.Hooks.Poststop, specs.Hook{
+			Path: postHookCliPath,
+			Args: []string{postHookCliPath, fmt.Sprintf("%d", vdevice.CardID), fmt.Sprintf("%d", vdevice.DeviceID),
+				fmt.Sprintf("%d", vdevice.VdeviceID)},
+		})
+	}
 }
 
 func modifySpecFile(path string) error {
