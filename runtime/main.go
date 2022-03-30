@@ -101,7 +101,6 @@ func addHook(spec *specs.Spec) error {
 	}
 
 	vdevice, err := dcmi.CreateVDevice(spec)
-	fmt.Printf("create vdevice %v \n", vdevice)
 
 	if err != nil {
 		return err
