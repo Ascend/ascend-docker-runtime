@@ -12,6 +12,7 @@ OUTPUT=${ROOT}/output
 BUILD=${ROOT}/build
 
 CLIDIR=${ROOT}/cli
+DESTROYDIR=${ROOT}/destroy
 CLISRCNAME="main.c"
 
 INSTALLHELPERDIR=${ROOT}/install
@@ -25,6 +26,8 @@ RUNTIMESRCNAME="main.go"
 
 CLISRCPATH=$(find ${CLIDIR} -name "${CLISRCNAME}")
 CLISRCDIR=${CLISRCPATH%/${CLISRCNAME}}
+DESTROYSRCPATH=$(find ${DESTROYDIR} -name "${CLISRCNAME}")
+DESTROYDIR=${DESTROYSRCPATH%/${CLISRCNAME}}
 INSTALLHELPERSRCPATH=$(find ${INSTALLHELPERDIR} -name "${INSTALLHELPERSRCNAME}")
 INSTALLHELPERSRCDIR=${INSTALLHELPERSRCPATH%/${INSTALLHELPERSRCNAME}}
 HOOKSRCPATH=$(find ${HOOKDIR} -name "${HOOKSRCNAME}")
@@ -38,6 +41,14 @@ CPUARCH=$(uname -m)
 
 function build_bin()
 {
+    echo "make destroy"
+    [ -d "${BUILD}/build/destroy/build" ] && rm -rf ${BUILD}/build/destroy/build
+    mkdir -p ${BUILD}/build/destroy/build && cd ${BUILD}/build/destroy/build
+
+    cmake ${DESTROYDIR}
+    make clean
+    make
+
     echo "make cli"
     [ -d "${BUILD}/build/cli/build" ] && rm -rf ${BUILD}/build/cli/build
     mkdir -p ${BUILD}/build/cli/build && cd ${BUILD}/build/cli/build
@@ -87,14 +98,14 @@ function build_run_package()
     cd ${BUILD}
     mkdir run_pkg
 
-    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli}/build/ascend-docker*  run_pkg
+    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli,${BUILD}/build/destroy}/build/ascend-docker*  run_pkg
     /bin/cp -f scripts/uninstall.sh run_pkg
     /bin/cp -f scripts/base.list run_pkg
     /bin/cp -f scripts/base.list_A500 run_pkg
     /bin/cp -f scripts/base.list_A200 run_pkg
     FILECNT=$(ls -l run_pkg |grep "^-"|wc -l)
     echo "prepare package $FILECNT bins"
-    if [ $FILECNT -ne 8 ]; then
+    if [ $FILECNT -ne 9 ]; then
         exit 1
     fi
     /bin/cp -rf ${ROOT}/assets run_pkg
