@@ -242,9 +242,6 @@ bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     if ((filePathLen > PATH_MAX) || (filePathLen <= 0)) { // 长度越界
         return ShowExceptionInfo("filePathLen out of bounds!");
     }
-    if (strstr(filePath, "..") != NULL) { // 存在".."
-        return ShowExceptionInfo("filePath has an illegal character!");
-    }
     for (size_t iLoop = 0; iLoop < filePathLen; iLoop++) {
         if (!IsValidChar(filePath[iLoop])) { // 非法字符
             return ShowExceptionInfo("filePath has an illegal character!");
@@ -254,8 +251,75 @@ bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     if (realpath(filePath, resolvedPath) == NULL && errno != ENOENT) {
         return ShowExceptionInfo("realpath failed!");
     }
-    if (strstr(resolvedPath, filePath) == NULL) { // 存在软链接
+    if (strcmp(resolvedPath, filePath) != 0) { // 存在软链接
         return ShowExceptionInfo("filePath has a soft link!");
     }
     return CheckLegality(resolvedPath, strlen(resolvedPath), maxFileSzieMb, checkOwner);
+}
+
+static bool CheckFileSubset(const char* filePath, const size_t filePathLen,
+    const size_t maxFileSzieMb)
+{
+    const unsigned long long maxFileSzieB = maxFileSzieMb * 1024 * 1024;
+    int iLoop;
+    if ((filePathLen > PATH_MAX) || (filePathLen <= 0)) { // 长度越界
+        return ShowExceptionInfo("filePathLen out of bounds!");
+    }
+    for (iLoop = 0; iLoop < filePathLen; iLoop++) {
+        if (!IsValidChar(filePath[iLoop])) { // 非法字符
+            return ShowExceptionInfo("filePath has an illegal character!");
+        }
+    }
+    char resolvedPath[PATH_MAX] = {0};
+    if (realpath(filePath, resolvedPath) == NULL && errno != ENOENT) {
+        return ShowExceptionInfo("realpath failed!");
+    }
+    if (strcmp(resolvedPath, filePath) != 0) { // 存在软链接
+        return ShowExceptionInfo("filePath has a soft link!");
+    }
+    struct stat fileStat;
+    if (stat(filePath, &fileStat) != 0) {
+        return ShowExceptionInfo("filePath does not exist or is not a file!");
+    }
+    if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
+        return ShowExceptionInfo("fileSize out of bounds!");
+    }
+    return true;
+}
+ 
+bool GetFileSubsetAndCheck(const char *basePath, const size_t basePathLen)
+{
+    DIR *dir = NULL;
+    struct dirent *ptr = NULL;
+    char base[PATH_MAX] = {0};
+ 
+    if ((dir = opendir(basePath)) == NULL) {
+        return ShowExceptionInfo("Open dir error!");
+    }
+    while ((ptr = readdir(dir)) != NULL) {
+        if (strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0) {
+            continue;
+        }
+        memset_s(base, PATH_MAX, 0, PATH_MAX);
+        if (strcpy_s(base, PATH_MAX, basePath) != 0) {
+            return ShowExceptionInfo("Strcpy failed!");
+        }
+        if (strcat_sp(base, PATH_MAX, "/") != 0 ||
+            strcat_sp(base, PATH_MAX, ptr->d_name) != 0) {
+            return ShowExceptionInfo("Strcat failed!");
+        }
+        if (ptr->d_type == DT_REG) { // 文件
+            const size_t maxFileSzieMb = 10; // max 10 MB
+            if (!CheckFileSubset(base, strlen(base), maxFileSzieMb)) {
+                return false;
+            }
+        } else if (ptr->d_type == DT_LNK) { // 软链接
+            return ShowExceptionInfo("FilePath has a soft link!");
+        } else if (ptr->d_type == DT_DIR) { // 目录
+            if (!GetFileSubsetAndCheck(base, strlen(base))) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
