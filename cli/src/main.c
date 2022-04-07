@@ -291,7 +291,6 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
         free(str);
         return -1;
     }
-
     ret = GetCgroupPath(args->pid, config->cgroupPath, BUF_SIZE);
     if (ret < 0) {
         Logger("failed to get cgroup path.", LEVEL_ERROR, SCREEN_YES);

@@ -5,8 +5,10 @@
 #ifndef _MOUNT_H
 #define _MOUNT_H
 
+#include <stdbool.h>
 #include "basic.h"
 
 int DoMounting(const struct ParsedConfig *config);
+bool DoMounting200RC(bool* is200Rc);
 
 #endif

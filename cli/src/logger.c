@@ -59,6 +59,22 @@ int CreateLog(const char* filename)
     return 0;
 }
 
+static long GetLogSizeProcess(const char* path)
+{
+    FILE *fp = NULL;
+    fp = fopen(path, "rb");
+    long length = 0;
+    if (fp != NULL) {
+        fseek(fp, 0, SEEK_END);
+        length = ftell(fp);
+    }
+    if (fp != NULL) {
+        fclose(fp);
+        fp = NULL;
+    }
+    return length;
+}
+
 long GetLogSize(const char* filename)
 {
     if (filename == NULL) {
@@ -71,7 +87,7 @@ long GetLogSize(const char* filename)
     if (ret < 0) {
         return -1;
     }
-    FILE *fp = NULL;
+
     char path[PATH_MAX + 1] = {0x00};
     if (strlen(filename) > PATH_MAX || realpath(filename, path) == NULL) {
         return -1;
@@ -83,17 +99,7 @@ long GetLogSize(const char* filename)
             return -1;
         }
     }
-    fp = fopen(path, "rb");
-    long length = 0;
-    if (fp != NULL) {
-        fseek(fp, 0, SEEK_END);
-        length = ftell(fp);
-    }
-    if (NULL != fp) {
-        fclose(fp);
-        fp = NULL;
-    }
-    return length;
+    return GetLogSizeProcess(path);
 }
 
 
@@ -122,6 +128,67 @@ int LogLoop(const char* filename)
     return ret;
 }
 
+static void WriteLogInfo(const char* path, size_t pathLen, const char* buffer, const unsigned bufferSize)
+{
+    if (path == NULL) {
+        return;
+    }
+    FILE *fp = NULL;
+    int ret = 0;
+    fp = fopen(path, "a+");
+    if (fp != NULL) {
+        char now[TEMP_BUFFER] = {0};
+        ret = GetCurrentLocalTime(now, sizeof(now) / sizeof(char));
+        if (ret < 0) {
+            fclose(fp);
+            return;
+        }
+        fwrite(now, strlen(now), 1, fp);
+        fwrite(buffer, bufferSize, 1, fp);
+        fclose(fp);
+        fp = NULL;
+    }
+    return;
+}
+
+static bool LogConvertStorage(const char* filename, const long maxSize)
+{
+    long length = GetLogSize(filename);
+    if (length < 0) {
+        return false;
+    }
+    if (length > maxSize) {
+        int ret = LogLoop(filename);
+        if (ret < 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void LogFileProcess(const char* filename, const long maxSize, const char* buffer, const unsigned bufferSize)
+{
+    if (filename == NULL) {
+        return;
+    }
+    int ret = 0;
+    char path[PATH_MAX + 1] = {0x00};
+    if (!LogConvertStorage(filename, maxSize)) {
+        return;
+    }
+    if (strlen(filename) > PATH_MAX || realpath(filename, path) == NULL) {
+        return;
+    }
+    struct stat fileStat;
+    if ((stat(path, &fileStat) == 0) && (S_ISREG(fileStat.st_mode) != 0)) {
+        const size_t maxFileSzieMb = 50; // max 50MB
+        if (!CheckExternalFile(path, strlen(path), maxFileSzieMb, true)) {
+            return;
+        }
+    }
+    WriteLogInfo(path, PATH_MAX + 1, buffer, bufferSize);
+}
+
 void WriteLogFile(const char* filename, long maxSize, const char* buffer, unsigned bufferSize)
 {
     if (filename == NULL || buffer == NULL) {
@@ -130,43 +197,36 @@ void WriteLogFile(const char* filename, long maxSize, const char* buffer, unsign
     }
     
     if (filename != NULL && buffer != NULL) {
-        char path[PATH_MAX + 1] = {0x00};
-        FILE *fp = NULL;
-        int ret;
-        long length = GetLogSize(filename);
-        if (length < 0) {
-            return;
-        }
-        if (length > maxSize) {
-            ret = LogLoop(filename);
-            if (ret < 0) {
-                return;
-            }
-        }
-        if (strlen(filename) > PATH_MAX || realpath(filename, path) == NULL) {
-            return;
-        }
-        struct stat fileStat;
-        if ((stat(path, &fileStat) == 0) && (S_ISREG(fileStat.st_mode) != 0)) {
-            const size_t maxFileSzieMb = 50; // max 50MB
-            if (!CheckExternalFile(path, strlen(path), maxFileSzieMb, true)) {
-                return;
-            }
-        }
-        fp = fopen(path, "a+");
-        if (fp != NULL) {
-            char now[TEMP_BUFFER] = {0};
-            ret = GetCurrentLocalTime(now, sizeof(now) / sizeof(char));
-            if (ret < 0) {
-                fclose(fp);
-                return;
-            }
-            fwrite(now, strlen(now), 1, fp);
-            fwrite(buffer, bufferSize, 1, fp);
-            fclose(fp);
-            fp = NULL;
-        }
+        LogFileProcess(filename, maxSize, buffer, bufferSize);
     }
+}
+
+static void DivertAndWrite(const char *logPath, const char *msg, const int level)
+{
+    int ret;
+    char* buffer = malloc(LOG_LENGTH);
+    if (buffer == NULL) {
+        return;
+    }
+    switch (level) {
+        case LEVEL_DEBUG:
+            ret = sprintf_s(buffer, LOG_LENGTH, "[Debug]%s\n", msg);
+            break;
+        case LEVEL_ERROR:
+            ret = sprintf_s(buffer, LOG_LENGTH, "[Error]%s\n", msg);
+            break;
+        case LEVEL_WARN:
+            ret = sprintf_s(buffer, LOG_LENGTH, "[Warn]%s\n", msg);
+            break;
+        default:
+            ret = sprintf_s(buffer, LOG_LENGTH, "[Info]%s\n", msg);
+    }
+    if (ret < 0) {
+        free(buffer);
+        return;
+    }
+    WriteLogFile(logPath, FILE_MAX_SIZE, buffer, strlen(buffer));
+    free(buffer);
 }
 
 void Logger(const char *msg, int level, int screen)
@@ -182,31 +242,6 @@ void Logger(const char *msg, int level, int screen)
     if (MakeDirWithParent(LOG_PATH_DIR, DEFAULT_LOGDIR_MODE) < 0) {
         return;
     }
-    int destMax = LOG_LENGTH;
-    if (destMax <= 0) {
-        return;
-    }
-    char* buffer = malloc(destMax);
-    if (buffer == NULL) {
-        return;
-    }
-    switch (level) {
-        case LEVEL_DEBUG:
-            ret = sprintf_s(buffer, destMax, "[Debug]%s\n", msg);
-            break;
-        case LEVEL_ERROR:
-            ret = sprintf_s(buffer, destMax, "[Error]%s\n", msg);
-            break;
-        case LEVEL_WARN:
-            ret = sprintf_s(buffer, destMax, "[Warn]%s\n", msg);
-            break;
-        default:
-            ret = sprintf_s(buffer, destMax, "[Info]%s\n", msg);
-    }
-    if (ret < 0) {
-        free(buffer);
-        return;
-    }
-    WriteLogFile(logPath, FILE_MAX_SIZE, buffer, strlen(buffer));
-    free(buffer);
+
+    DivertAndWrite(logPath, msg, level);
 }

@@ -184,28 +184,27 @@ static bool ShowExceptionInfo(const char* exceptionInfo)
     (void)fprintf(stderr, "\n");
     return false;
 }
- 
-static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen,
-    const unsigned long long maxFileSzieMb, const bool checkOwner)
+
+static bool CheckFileOwner(const struct stat fileStat, const bool checkOwner)
 {
-    const unsigned long long maxFileSzieB = maxFileSzieMb * 1024 * 1024;
+    if (checkOwner) {
+        if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
+            return ShowExceptionInfo("Please check the folder owner!");
+        }
+    }
+    return true;
+}
+
+static bool CheckParentDir(const char* resolvedPath, const size_t resolvedPathLen,
+    struct stat fileStat, const bool checkOwner)
+{
     char buf[PATH_MAX] = {0};
     if (strncpy_s(buf, sizeof(buf), resolvedPath, resolvedPathLen) != EOK) {
         return false;
     }
-    struct stat fileStat;
-    if ((stat(buf, &fileStat) != 0) ||
-        ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
-        return ShowExceptionInfo("resolvedPath does not exist or is not a file!");
-    }
-    if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
-        return ShowExceptionInfo("fileSize out of bounds!");
-    }
     for (int iLoop = 0; iLoop < PATH_MAX; iLoop++) {
-        if (checkOwner) {
-            if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
-                return ShowExceptionInfo("Please check the folder owner!");
-            }
+        if (!CheckFileOwner(fileStat, checkOwner)) {
+            return false;
         }
         if ((fileStat.st_mode & S_IWOTH) != 0) { // 操作文件对other用户可写
             return ShowExceptionInfo("Please check the write permission!");
@@ -222,7 +221,36 @@ static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen
     }
     return true;
 }
- 
+
+static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen,
+    const unsigned long long maxFileSzieMb, const bool checkOwner)
+{
+    const unsigned long long maxFileSzieB = maxFileSzieMb * 1024 * 1024;
+    struct stat fileStat;
+    if ((stat(resolvedPath, &fileStat) != 0) ||
+        ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
+        (void)fprintf(stderr, "[3: %s]\n", resolvedPath);
+        return ShowExceptionInfo("resolvedPath does not exist or is not a file!");
+    }
+    if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
+        return ShowExceptionInfo("fileSize out of bounds!");
+    }
+    return CheckParentDir(resolvedPath, resolvedPathLen, fileStat, checkOwner);
+}
+
+static bool IsValidChar(const char c)
+{
+    if (isalnum(c) != 0) {
+        return true;
+    }
+    // ._-/~为合法字符
+    if ((c == '.') || (c == '_') ||
+        (c == '-') || (c == '/') || (c == '~')) {
+        return true;
+    }
+    return false;
+}
+
 bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     const size_t maxFileSzieMb, const bool checkOwner)
 {
@@ -230,12 +258,8 @@ bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     if ((filePathLen > PATH_MAX) || (filePathLen <= 0)) { // 长度越界
         return ShowExceptionInfo("filePathLen out of bounds!");
     }
-    if (strstr(filePath, "..") != NULL) { // 存在".."
-        return ShowExceptionInfo("filePath has an illegal character!");
-    }
     for (iLoop = 0; iLoop < filePathLen; iLoop++) {
-        if ((isalnum(filePath[iLoop]) == 0) && (filePath[iLoop] != '.') && (filePath[iLoop] != '_') &&
-            (filePath[iLoop] != '-') && (filePath[iLoop] != '/') && (filePath[iLoop] != '~')) { // 非法字符
+        if (!IsValidChar(filePath[iLoop])) { // 非法字符
             return ShowExceptionInfo("filePath has an illegal character!");
         }
     }
