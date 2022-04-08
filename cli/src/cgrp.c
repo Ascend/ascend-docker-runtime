@@ -15,6 +15,7 @@
 
 #include "securec.h"
 
+#include "u_mount.h"
 #include "utils.h"
 #include "options.h"
 #include "logger.h"
@@ -82,34 +83,17 @@ bool CheckSubStr(char **pLine, const char *subsys)
 
     return strstr(substr, subsys) != NULL;
 }
-
 typedef char *(*ParseFileLine)(char *, const char *);
-int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const char* filepath)
+static bool GetFileInfo(const char* resolvedPath, char* buffer, const int bufferSize, const ParseFileLine fn)
 {
-    if (buffer == NULL || filepath == NULL) {
-        (void)fprintf(stderr, "buffer, filepath pointer is null!\n");
-        return -1;
-    }
-
     FILE *fp = NULL;
-    char *result = NULL;
     char *line = NULL;
     size_t len = 0;
-    char resolvedPath[PATH_MAX] = {0x0};
-
-    if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
-        Logger("Cannot canonicalize path.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
-    const size_t maxFileSzieMb = 1024; // max 1G
-    if (!CheckExternalFile(resolvedPath, strlen(resolvedPath), maxFileSzieMb, true)) {
-        Logger("Check file legality failed.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
+    char *result = NULL;
     fp = fopen(resolvedPath, "r");
     if (fp == NULL) {
         Logger("cannot open file.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
+        return false;
     }
 
     while (getline(&line, &len, fp) != -1) {
@@ -123,6 +107,30 @@ int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const 
     free(line);
     fclose(fp);
     if (ret != EOK) {
+        return false;
+    }
+    return true;
+}
+
+int ParseFileByLine(char* buffer, int bufferSize, const ParseFileLine fn, const char* filepath)
+{
+    if (buffer == NULL || filepath == NULL) {
+        (void)fprintf(stderr, "buffer, filepath pointer is null!\n");
+        return -1;
+    }
+    
+    char resolvedPath[PATH_MAX] = {0x0};
+
+    if (realpath(filepath, resolvedPath) == NULL && errno != ENOENT) {
+        Logger("Cannot canonicalize path.", LEVEL_ERROR, SCREEN_YES);
+        return -1;
+    }
+    const size_t maxFileSzieMb = 1024; // max 1G
+    if (!CheckExternalFile(resolvedPath, strlen(resolvedPath), maxFileSzieMb, true)) {
+        Logger("Check file legality failed.", LEVEL_ERROR, SCREEN_YES);
+        return -1;
+    }
+    if (!GetFileInfo(resolvedPath, buffer, bufferSize, fn)) {
         return -1;
     }
 
@@ -239,16 +247,11 @@ int SetupDriverCgroup(FILE *cgroupAllow)
         return -1;
     }
  
-    char devmmPath[PATH_MAX] = {0};
-    char hisiPath[PATH_MAX] = {0};
-    if ((sprintf_s(devmmPath, PATH_MAX, "/dev/%s", DEVMM_SVM) < 0) ||
-        (sprintf_s(hisiPath, PATH_MAX, "/dev/%s", HISI_HDC) < 0)) {
-        Logger("failed to assemble path.", LEVEL_ERROR, SCREEN_YES);
+    bool is200Rc = false;
+    if (!DoMounting200RC(&is200Rc)) {
         return -1;
     }
-    struct stat devStat; // 200 soc 不需要挂载此两个设备
-    if ((stat(devmmPath, &devStat) != 0) && (stat(hisiPath, &devStat) != 0)) {
-        Logger("200 Soc.", LEVEL_ERROR, SCREEN_YES);
+    if (is200Rc) {
         return 0;
     }
 
@@ -324,36 +327,21 @@ int GetCgroupPath(int pid, char *effPath, size_t maxSize)
     return 0;
 }
 
-int SetupCgroup(const struct ParsedConfig *config)
+static bool SetupCgroupProcess(const char* resolvedCgroupPath, const struct ParsedConfig *config)
 {
-    if (config == NULL) {
-        (void)fprintf(stderr, "config pointer is null!\n");
-        return -1;
-    }
-
     char *str = NULL;
-    char deviceName[BUF_SIZE] = {0};
-    char resolvedCgroupPath[PATH_MAX] = {0};
     FILE *cgroupAllow = NULL;
-    if (realpath(config->cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
-        Logger("cannot canonicalize cgroup.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
-    const size_t maxFileSzieMb = 1024; // max 1G
-    if (!CheckExternalFile(resolvedCgroupPath, strlen(resolvedCgroupPath), maxFileSzieMb, true)) {
-        Logger("Check file legality failed.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
-    cgroupAllow = fopen((const char *)resolvedCgroupPath, "a");
+    char deviceName[BUF_SIZE] = {0};
+    cgroupAllow = fopen(resolvedCgroupPath, "a");
     if (cgroupAllow == NULL) {
         Logger("failed to open cgroup file.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
+        return false;
     }
 
     if (SetupDriverCgroup(cgroupAllow) < 0) {
         fclose(cgroupAllow);
         Logger("failed to setup driver cgroup.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
+        return false;
     }
     for (size_t idx = 0; idx < config->devicesNr; idx++) {
         if (sprintf_s(deviceName, BUF_SIZE, "%s%u",
@@ -363,16 +351,40 @@ int SetupCgroup(const struct ParsedConfig *config)
             str = FormatLogMessage("failed to assemble device path for no.%u.", config->devices[idx]);
             Logger(str, LEVEL_ERROR, SCREEN_YES);
             free(str);
-            return -1;
+            return false;
         }
 
         if (SetupDeviceCgroup(cgroupAllow, (const char *)deviceName) < 0) {
             fclose(cgroupAllow);
             Logger("failed to setup cgroup.", LEVEL_ERROR, SCREEN_YES);
-            return -1;
+            return false;
         }
     }
     free(str);
     fclose(cgroupAllow);
+    return true;
+}
+
+int SetupCgroup(const struct ParsedConfig *config)
+{
+    if (config == NULL) {
+        (void)fprintf(stderr, "config pointer is null!\n");
+        return -1;
+    }
+
+    char resolvedCgroupPath[PATH_MAX] = {0};
+    if (realpath(config->cgroupPath, resolvedCgroupPath) == NULL && errno != ENOENT) {
+        Logger("cannot canonicalize cgroup.", LEVEL_ERROR, SCREEN_YES);
+        return -1;
+    }
+    const size_t maxFileSzieMb = 1024; // max 1G
+    if (!CheckExternalFile(resolvedCgroupPath, strlen(resolvedCgroupPath), maxFileSzieMb, true)) {
+        Logger("Check file legality failed.", LEVEL_ERROR, SCREEN_YES);
+        return -1;
+    }
+    if (!SetupCgroupProcess(resolvedCgroupPath, config)) {
+        return -1;
+    }
+
     return 0;
 }

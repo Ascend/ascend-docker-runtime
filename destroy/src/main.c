@@ -32,28 +32,25 @@ static bool ShowExceptionInfo(const char* exceptionInfo)
     (void)fprintf(stderr, "\n");
     return false;
 }
- 
-static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen,
-    const unsigned long long maxFileSzieMb, const bool checkOwner)
+
+static bool CheckFileOwner(const struct stat fileStat, const bool checkOwner)
 {
-    const unsigned long long maxFileSzieB = maxFileSzieMb * 1024 * 1024;
-    char buf[PATH_MAX] = {0};
-    if (strncpy_s(buf, sizeof(buf), resolvedPath, resolvedPathLen) != EOK) {
+    if (checkOwner) {
+        if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
+            return ShowExceptionInfo("Please check the folder owner!");
+        }
+    }
+    return true;
+}
+
+static bool CheckParentDir(char* buf, const size_t bufLen, struct stat fileStat, const bool checkOwner)
+{
+    if (buf == NULL) {
         return false;
     }
-    struct stat fileStat;
-    if ((stat(buf, &fileStat) != 0) ||
-        ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
-        return ShowExceptionInfo("resolvedPath does not exist or is not a file!");
-    }
-    if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
-        return ShowExceptionInfo("fileSize out of bounds!");
-    }
     for (int iLoop = 0; iLoop < PATH_MAX; iLoop++) {
-        if (checkOwner) {
-            if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
-                return ShowExceptionInfo("Please check the folder owner!");
-            }
+        if (!CheckFileOwner(fileStat, checkOwner)) {
+            return false;
         }
         if ((fileStat.st_mode & S_IWOTH) != 0) { // 操作文件对other用户可写
             return ShowExceptionInfo("Please check the write permission!");
@@ -70,22 +67,62 @@ static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen
     }
     return true;
 }
- 
-static bool CheckExternalFile(const char* filePath, const size_t filePathLen,
-    const size_t maxFileSzieMb, const bool checkOwner)
+
+static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen,
+    const unsigned long long maxFileSzieMb, const bool checkOwner)
+{
+    const unsigned long long maxFileSzieB = maxFileSzieMb * 1024 * 1024;
+    char buf[PATH_MAX] = {0};
+    if (strncpy_s(buf, sizeof(buf), resolvedPath, resolvedPathLen) != EOK) {
+        return false;
+    }
+    struct stat fileStat;
+    if ((stat(buf, &fileStat) != 0) ||
+        ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
+        (void)fprintf(stderr, "[2: %s]\n", buf);
+        return ShowExceptionInfo("resolvedPath does not exist or is not a file!");
+    }
+    if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
+        return ShowExceptionInfo("fileSize out of bounds!");
+    }
+    return CheckParentDir(buf, PATH_MAX, fileStat, checkOwner);
+}
+
+static bool IsValidChar(const char c)
+{
+    if (isalnum(c) != 0) {
+        return true;
+    }
+    // ._-/~为合法字符
+    if ((c == '.') || (c == '_') ||
+        (c == '-') || (c == '/') || (c == '~')) {
+        return true;
+    }
+    return false;
+}
+
+static bool CheckFileName(const char* filePath, const size_t filePathLen)
 {
     int iLoop;
     if ((filePathLen > PATH_MAX) || (filePathLen <= 0)) { // 长度越界
         return ShowExceptionInfo("filePathLen out of bounds!");
     }
-    if (strstr(filePath, "..") != NULL) { // 存在".."
-        return ShowExceptionInfo("filePath has an illegal character!");
-    }
     for (iLoop = 0; iLoop < filePathLen; iLoop++) {
-        if ((isalnum(filePath[iLoop]) == 0) && (filePath[iLoop] != '.') && (filePath[iLoop] != '_') &&
-            (filePath[iLoop] != '-') && (filePath[iLoop] != '/') && (filePath[iLoop] != '~')) { // 非法字符
+        if (!IsValidChar(filePath[iLoop])) { // 非法字符
             return ShowExceptionInfo("filePath has an illegal character!");
         }
+    }
+    return true;
+}
+
+static bool CheckExternalFile(const char* filePath, const size_t filePathLen,
+    const size_t maxFileSzieMb, const bool checkOwner)
+{
+    if (filePath == NULL) {
+        return false;
+    }
+    if (!CheckFileName(filePath, filePathLen)) {
+        return false;
     }
     char resolvedPath[PATH_MAX] = {0};
     if (realpath(filePath, resolvedPath) == NULL && errno != ENOENT) {
@@ -139,55 +176,99 @@ static void DcmiDlclose(void **handle)
     }
 }
 
-static int DestroyEntrance(const char *argv[])
+static bool CheckLimitId(const int IdValue)
 {
-    if (argv == NULL) {
-        return -1;
+    if (IdValue < 0 || IdValue > ID_MAX) {
+        return false;
     }
+    return true;
+}
+
+static bool GetAndCheckID(const char *argv[], int *cardId,
+                          int *deviceId, int *vDeviceId)
+{
     errno = 0;
-    int cardId = atoi(argv[PARAMS_SECOND]);
-    if ((errno != 0) || (cardId < 0) || (cardId > ID_MAX)) {
-        return -1;
+    *cardId = atoi(argv[PARAMS_SECOND]);
+    if ((errno != 0) || !CheckLimitId(*cardId)) {
+        return false;
     }
-    int deviceId = atoi(argv[PARAMS_THIRD]);
-    if ((errno != 0) || (deviceId < 0) || (deviceId > ID_MAX)) {
-        return -1;
+    *deviceId = atoi(argv[PARAMS_THIRD]);
+    if ((errno != 0) || !CheckLimitId(*deviceId)) {
+        return false;
     }
-    int vDeviceId = atoi(argv[PARAMS_FOURTH]);
-    if ((errno != 0) || (vDeviceId < 0) || (vDeviceId > ID_MAX)) {
-        return -1;
+    *vDeviceId = atoi(argv[PARAMS_FOURTH]);
+    if ((errno != 0) || !CheckLimitId(*vDeviceId)) {
+        return false;
     }
-    void *handle = NULL;
-    if (!DeclareDcmiApiAndCheck(&handle)) {
-        (void)fprintf(stderr, "Declare dcmi failed.\n");
-        return -1;
+    return true;
+}
+
+static bool DcmiInitProcess(void *handle)
+{
+    if (handle == NULL) {
+        return false;
     }
     int (*dcmi_init)(void) = NULL;
-    int (*dcmi_set_destroy_vdevice)(int, int, int) = NULL;
     dcmi_init = dlsym(handle, DCMI_INIT);
     if (dcmi_init == NULL) {
         DcmiDlAbnormalExit(&handle, "DeclareDlApi failed");
-        return -1;
-    }
-    dcmi_set_destroy_vdevice = dlsym(handle, DCMI_SET_DESTROY_VDEVICE);
-    if (dcmi_set_destroy_vdevice == NULL) {
-        DcmiDlAbnormalExit(&handle, "DeclareDlApi failed");
-        return -1;
+        return false;
     }
     int ret = dcmi_init();
     if (ret != 0) {
         (void)fprintf(stderr, "dcmi_init failed, ret = %d\n", ret);
         DcmiDlclose(&handle);
-        return -1;
+        return false;
     }
-    ret = dcmi_set_destroy_vdevice(cardId, deviceId, vDeviceId);
+    return true;
+}
+
+static bool DcmiDestroyProcess(void *handle, const int cardId,
+                               const int deviceId, const int vDeviceId)
+{
+    if (handle == NULL) {
+        return false;
+    }
+    int (*dcmi_set_destroy_vdevice)(int, int, int) = NULL;
+    dcmi_set_destroy_vdevice = dlsym(handle, DCMI_SET_DESTROY_VDEVICE);
+    if (dcmi_set_destroy_vdevice == NULL) {
+        DcmiDlAbnormalExit(&handle, "DeclareDlApi failed");
+        return false;
+    }
+    int ret = dcmi_set_destroy_vdevice(cardId, deviceId, vDeviceId);
     if (ret != 0) {
         (void)fprintf(stderr, "dcmi_set_destroy_vdevice failed, ret = %d\n", ret);
         DcmiDlclose(&handle);
+        return false;
+    }
+    return true;
+}
+
+static int DestroyEntrance(const char *argv[])
+{
+    if (argv == NULL) {
+        return -1;
+    }
+    int cardId = 0;
+    int deviceId = 0;
+    int vDeviceId = 0;
+    if (!GetAndCheckID(argv, &cardId, &deviceId, &vDeviceId)) {
+        return -1;
+    }
+
+    void *handle = NULL;
+    if (!DeclareDcmiApiAndCheck(&handle)) {
+        (void)fprintf(stderr, "Declare dcmi failed.\n");
+        return -1;
+    }
+    if (!DcmiInitProcess(handle)) {
+        return -1;
+    }
+    if (!DcmiDestroyProcess(handle, cardId, deviceId, vDeviceId)) {
         return -1;
     }
     DcmiDlclose(&handle);
-    return ret;
+    return 0;
 }
 
 static bool EntryCheck(const int argc, const char *argv[])

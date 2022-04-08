@@ -180,6 +180,50 @@ static cJSON *CreateContent(const char *runtimePath)
     return root;
 }
 
+static bool AddAscendRuntime(cJSON **root, const char *runtimePath)
+{
+    cJSON *runtimes = NULL;
+    runtimes = cJSON_GetObjectItem(*root, "runtimes");
+    if (runtimes == NULL) {
+        runtimes = CreateRuntimes(runtimePath);
+        if (runtimes == NULL) {
+            cJSON_Delete(*root);
+            return false;
+        }
+        cJSON_AddItemToObject(*root, RUNTIME_KEY, runtimes);
+    } else {
+        int ret = DelJsonContent(runtimes, ASCEND_RUNTIME_NAME);
+        if (ret != 0) {
+            cJSON_Delete(*root);
+            return false;
+        }
+        cJSON  *ascendRuntime = NULL;
+        ascendRuntime = CreateAscendRuntimeInfo(runtimePath);
+        if (ascendRuntime == NULL) {
+            cJSON_Delete(*root);
+            return false;
+        }
+        cJSON_AddItemToObject(runtimes, ASCEND_RUNTIME_NAME, ascendRuntime);
+    }
+    return true;
+}
+
+static bool AddDefaultRuntime(cJSON **root)
+{
+    int ret = DelJsonContent(*root, DEFALUT_KEY);
+    if (ret != 0) {
+        cJSON_Delete(*root);
+        return false;
+    }
+    cJSON *defaultRuntime = cJSON_CreateString(DEFAULT_VALUE);
+    if (defaultRuntime == NULL) {
+        cJSON_Delete(*root);
+        return false;
+    }
+    cJSON_AddItemToObject(*root, DEFALUT_KEY, defaultRuntime);
+    return true;
+}
+
 static cJSON *ModifyContent(FILE *pf, const char *runtimePath)
 {
     if (pf == NULL || runtimePath == NULL) {
@@ -198,42 +242,14 @@ static cJSON *ModifyContent(FILE *pf, const char *runtimePath)
     }
 
     /* 插入ascend runtime */
-    cJSON *runtimes = NULL;
-    runtimes = cJSON_GetObjectItem(root, "runtimes");
-    if (runtimes == NULL) {
-        runtimes = CreateRuntimes(runtimePath);
-        if (runtimes == NULL) {
-            cJSON_Delete(root);
-            return NULL;
-        }
-        cJSON_AddItemToObject(root, RUNTIME_KEY, runtimes);
-    } else {
-        int ret = DelJsonContent(runtimes, ASCEND_RUNTIME_NAME);
-        if (ret != 0) {
-            cJSON_Delete(root);
-            return NULL;
-        }
-        cJSON  *ascendRuntime = NULL;
-        ascendRuntime = CreateAscendRuntimeInfo(runtimePath);
-        if (ascendRuntime == NULL) {
-            cJSON_Delete(root);
-            return NULL;
-        }
-        cJSON_AddItemToObject(runtimes, ASCEND_RUNTIME_NAME, ascendRuntime);
+    if (!AddAscendRuntime(&root, runtimePath)) {
+        return NULL;
     }
 
     /* 插入defaul runtime */
-    int ret = DelJsonContent(root, DEFALUT_KEY);
-    if (ret != 0) {
-        cJSON_Delete(root);
+    if (!AddDefaultRuntime(&root)) {
         return NULL;
     }
-    cJSON *defaultRuntime = cJSON_CreateString(DEFAULT_VALUE);
-    if (defaultRuntime == NULL) {
-        cJSON_Delete(root);
-        return NULL;
-    }
-    cJSON_AddItemToObject(root, DEFALUT_KEY, defaultRuntime);
 
     return root;
 }
@@ -286,28 +302,25 @@ static bool ShowExceptionInfo(const char* exceptionInfo)
     (void)fprintf(stderr, "\n");
     return false;
 }
- 
-static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen,
-    const unsigned long long maxFileSzieMb, const bool checkOwner)
+
+static bool CheckFileOwner(const struct stat fileStat, const bool checkOwner)
 {
-    const unsigned long long maxFileSzieB = maxFileSzieMb * 1024 * 1024;
-    char buf[PATH_MAX] = {0};
-    if (strncpy_s(buf, sizeof(buf), resolvedPath, resolvedPathLen) != EOK) {
+    if (checkOwner) {
+        if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
+            return ShowExceptionInfo("Please check the folder owner!");
+        }
+    }
+    return true;
+}
+
+static bool CheckParentDir(char* buf, const size_t bufLen, struct stat fileStat, const bool checkOwner)
+{
+    if (buf == NULL) {
         return false;
     }
-    struct stat fileStat;
-    if ((stat(buf, &fileStat) != 0) ||
-        ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
-        return ShowExceptionInfo("resolvedPath does not exist or is not a file!");
-    }
-    if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
-        return ShowExceptionInfo("fileSize out of bounds!");
-    }
     for (int iLoop = 0; iLoop < PATH_MAX; iLoop++) {
-        if (checkOwner) {
-            if ((fileStat.st_uid != ROOT_UID) && (fileStat.st_uid != geteuid())) { // 操作文件owner非root/自己
-                return ShowExceptionInfo("Please check the folder owner!");
-            }
+        if (!CheckFileOwner(fileStat, checkOwner)) {
+            return false;
         }
         if ((fileStat.st_mode & S_IWOTH) != 0) { // 操作文件对other用户可写
             return ShowExceptionInfo("Please check the write permission!");
@@ -324,7 +337,40 @@ static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen
     }
     return true;
 }
- 
+
+static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen,
+    const unsigned long long maxFileSzieMb, const bool checkOwner)
+{
+    const unsigned long long maxFileSzieB = maxFileSzieMb * 1024 * 1024;
+    char buf[PATH_MAX] = {0};
+    if (strncpy_s(buf, sizeof(buf), resolvedPath, resolvedPathLen) != EOK) {
+        return false;
+    }
+    struct stat fileStat;
+    if ((stat(buf, &fileStat) != 0) ||
+        ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
+        (void)fprintf(stderr, "[1: %s]\n", buf);
+        return ShowExceptionInfo("resolvedPath does not exist or is not a file!");
+    }
+    if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
+        return ShowExceptionInfo("fileSize out of bounds!");
+    }
+    return CheckParentDir(buf, PATH_MAX, fileStat, checkOwner);
+}
+
+static bool IsValidChar(const char c)
+{
+    if (isalnum(c) != 0) {
+        return true;
+    }
+    // ._-/~为合法字符
+    if ((c == '.') || (c == '_') ||
+        (c == '-') || (c == '/') || (c == '~')) {
+        return true;
+    }
+    return false;
+}
+
 static bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     const size_t maxFileSzieMb, const bool checkOwner)
 {
@@ -332,12 +378,8 @@ static bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     if ((filePathLen > PATH_MAX) || (filePathLen <= 0)) { // 长度越界
         return ShowExceptionInfo("filePathLen out of bounds!");
     }
-    if (strstr(filePath, "..") != NULL) { // 存在".."
-        return ShowExceptionInfo("filePath has an illegal character!");
-    }
     for (iLoop = 0; iLoop < filePathLen; iLoop++) {
-        if ((isalnum(filePath[iLoop]) == 0) && (filePath[iLoop] != '.') && (filePath[iLoop] != '_') &&
-            (filePath[iLoop] != '-') && (filePath[iLoop] != '/') && (filePath[iLoop] != '~')) { // 非法字符
+        if (!IsValidChar(filePath[iLoop])) { // 非法字符
             return ShowExceptionInfo("filePath has an illegal character!");
         }
     }
@@ -360,102 +402,145 @@ static bool CheckJsonFile(const char *jsonFilePath, const size_t jsonFilePathLen
     return true;
 }
 
-static int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, const char *runtimePath)
+static bool CheckJsonFileParam(const char *filePath, const char *tempPath, const char *runtimePath)
 {
     if (filePath == NULL || tempPath == NULL || runtimePath == NULL) {
         (void)fprintf(stderr, "filePath, tempPath or runtimePath are null!\n");
-        return -1;
+        return false;
     }
     
     if (!CheckJsonFile(filePath, strlen(filePath)) || !CheckJsonFile(tempPath, strlen(tempPath)) ||
         !CheckJsonFile(runtimePath, strlen(runtimePath))) {
         (void)fprintf(stderr, "filePath, tempPath or runtimePath check failed!\n");
+        return false;
+    }
+    return true;
+}
+
+static bool GetJsonRoot(cJSON **root, const char *filePath, const char *runtimePath)
+{
+    FILE *pf = NULL;
+    pf = fopen(filePath, "r+");
+    if (pf == NULL) {
+        *root = CreateContent(runtimePath);
+    } else {
+        *root = ModifyContent(pf, runtimePath);
+        fclose(pf);
+    }
+
+    if (*root == NULL) {
+        (void)fprintf(stderr, "error: failed to create json\n");
+        return false;
+    }
+    return true;
+}
+
+static bool WriteJsonRoot(cJSON **root, const char *tempPath)
+{
+    FILE *pf = NULL;
+    pf = fopen(tempPath, "w");
+    if (pf == NULL) {
+        (void)fprintf(stderr, "error: failed to create file\n");
+        cJSON_Delete(*root);
+        return false;
+    }
+
+    if (fprintf(pf, "%s", cJSON_Print(*root)) < 0) {
+        (void)fprintf(stderr, "error: failed to create file\n");
+        (void)fclose(pf);
+        cJSON_Delete(*root);
+        return false;
+    }
+    (void)fclose(pf);
+
+    cJSON_Delete(*root);
+    return true;
+}
+
+static int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, const char *runtimePath)
+{
+    if (!CheckJsonFileParam(filePath, tempPath, runtimePath)) {
         return -1;
     }
 
     cJSON *root = NULL;
-    FILE *pf = NULL;
-    pf = fopen(filePath, "r+");
-    if (pf == NULL) {
-        root = CreateContent(runtimePath);
-    } else {
-        root = ModifyContent(pf, runtimePath);
-        fclose(pf);
-    }
-
-    if (root == NULL) {
-        (void)fprintf(stderr, "error: failed to create json\n");
+    if (!GetJsonRoot(&root, filePath, runtimePath) || root == NULL) {
         return -1;
     }
-
-    pf = fopen(tempPath, "w");
-    if (pf == NULL) {
-        (void)fprintf(stderr, "error: failed to create file\n");
-        cJSON_Delete(root);
+    if (!WriteJsonRoot(&root, tempPath)) {
         return -1;
     }
-
-    if (fprintf(pf, "%s", cJSON_Print(root)) < 0) {
-        (void)fprintf(stderr, "error: failed to create file\n");
-        (void)fclose(pf);
-        cJSON_Delete(root);
-        return -1;
-    }
-    (void)fclose(pf);
-
-    cJSON_Delete(root);
 
     return 0;
 }
 
-static int CreateRevisedJsonFile(const char *filePath, const char *tempPath)
+static bool CheckRevisedJsonFileParam(const char *filePath, const char *tempPath)
 {
     if (filePath == NULL || tempPath == NULL) {
         (void)fprintf(stderr, "filePath or tempPath are null!\n");
-        return -1;
+        return false;
     }
 
     if (!CheckJsonFile(filePath, strlen(filePath)) || !CheckJsonFile(tempPath, strlen(tempPath))) {
         (void)fprintf(stderr, "filePath, tempPath check failed!\n");
-        return -1;
+        return false;
     }
+    return true;
+}
 
+static bool GetNewContent(const char *filePath, cJSON **newContent)
+{
     FILE *pf = NULL;
     pf = fopen(filePath, "r+");
     if (pf == NULL) {
         (void)fprintf(stderr, "error: no json files found\n");
-        return -1;
+        return false;
     }
-    cJSON *newContent = NULL;
-    newContent = RemoveContent(pf);
+    *newContent = RemoveContent(pf);
     (void)fclose(pf);
     pf = NULL;
+    return true;
+}
 
-    if (newContent == NULL) {
-        (void)fprintf(stderr, "error: failed to create json\n");
-        return -1;
-    }
-
+static bool WriteNewContent(const char *tempPath, cJSON **newContent)
+{
+    FILE *pf = NULL;
     pf = fopen(tempPath, "w");
     if (pf == NULL) {
         (void)fprintf(stderr, "error: failed to create file\n");
-        cJSON_Delete(newContent);
-        newContent = NULL;
-        return -1;
+        cJSON_Delete(*newContent);
+        *newContent = NULL;
+        return false;
     }
 
-    if (fprintf(pf, "%s", cJSON_Print(newContent)) < 0) {
+    if (fprintf(pf, "%s", cJSON_Print(*newContent)) < 0) {
         (void)fprintf(stderr, "error: failed to create file\n");
-        cJSON_Delete(newContent);
-        newContent = NULL;
+        cJSON_Delete(*newContent);
+        *newContent = NULL;
         (void)fclose(pf);
         pf = NULL;
-        return -1;
+        return false;
     }
     (void)fclose(pf);
     pf = NULL;
-    cJSON_Delete(newContent);
-    newContent = NULL;
+    cJSON_Delete(*newContent);
+    *newContent = NULL;
+    return true;
+}
+
+static int CreateRevisedJsonFile(const char *filePath, const char *tempPath)
+{
+    if (!CheckRevisedJsonFileParam(filePath, tempPath)) {
+        return -1;
+    }
+    cJSON *newContent = NULL;
+    if (!GetNewContent(filePath, &newContent) || newContent == NULL) {
+        (void)fprintf(stderr, "error: failed to create json\n");
+        return -1;
+    }
+    if (!WriteNewContent(tempPath, &newContent)) {
+        return -1;
+    }
     return 0;
 }
 

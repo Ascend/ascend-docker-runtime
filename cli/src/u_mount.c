@@ -16,6 +16,21 @@
 #include "options.h"
 #include "logger.h"
 
+static bool checkSrcFile(const char *src)
+{
+    struct stat fileStat;
+    if ((stat(src, &fileStat) == 0) &&
+        ((S_ISREG(fileStat.st_mode) != 0) || (S_ISDIR(fileStat.st_mode) != 0))) { // 只校验文件和目录
+            const size_t maxFileSzieMb = 10 * 1024; // max 10 G
+            if (!CheckExternalFile(src, strlen(src), maxFileSzieMb, false)) {
+                char* str = FormatLogMessage("failed to mount src: %s.", src);
+                Logger(str, LEVEL_ERROR, SCREEN_YES);
+                return false;
+            }
+    }
+    return true;
+}
+
 int Mount(const char *src, const char *dst)
 {
     if (src == NULL || dst == NULL) {
@@ -25,18 +40,10 @@ int Mount(const char *src, const char *dst)
 
     static const unsigned long mountFlags = MS_BIND;
     static const unsigned long remountFlags = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID;
-    int ret;
-    struct stat fileStat;
-    if ((stat(src, &fileStat) == 0) &&
-        ((S_ISREG(fileStat.st_mode) != 0) || (S_ISDIR(fileStat.st_mode) != 0))) { // 只校验文件和目录
-            const size_t maxFileSzieMb = 10 * 1024; // max 10 G
-            if (!CheckExternalFile(src, strlen(src), maxFileSzieMb, false)) {
-                char* str = FormatLogMessage("failed to mount src: %s.", src);
-                Logger(str, LEVEL_ERROR, SCREEN_YES);
-                return -1;
-            }
+    if (!checkSrcFile(src)) {
+        return -1;
     }
-    ret = mount(src, dst, NULL, mountFlags, NULL);
+    int ret = mount(src, dst, NULL, mountFlags, NULL);
     if (ret < 0) {
         Logger("failed to mount src.", LEVEL_ERROR, SCREEN_YES);
         return -1;
@@ -51,24 +58,26 @@ int Mount(const char *src, const char *dst)
     return 0;
 }
 
-static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
-                              const char *dstDeviceName, struct PathInfo* pathInfo)
+static bool GetDeviceCheckParam(const char *rootfs, const char *srcDeviceName,
+    struct PathInfo* pathInfo)
 {
     if (rootfs == NULL || srcDeviceName == NULL || pathInfo == NULL) {
         Logger("rootfs, srcDeviceName, pathInfo pointer are null!", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+    return true;
+}
+
+static int GetDeviceMntSrcDstProcess(const char *rootfs, const char *srcDeviceName,
+                                     const char *dstDeviceName, struct PathInfo* pathInfo)
+{
+    if (!GetDeviceCheckParam(rootfs, srcDeviceName, pathInfo)) {
         return -1;
     }
-
-    int ret;
+    int ret = 0;
     errno_t err;
     char unresolvedDst[BUF_SIZE] = {0};
     char resolvedDst[PATH_MAX] = {0};
-
-    ret = VerifyPathInfo(pathInfo);
-    if (ret < 0) {
-        return -1;
-    }
-
     size_t srcBufSize = pathInfo->srcLen;
     size_t dstBufSize = pathInfo->dstLen;
     char *src = pathInfo->src;
@@ -98,14 +107,56 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
             return -1;
         }
     }
-
     return 0;
+}
+
+static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
+                              const char *dstDeviceName, struct PathInfo* pathInfo)
+{
+    if (!GetDeviceCheckParam(rootfs, srcDeviceName, pathInfo)) {
+        return -1;
+    }
+
+    int ret = VerifyPathInfo(pathInfo);
+    if (ret < 0) {
+        return -1;
+    }
+
+    return GetDeviceMntSrcDstProcess(rootfs, srcDeviceName, dstDeviceName, pathInfo);
+}
+
+static bool MountDeviceProcess(const char* dst, const char* src, const mode_t mode)
+{
+    int ret;
+    errno = 0;
+    struct stat dstStat;
+    ret = stat(dst, &dstStat);
+    if (ret == 0 && S_ISCHR(dstStat.st_mode)) {
+        return 0; // 特权容器自动挂载HOST所有设备，故此处跳过
+    } else if (ret == 0) {
+        Logger("dst already exists but not a char device as expected.", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    } else if (ret < 0 && errno != ENOENT) {
+        Logger("failed to check dst stat", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+    ret = MakeMountPoints(dst, mode);
+    if (ret < 0) {
+        Logger("failed to create mount dst file.", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+
+    ret = Mount(src, dst);
+    if (ret < 0) {
+        Logger("failed to mount dev.", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+    return true;
 }
 
 int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDeviceName)
 {
     int ret;
-    char *str = NULL;
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
     struct PathInfo pathInfo = {src, BUF_SIZE, dst, BUF_SIZE};
@@ -121,30 +172,10 @@ int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDe
         Logger("failed to stat src.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
-    errno = 0;
-    struct stat dstStat;
-    ret = stat((const char *)dst, &dstStat);
-    if (ret == 0 && S_ISCHR(dstStat.st_mode)) {
-        return 0; // 特权容器自动挂载HOST所有设备，故此处跳过
-    } else if (ret == 0) {
-        Logger("dst already exists but not a char device as expected.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    } else if (ret < 0 && errno != ENOENT) {
-        Logger("failed to check dst stat", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
-    ret = MakeMountPoints(dst, srcStat.st_mode);
-    if (ret < 0) {
-        Logger("failed to create mount dst file.", LEVEL_ERROR, SCREEN_YES);
+    if (!MountDeviceProcess(dst, src, srcStat.st_mode)) {
         return -1;
     }
 
-    ret = Mount(src, dst);
-    if (ret < 0) {
-        Logger("failed to mount dev.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
-    free(str);
     return 0;
 }
 
@@ -250,6 +281,43 @@ int MountDir(const char *rootfs, const char *src)
     return 0;
 }
 
+bool DoMounting200RC(bool* is200Rc)
+{
+    char devmmPath[PATH_MAX] = {0};
+    char hisiPath[PATH_MAX] = {0};
+    if ((sprintf_s(devmmPath, PATH_MAX, "/dev/%s", DEVMM_SVM) < 0) ||
+        (sprintf_s(hisiPath, PATH_MAX, "/dev/%s", HISI_HDC) < 0)) {
+        Logger("failed to assemble dev path.", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+    struct stat devStat; // 200 soc 不需要挂载此两个设备
+    if ((stat(devmmPath, &devStat) != 0) && (stat(hisiPath, &devStat) != 0)) {
+        Logger("200 Soc.", LEVEL_ERROR, SCREEN_YES);
+        *is200Rc = true;
+    }
+    return true;
+}
+
+static bool DoMountingDevice(const char *rootfs)
+{
+    int ret = MountDevice(rootfs, DEVMM_SVM, NULL);
+    if (ret < 0) {
+        char* str = FormatLogMessage("failed to mount device %s.", DEVMM_SVM);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
+        free(str);
+        return false;
+    }
+
+    ret = MountDevice(rootfs, HISI_HDC, NULL);
+    if (ret < 0) {
+        char* str = FormatLogMessage("failed to mount device %s.", HISI_HDC);
+        Logger(str, LEVEL_ERROR, SCREEN_YES);
+        free(str);
+        return false;
+    }
+    return true;
+}
+
 int DoCtrlDeviceMounting(const char *rootfs)
 {
     if (rootfs == NULL) {
@@ -265,33 +333,14 @@ int DoCtrlDeviceMounting(const char *rootfs)
         free(str);
         return -1;
     }
-
-    char devmmPath[PATH_MAX] = {0};
-    char hisiPath[PATH_MAX] = {0};
-    if ((sprintf_s(devmmPath, PATH_MAX, "/dev/%s", DEVMM_SVM) < 0) ||
-        (sprintf_s(hisiPath, PATH_MAX, "/dev/%s", HISI_HDC) < 0)) {
-        Logger("failed to assemble dev path.", LEVEL_ERROR, SCREEN_YES);
+    bool is200Rc = false;
+    if (!DoMounting200RC(&is200Rc)) {
         return -1;
     }
-    struct stat devStat; // 200 soc 不需要挂载此两个设备
-    if ((stat(devmmPath, &devStat) != 0) && (stat(hisiPath, &devStat) != 0)) {
-        Logger("200 Soc.", LEVEL_ERROR, SCREEN_YES);
+    if (is200Rc) {
         return 0;
     }
-
-    ret = MountDevice(rootfs, DEVMM_SVM, NULL);
-    if (ret < 0) {
-        char* str = FormatLogMessage("failed to mount device %s.", DEVMM_SVM);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
-        return -1;
-    }
-
-    ret = MountDevice(rootfs, HISI_HDC, NULL);
-    if (ret < 0) {
-        char* str = FormatLogMessage("failed to mount device %s.", HISI_HDC);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
+    if (!DoMountingDevice(rootfs)) {
         return -1;
     }
 
