@@ -37,6 +37,14 @@ int Mount(const char *src, const char *dst)
                 return -1;
             }
     }
+    if (S_ISDIR(fileStat.st_mode) != 0) { // 目录则增加递归校验子集
+        if (!GetFileSubsetAndCheck(src, strlen(src))) {
+            char* str = FormatLogMessage("Check file subset failed: %s.", src);
+            Logger(str, LEVEL_ERROR, SCREEN_YES);
+            free(str);
+            return -1;
+        }
+    }
     ret = mount(src, dst, NULL, mountFlags, NULL);
     if (ret < 0) {
         Logger("failed to mount src.", LEVEL_ERROR, SCREEN_YES);

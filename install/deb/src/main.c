@@ -331,7 +331,7 @@ static bool IsValidChar(const char c)
     if (isalnum(c) != 0) {
         return true;
     }
-    // ._-/~为合法字符
+
     if ((c == '.') || (c == '_') ||
         (c == '-') || (c == '/') || (c == '~')) {
         return true;
@@ -344,9 +344,6 @@ static bool CheckExternalFile(const char* filePath, const size_t filePathLen,
 {
     if ((filePathLen > PATH_MAX) || (filePathLen <= 0)) { // 长度越界
         return ShowExceptionInfo("filePathLen out of bounds!");
-    }
-    if (strstr(filePath, "..") != NULL) { // 存在".."
-        return ShowExceptionInfo("filePath has an illegal character!");
     }
     for (size_t iLoop = 0; iLoop < filePathLen; iLoop++) {
         if (!IsValidChar(filePath[iLoop])) { // 非法字符

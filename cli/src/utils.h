@@ -25,5 +25,5 @@ int MakeMountPoints(const char *path, mode_t mode);
 bool IsValidChar(const char c);
 bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     const size_t maxFileSzieMb, const bool checkOwner);
-
+bool GetFileSubsetAndCheck(const char *basePath, const size_t basePathLen);
 #endif

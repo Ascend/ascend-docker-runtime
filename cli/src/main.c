@@ -131,7 +131,7 @@ static bool CheckFileLegality(const char* filePath, const size_t filePathLen,
         Logger("realpath failed!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
-    if (strstr(resolvedPath, filePath) == NULL) { // 存在软链接
+    if (strcmp(resolvedPath, filePath) != 0) { // 存在软链接
         Logger("filePath has a soft link!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
