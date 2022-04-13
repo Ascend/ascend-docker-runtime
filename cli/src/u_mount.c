@@ -132,7 +132,7 @@ static bool MountDeviceProcess(const char* dst, const char* src, const mode_t mo
     struct stat dstStat;
     ret = stat(dst, &dstStat);
     if (ret == 0 && S_ISCHR(dstStat.st_mode)) {
-        return 0; // 特权容器自动挂载HOST所有设备，故此处跳过
+        return true; // 特权容器自动挂载HOST所有设备，故此处跳过
     } else if (ret == 0) {
         Logger("dst already exists but not a char device as expected.", LEVEL_ERROR, SCREEN_YES);
         return false;

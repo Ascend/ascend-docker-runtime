@@ -130,7 +130,7 @@ static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
         char* str = FormatLogMessage("too many files to mount, max number is %u", MAX_MOUNT_NR);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
-        return -1;
+        return false;
     }
 
     char *dst = &args->files.list[args->files.count++][0];
@@ -156,7 +156,7 @@ static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
         char* str = FormatLogMessage("too many directories to mount, max number is %u", MAX_MOUNT_NR);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
-        return -1;
+        return false;
     }
 
     char *dst = &args->dirs.list[args->dirs.count++][0];
@@ -381,7 +381,6 @@ int Process(int argc, char **argv)
         Logger("argv pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
-    
     int c;
     int ret;
     int optionIndex;
