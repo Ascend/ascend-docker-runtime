@@ -126,7 +126,7 @@ static int DelJsonContent(cJSON *root, const char *key)
     cJSON *existItem = NULL;
     existItem = cJSON_GetObjectItem(root, key);
     if (existItem == NULL) {
-        return 0;
+        return -1;
     }
 
     cJSON *removedItem = NULL;
@@ -390,6 +390,7 @@ static int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, c
     } else {
         root = ModifyContent(pf, runtimePath);
         fclose(pf);
+        pf = NULL;
     }
 
     if (root == NULL) {
@@ -406,11 +407,12 @@ static int DetectAndCreateJsonFile(const char *filePath, const char *tempPath, c
     if (fprintf(pf, "%s", cJSON_Print(root)) < 0) {
         (void)fprintf(stderr, "error: failed to create file\n");
         (void)fclose(pf);
+        pf = NULL;
         cJSON_Delete(root);
         return -1;
     }
     (void)fclose(pf);
-
+    pf = NULL;
     cJSON_Delete(root);
 
     return 0;
@@ -456,10 +458,8 @@ static int CreateRevisedJsonFile(const char *filePath, const char *tempPath)
     if (fprintf(pf, "%s", cJSON_Print(newContent)) < 0) {
         (void)fprintf(stderr, "error: failed to create file\n");
         cJSON_Delete(newContent);
-        if (pf != NULL) {
-            (void)fclose(pf);
-            pf = NULL;
-        }
+        (void)fclose(pf);
+        pf = NULL;
         return -1;
     }
     (void)fclose(pf);
