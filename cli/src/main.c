@@ -184,6 +184,9 @@ static bool OptionsCmdArgParser(struct CmdArgs *args, const char *arg)
 
 static bool CheckWhiteList(const char* fileName)
 {
+    if (fileName == NULL) {
+        return false;
+    }
     bool fileExists = false;
     const char mountWhiteList[WHITE_LIST_NUM][PATH_MAX] = {{"/usr/local/Ascend/driver/lib64"},
         {"/usr/local/Ascend/driver/include"},
