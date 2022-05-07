@@ -126,7 +126,7 @@ static int DelJsonContent(cJSON *root, const char *key)
     cJSON *existItem = NULL;
     existItem = cJSON_GetObjectItem(root, key);
     if (existItem == NULL) {
-        return -1;
+        return 0;
     }
 
     cJSON *removedItem = NULL;
