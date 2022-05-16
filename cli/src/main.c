@@ -87,6 +87,10 @@ static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
     FILE* pFile = NULL;
     pFile = fopen(pidMax, "r");
     if ((pFile == NULL) || (fgets(buff, PATH_MAX, pFile) == NULL)) {
+        if (pFile != NULL) {
+            (void)fclose(pFile);
+        }
+        pFile = NULL;
         Logger("failed to get pid_max buff.", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
@@ -218,7 +222,7 @@ static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
         char* str = FormatLogMessage("too many files to mount, max number is %u", MAX_MOUNT_NR);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
-        return -1;
+        return false;
     }
 
     char *dst = &args->files.list[args->files.count++][0];
@@ -252,7 +256,7 @@ static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
         char* str = FormatLogMessage("too many directories to mount, max number is %u", MAX_MOUNT_NR);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
-        return -1;
+        return false;
     }
 
     char *dst = &args->dirs.list[args->dirs.count++][0];
