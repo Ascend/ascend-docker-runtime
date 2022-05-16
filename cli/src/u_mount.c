@@ -117,7 +117,6 @@ static int GetDeviceMntSrcDst(const char *rootfs, const char *srcDeviceName,
 int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDeviceName)
 {
     int ret;
-    char *str = NULL;
     char src[BUF_SIZE] = {0};
     char dst[BUF_SIZE] = {0};
     struct PathInfo pathInfo = {src, BUF_SIZE, dst, BUF_SIZE};
@@ -156,13 +155,12 @@ int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDe
         Logger("failed to mount dev.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
-    free(str);
     return 0;
 }
 
 int DoDeviceMounting(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr)
 {
-    if (rootfs == NULL || device_name == NULL) {
+    if (rootfs == NULL || device_name == NULL || ids == NULL) {
         Logger("rootfs, device_name pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
