@@ -12,7 +12,8 @@ using namespace testing;
 
 int main(int argc, char* argv[], char* evn[])
 {
-    int ret = Init_UT(argc, argv, true); 
+    InitGoogleTest(&argc, argv);
+    int ret = RUN_ALL_TESTS();
     if (1 == ret) {
         printf("有用例错误，请按任意键继续。。。");
     }

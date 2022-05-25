@@ -56,9 +56,9 @@ function build_bin()
     cd ${INSTALLHELPERSRCDIR}
     go mod tidy
     [ -d "${BUILD}/build/helper/build" ] && rm -rf ${BUILD}/build/helper/build
-    mkdir -p ${BUILD}/build/helper/build && cd ${BUILD}/build/helper/build
+    mkdir -p ${BUILD}/build/helper/build
     go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath  ${INSTALLHELPERSRCDIR}/${INSTALLHELPERSRCNAME}
-    mv main ascend-docker-plugin-install-helper
+    mv main ${BUILD}/build/helper/build/ascend-docker-plugin-install-helper
 
     echo "make hook"
     cd ${HOOKDIR}

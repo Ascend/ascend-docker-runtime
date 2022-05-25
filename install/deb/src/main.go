@@ -1,7 +1,6 @@
-/**
- * Copyright (c) Huawei Technologies Co., Ltd. 2020-2022. All rights reserved.
- * Description: ascend-docker-runtime工具，辅助安装配置
- */
+// Copyright (c) Huawei Technologies Co., Ltd. 2022. All rights reserved.
+
+// Description: ascend-docker-runtime工具，辅助安装配置
 package main
 
 import (
@@ -27,12 +26,15 @@ const template = `{
 }`
 
 const (
-	actionPosition = 0
-	srcFilePosition = 1
-	destFilePosition = 2
+	actionPosition      = 0
+	srcFilePosition     = 1
+	destFilePosition    = 2
 	runtimeFilePosition = 3
-	rmCommandLength = 3
-	addCommandLength = 4
+	rmCommandLength     = 3
+	addCommandLength    = 4
+	addCommand          = "add"
+	rmCommand           = "rm"
+	maxFileSize         = 1024 * 1024 * 10
 )
 
 func main() {
@@ -49,21 +51,24 @@ func main() {
 
 func process() error {
 	const helpMessage = "\tadd <daemon.json path> <daemon.json.result path> <ascend-docker-runtime path>\n" +
-                        "\t rm <daemon.json path> <daemon.json.result path>\n" +
-                        "\t -h help command"
-    helpFlag := flag.Bool("h", false, helpMessage)
+		"\t rm <daemon.json path> <daemon.json.result path>\n" +
+		"\t -h help command"
+	helpFlag := flag.Bool("h", false, helpMessage)
 	flag.Parse()
 	if *helpFlag {
 		_, err := fmt.Println(helpMessage)
 		return err
 	}
 	command := flag.Args()
+	if len(command) == 0 {
+		return fmt.Errorf("error param")
+	}
 	action := command[actionPosition]
 	correctParam := false
-	if action == "add" && len(command) == addCommandLength {
+	if action == addCommand && len(command) == addCommandLength {
 		correctParam = true
 	}
-	if action == "rm" && len(command) == rmCommandLength {
+	if action == rmCommand && len(command) == rmCommandLength {
 		correctParam = true
 	}
 	if !correctParam {
@@ -71,14 +76,20 @@ func process() error {
 	}
 
 	srcFilePath := command[srcFilePosition]
-	if _, err := mindxcheckutils.FileChecker(srcFilePath, false, true, false, 0); err != nil {
-		return err
+	if _, err := os.Stat(srcFilePath); os.IsNotExist(err) {
+		if _, err := mindxcheckutils.FileChecker(filepath.Dir(srcFilePath), true, true, false, 0); err != nil {
+			return err
+		}
+	} else {
+		if _, err := mindxcheckutils.FileChecker(srcFilePath, false, true, false, 0); err != nil {
+			return err
+		}
 	}
+
 	destFilePath := command[destFilePosition]
 	if _, err := mindxcheckutils.FileChecker(filepath.Dir(destFilePath), true, true, false, 0); err != nil {
 		return err
 	}
-
 	runtimeFilePath := ""
 	if len(command) == addCommandLength {
 		runtimeFilePath = command[runtimeFilePosition]
@@ -103,22 +114,26 @@ func createJsonString(srcFilePath, runtimeFilePath, action string) ([]byte, erro
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	} else if os.IsNotExist(err) {
 		// not existed
 		writeContent = []byte(fmt.Sprintf(template, runtimeFilePath))
+	} else {
+		return nil, err
 	}
 	return writeContent, nil
 }
 
 func writeJson(destFilePath string, writeContent []byte) error {
 	if _, err := os.Stat(destFilePath); os.IsNotExist(err) {
-		file, err := os.OpenFile(destFilePath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
+		const perm = 0600
+		file, err := os.OpenFile(destFilePath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, perm)
 		if err != nil {
 			return fmt.Errorf("create target file failed")
 		}
 		_, err = file.Write(writeContent)
 		if err != nil {
-			return fmt.Errorf("write target file failed")
+			closeErr := file.Close()
+			return fmt.Errorf("write target file failed with close err %v", closeErr)
 		}
 		err = file.Close()
 		if err != nil {
@@ -137,15 +152,15 @@ func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]inter
 		return nil, err
 	}
 
-	if _, ok := daemon["runtimes"]; !ok && action == "add" {
+	if _, ok := daemon["runtimes"]; !ok && action == addCommand {
 		daemon["runtimes"] = map[string]interface{}{}
 	}
 	runtimeValue := daemon["runtimes"]
 	runtimeConfig, runtimeConfigOk := runtimeValue.(map[string]interface{})
-	if !runtimeConfigOk && action == "add" {
+	if !runtimeConfigOk && action == addCommand {
 		return nil, fmt.Errorf("extract runtime failed")
 	}
-	if action == "add" {
+	if action == addCommand {
 		if _, ok := runtimeConfig["ascend"]; !ok {
 			runtimeConfig["ascend"] = map[string]interface{}{}
 		}
@@ -158,11 +173,13 @@ func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]inter
 			ascendConfig["runtimeArgs"] = []string{}
 		}
 		daemon["default-runtime"] = "ascend"
-	} else if action == "rm" {
+	} else if action == rmCommand {
 		if runtimeConfigOk {
 			delete(runtimeConfig, "ascend")
 		}
-		delete(daemon, "default-runtime")
+		if value, ok := daemon["default-runtime"]; ok && value == "ascend" {
+			delete(daemon, "default-runtime")
+		}
 	} else {
 		return nil, fmt.Errorf("param error")
 	}
@@ -170,13 +187,20 @@ func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]inter
 }
 
 func loadOriginJson(srcFilePath string) (map[string]interface{}, error) {
+	if fileInfo, err := os.Stat(srcFilePath); err != nil {
+		return nil, err
+	} else if fileInfo.Size() > maxFileSize {
+		return nil, fmt.Errorf("file size too large")
+	}
+
 	file, err := os.Open(srcFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("open daemon.json failed")
 	}
 	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("read daemon.json failed")
+		closeErr := file.Close()
+		return nil, fmt.Errorf("read daemon.json failed, close file err is %v", closeErr)
 	}
 	err = file.Close()
 	if err != nil {
