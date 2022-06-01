@@ -100,7 +100,7 @@ func addHook(spec *specs.Spec) error {
 		})
 	}
 
-	vdevice, err := dcmi.CreateVDevice(spec)
+	vdevice, err := dcmi.CreateVDevice(&dcmi.NpuWorker{}, spec)
 
 	if err != nil {
 		return err
