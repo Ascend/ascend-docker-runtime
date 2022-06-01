@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <libgen.h>
+#include <ctype.h>
 #include "basic.h"
 
 char *FormatLogMessage(char *format, ...);
@@ -20,6 +22,8 @@ int CheckDirExists(const char *dir);
 int GetParentPathStr(const char *path, char *parent, size_t bufSize);
 int MakeDirWithParent(const char *path, mode_t mode);
 int MakeMountPoints(const char *path, mode_t mode);
+bool IsValidChar(const char c);
 bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     const size_t maxFileSzieMb, const bool checkOwner);
+bool GetFileSubsetAndCheck(const char *basePath, const size_t basePathLen);
 #endif

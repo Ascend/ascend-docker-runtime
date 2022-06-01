@@ -17,8 +17,9 @@ cmake ..
 make
 
 mkdir ../lib
-cp gtest.out/libgtest.a ../lib
-cp mockcpp.out/libmockcpp.a ../lib
+find . -name "*a"
+cp ./lib/libgtest.a ../lib
+cp ./mockcpp.out/src/libmockcpp.a ../lib
 cp libut_main.a ../lib
 
 cd ..

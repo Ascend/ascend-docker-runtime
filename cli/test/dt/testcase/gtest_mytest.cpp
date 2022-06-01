@@ -49,7 +49,7 @@ extern "C" char *GetCgroupRoot(char *line, const char *subSystem);
 extern "C" int ParseFileByLine(char* buffer, int bufferSize, ParseFileLine fn, const char* filepath);
 extern "C" int SetupDeviceCgroup(FILE *cgroupAllow, const char *devPath);
 extern "C" int SetupDriverCgroup(FILE *cgroupAllow);
-extern "C" int GetCgroupPath(const struct CmdArgs *args, char *effPath, const size_t maxSize);
+extern "C" int GetCgroupPath(int pid, char *effPath, const size_t maxSize);
 extern "C" int SetupCgroup(const struct ParsedConfig *config);
 extern "C" int SetupContainer(struct CmdArgs *args);
 extern "C" int Process(int argc, char **argv);
@@ -318,7 +318,7 @@ int Stub_ParseFileByLine_Success(char* buffer, int bufferSize, ParseFileLine fn,
     return 0;
 }
 
-int Stub_GetCgroupPath_Success(const struct CmdArgs *args, char *effPath, const size_t maxSize)
+int Stub_GetCgroupPath_Success(int pid, char *effPath, const size_t maxSize)
 {
     return 0;
 }
@@ -796,7 +796,7 @@ TEST(GetCgroupPath, StatusOne)
     MOCKER(ParseFileByLine).stubs().will(invoke(Stub_ParseFileByLine_Success));
 
     char cgroupPath[BUF_SIZE] = {0};
-    int ret = GetCgroupPath(&args, cgroupPath, BUF_SIZE);
+    int ret = GetCgroupPath(args.pid, cgroupPath, BUF_SIZE);
     EXPECT_EQ(0, ret);
 }
 
@@ -839,21 +839,6 @@ TEST(SetupCgroup, StatusThree)
     int ret = SetupCgroup(&config);
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
-}
-
-TEST(SetupCgroup, StatusFour)
-{
-    MOCKER(SetupDriverCgroup).stubs().will(invoke(Stub_SetupDriverCgroup_Success));
-    MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Success));
-    struct ParsedConfig config;
-    (void)strcpy_s(config.rootfs, sizeof(config.rootfs), "/home");
-    config.devices[0] = 1;
-    config.devices[1] = 2;
-    config.devicesNr = 2;
-    (void)strcpy_s(config.cgroupPath, sizeof(config.cgroupPath), "devices.allow");
-    int ret = SetupCgroup(&config);
-    GlobalMockObject::verify();
-    EXPECT_EQ(0, ret);
 }
 
 TEST(SetupContainer, StatusOne)

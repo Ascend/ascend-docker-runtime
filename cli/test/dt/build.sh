@@ -17,6 +17,7 @@ makepre()
     if [ -f ${CUR_DIR}/../../../googletest.tar.gz ]; then
       cd ${CUR_DIR}/../../../
       tar xf ${CUR_DIR}/../../../googletest.tar.gz
+      mv googletest-release-1.10.0/ googletest
       cd ${CUR_DIR}
     fi
     if [ -d ${CUR_DIR}/../../../googletest ]; then
@@ -30,6 +31,15 @@ makepre()
     fi
     if [ -d ${CUR_DIR}/../../../mockcpp ]; then
       cp -rf ${CUR_DIR}/../../../mockcpp/* ${CUR_DIR}/Depend/mockcpp/
+      cd ${CUR_DIR}/Depend/mockcpp
+      sed -i 's/${PYTHON_EXECUTABLE}/python2/g' src/CMakeLists.txt
+      sed -i '57i #if 0' ./include/mockcpp/mockcpp.h
+      sed -i '64i #endif' ./include/mockcpp/mockcpp.h
+      sed -i '5s/SET(PYTHON ${PYTHON_EXECUTABLE})/SET(PYTHON python2)/' ./src/CMakeLists.txt
+      sed -i '14s/SET(MOCKCPP_SRC_ROOT ${CMAKE_SOURCE_DIR})/SET(MOCKCPP_SRC_ROOT ${CMAKE_SOURCE_DIR}\/mockcpp)/' ./src/CMakeLists.txt
+      cmake .
+      make
+      cd ${CUR_DIR}
     fi
 
     # 如果没有生成过，则需要生成
@@ -38,7 +48,7 @@ makepre()
         echo "-------------make pre begin-------------------"
         cd Scripts
         chmod u+x ./pre.sh
-        ./pre.sh
+        bash -ex ./pre.sh
         cd -
         echo "-------------make pre end---------------------"
     fi
@@ -57,6 +67,7 @@ build_huaweisecurec()
     if [ -f ${CUR_DIR}/../../../HuaweiSecureC.tar.gz ]; then
       cd ${CUR_DIR}/../../../
       tar xf ${CUR_DIR}/../../../HuaweiSecureC.tar.gz
+      mv huawei_secure_c-tag_Huawei_Secure_C_V100R001C01SPC011B003_00001/ HuaweiSecureC
       cd ${CUR_DIR}
     fi
     if [ -d ${CUR_DIR}/../../../HuaweiSecureC/ ]; then
@@ -82,6 +93,8 @@ build_cli()
     if [ -d ${CUR_DIR}/build ]; then
         rm -rf ${CUR_DIR}/build
     fi
+    pwd
+    find ../.. -name "*a"
     mkdir ${CUR_DIR}/build
     cd ${CUR_DIR}/build
     cmake ..
@@ -93,14 +106,14 @@ run_lcov_cli()
 {
     echo "-------------run_ut cli begin-------------------"
     cd ${CUR_DIR}/build
-    ./ut_demo
+    ./ut_demo --gtest_output=xml:${CUR_DIR}/test_detail.xml
     cd ${SRC_ROOT}/..
     ENABLE_BRANCH_COV="--rc lcov_branch_coverage=1"
     lcov --no-external -o result.info -b . -d . -c $ENABLE_BRANCH_COV
     genhtml --branch-coverage result.info -o Report $ENABLE_BRANCH_COV
     cd ${CUR_DIR}
     mkdir xml
-    cp -f buildDTCenter.xml ./xml/test_detail.xml
+    cp -f test_detail.xml ./xml/test_detail.xml
     mkdir html
     cp -rf ${SRC_ROOT}/../Report/* ./html/
     echo "-------------run_ut cli end-------------------"

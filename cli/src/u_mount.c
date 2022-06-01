@@ -28,6 +28,14 @@ static bool checkSrcFile(const char *src)
                 return false;
             }
     }
+    if (S_ISDIR(fileStat.st_mode) != 0) { // 目录则增加递归校验子集
+        if (!GetFileSubsetAndCheck(src, strlen(src))) {
+            char* str = FormatLogMessage("Check file subset failed: %s.", src);
+            Logger(str, LEVEL_ERROR, SCREEN_YES);
+            free(str);
+            return false;
+        }
+    }
     return true;
 }
 
@@ -181,7 +189,7 @@ int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDe
 
 int DoDeviceMounting(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr)
 {
-    if (rootfs == NULL || device_name == NULL) {
+    if (rootfs == NULL || device_name == NULL || ids == NULL) {
         Logger("rootfs, device_name pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
@@ -377,9 +385,7 @@ int DoFileMounting(const char *rootfs, const struct MountList *list)
     for (unsigned int i = 0; i < list->count; i++) {
         ret = MountFile(rootfs, (const char *)&list->list[i][0]);
         if (ret < 0) {
-            char* str = FormatLogMessage("failed to do file mounting for %s.", (const char *)&list->list[i][0]);
-            Logger(str, LEVEL_ERROR, SCREEN_YES);
-            free(str);
+            Logger("failed to do file mounting for.", LEVEL_ERROR, SCREEN_YES);
             return -1;
         }
     }

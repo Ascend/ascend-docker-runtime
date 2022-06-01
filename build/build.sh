@@ -16,7 +16,7 @@ DESTROYDIR=${ROOT}/destroy
 CLISRCNAME="main.c"
 
 INSTALLHELPERDIR=${ROOT}/install
-INSTALLHELPERSRCNAME="main.c"
+INSTALLHELPERSRCNAME="main.go"
 
 HOOKDIR=${ROOT}/hook
 HOOKSRCNAME="main.go"
@@ -57,19 +57,19 @@ function build_bin()
     make clean
     make
 
-    echo "make installhelper"
-    [ -d "${BUILD}/build/helper/build" ] && rm -rf ${BUILD}/build/helper/build
-    mkdir -p ${BUILD}/build/helper/build && cd ${BUILD}/build/helper/build
-    cmake ${INSTALLHELPERSRCDIR}
-    make clean
-    make
-
     [ -d "${ROOT}/opensource/src" ] && rm -rf ${ROOT}/opensource/src
     mkdir ${ROOT}/opensource/src
-    cd ${HOOKDIR}
     export GOPATH="${ROOT}/opensource"
     export GO111MODULE=on
     export GONOSUMDB="*"
+
+    echo "make installhelper"
+    cd ${INSTALLHELPERSRCDIR}
+    go mod tidy
+    [ -d "${BUILD}/build/helper/build" ] && rm -rf ${BUILD}/build/helper/build
+    mkdir -p ${BUILD}/build/helper/build
+    go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath  ${INSTALLHELPERSRCDIR}/${INSTALLHELPERSRCNAME}
+    mv main ${BUILD}/build/helper/build/ascend-docker-plugin-install-helper
 
     echo "make hook"
     go mod download
