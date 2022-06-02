@@ -1,0 +1,32 @@
+component: hook
+product: ToolBox
+systemEnv:
+  - workspace
+  - processor
+compile:
+  name: hook
+  version:
+  input:
+    files:
+      exclude:
+        - remove: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build" ]
+      include:
+        - commands:
+          - command: " mkdir {{ systemEnv.workspace }}/ascend-docker-plugin/hook/build "
+  process:
+    language: go
+    compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build "
+    parameters: [
+      [ "buildmode","pie" ],
+      [ "ldflags",'-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s '],
+      [ "trimpath","{{ systemEnv.workspace }}/ascend-docker-plugin/hook/main.go"],
+      ]
+  output:
+    files:
+      include:
+        - copy:
+            src: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build/main" ]
+            des: "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build/ascend-docker-hook"
+            rename: true
+      # exclude:
+      #  - remove: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build" ]

@@ -1,0 +1,108 @@
+component: ascend-docker-plugin
+product: ascend-docker-plugin
+systemEnv:
+  - workspace
+  - processor
+version: 3.0.RC2
+compile:
+  ## 组件名称
+  name: ascend-docker-plugin
+  version:
+  ## 构建输入源：皆为依赖如自研代码、开源软件、三方软件源码等
+  ## 构建准备：指定需要移动、删除、权限修改的文件
+  input:
+    dependency:
+      - name: destroy
+        offering: ascend-docker-plugin
+        version:
+        type: self-component
+        src:
+        des:
+        buildType:
+        buildFile: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/conf/"
+      - name: cli
+        offering: ascend-docker-plugin
+        version:
+        type: self-component
+        src:
+        des:
+        buildType:
+        buildFile: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/conf/"
+      - name: installhelper
+        offering: ascend-docker-plugin
+        version:
+        type: self-component
+        src:
+        des:
+        buildType:
+        buildFile: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/conf/"
+      - name: hook
+        offering: ascend-docker-plugin
+        version:
+        type: self-component
+        src:
+        des:
+        buildType:
+        buildFile: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/conf/"
+      - name: runtime
+        offering: ascend-docker-plugin
+        version:
+        type: self-component
+        src:
+        des:
+        buildType:
+        buildFile: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/conf/"
+    files: ""
+  process:
+    language: c
+    compilerTool: make
+    parameters: []
+    sourcePath: ""
+    buildPath: ""
+  output:
+
+package:
+  name: Ascend-docker-runtime
+  service: Ascend-docker-runtime
+  MindXSDK: b050
+  packageInfo:
+    - name: "Ascend-docker-runtime-{{ version }}-{{ systemEnv.processor }}.run"
+      input:
+        files:
+          include:
+            - remove: ["{{ systemEnv.workspace }}/ascend-docker-plugin/output/*"]
+            - copy:
+                src:
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build/ascend-docker-runtime"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build/ascend-docker-hook"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build/ascend-docker*"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/cli/build/ascend-docker*"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/destroy/build/ascend-docker*"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/uninstall.sh"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A500"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A200"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/assets"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/README.md"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/run_main.sh"
+                des: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg/"
+            - copy:
+                src:
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/opensource/makeself-release-2.4.2/makeself.sh"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/opensource/makeself-release-2.4.2/makeself-header.sh"
+                des: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/conf/scripts/"
+            - mode:
+                src: ["{{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg/run_main.sh" ]
+                mode: "550"
+
+
+      process:
+        type: run
+        srcRoot: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/"
+        parameters: [ makeself, help.info, "{{systemEnv.DATE }}"]
+      output:
+        include:
+          - move:
+              - src: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg/{{ package.name }}"
+              - des: "{{ systemEnv.workspace }}/ascend-docker-plugin/output"
+

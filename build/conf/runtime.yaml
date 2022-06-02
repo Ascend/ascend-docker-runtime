@@ -1,0 +1,32 @@
+component: runtime
+product: ToolBox
+systemEnv:
+  - workspace
+  - processor
+compile:
+  name: runtime
+  version:
+  input:
+    files:
+      exclude:
+        - remove: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build" ]
+      include:
+        - commands:
+            - command: " mkdir -p {{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build "
+  process:
+    language: go
+    compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build"
+    parameters: [
+      [ "buildmode", "pie" ],
+      [ "ldflags", '-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s'],
+      [ "trimpath", "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/main.go" ],
+      ]
+  output:
+    files:
+      include:
+        - copy:
+            src: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build/main" ]
+            des: "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build/ascend-docker-runtime"
+            rename: true
+      # exclude:
+      #  - remove: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build" ]
