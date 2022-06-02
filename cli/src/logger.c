@@ -12,6 +12,7 @@
 #include "securec.h"
 #include "basic.h"
 #include "utils.h"
+#include "logger.h"
 
 #define FILE_MAX_SIZE (1024 * 1024 * 10)
 #define LOG_PATH_DIR "/var/log/ascend-docker-runtime/"
@@ -46,6 +47,9 @@ int GetCurrentLocalTime(char* buffer, int length)
 
 int CreateLog(const char* filename)
 {
+    if (filename == NULL) {
+        return -1;
+    }
     int exist;
     exist = access(filename, 0);
     int fd = 0;
@@ -101,7 +105,6 @@ long GetLogSize(const char* filename)
     }
     return GetLogSizeProcess(path);
 }
-
 
 int LogLoop(const char* filename)
 {

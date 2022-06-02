@@ -13,14 +13,20 @@
 #include "utils.h"
 #include "logger.h"
 
-int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize)
+int GetNsPath(const int pid, const char *nsType, char *buf, const size_t bufSize)
 {
+    if ((nsType == NULL) || (buf == NULL)) {
+        return -1;
+    }
     static const char *fmtStr = "/proc/%d/ns/%s";
     return sprintf_s(buf, bufSize, fmtStr, pid, nsType);
 }
 
-int GetSelfNsPath(const char *nsType, char *buf, size_t bufSize)
+int GetSelfNsPath(const char *nsType, char *buf, const size_t bufSize)
 {
+    if ((nsType == NULL) || (buf == NULL)) {
+        return -1;
+    }
     static const char *fmtStr = "/proc/self/ns/%s";
     return sprintf_s(buf, bufSize, fmtStr, nsType);
 }
@@ -39,6 +45,9 @@ int EnterNsByFd(int fd, int nsType)
 
 int EnterNsByPath(const char *path, int nsType)
 {
+    if (path == NULL) {
+        return -1;
+    }
     int fd;
     int ret;
 

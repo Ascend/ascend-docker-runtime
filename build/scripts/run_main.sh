@@ -14,7 +14,10 @@ function install()
     if [ ! -d "${INSTALL_PATH}" ]; then
         mkdir -p ${INSTALL_PATH}
     fi
-
+    if [ -L "${INSTALL_PATH}" ]; then
+        echo "error: ${INSTALL_PATH} is symbolic link."
+        exit 1
+    fi
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
@@ -26,6 +29,10 @@ function install()
     chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     chmod 550 ${INSTALL_PATH}/ascend-docker-destroy
 
+    if [ -L "${INSTALL_PATH}/script" ]; then
+        echo "error: ${INSTALL_PATH}/script is symbolic link."
+        exit 1
+    fi
     cp -rf ./assets ${INSTALL_PATH}/assets
     cp -f ./README.md ${INSTALL_PATH}/README.md
     mkdir -p ${INSTALL_PATH}/script
@@ -34,6 +41,10 @@ function install()
 
     if [ -d "${ASCEND_RUNTIME_CONFIG_DIR}" ]; then
         rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
+    fi
+    if [ -L "${ASCEND_RUNTIME_CONFIG_DIR}" ]; then
+        echo "error: ${ASCEND_RUNTIME_CONFIG_DIR} is symbolic link."
+        exit 1
     fi
     mkdir -p ${ASCEND_RUNTIME_CONFIG_DIR}
     chmod 750 ${ASCEND_RUNTIME_CONFIG_DIR}
@@ -97,7 +108,10 @@ function upgrade()
         echo 'ERROR: the configuration directory does not exist'
         exit 1
     fi
-
+    if [ -L "${INSTALL_PATH}" ]; then
+        echo "error: ${INSTALL_PATH} is symbolic link."
+        exit 1
+    fi
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
