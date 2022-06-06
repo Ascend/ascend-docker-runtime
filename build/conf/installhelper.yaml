@@ -1,0 +1,17 @@
+component: installhelper
+product: ToolBox
+systemEnv:
+  - workspace
+  - processor
+compile:
+  name: installhelper
+  version:
+  input:
+    files: ""
+  process:
+    language: c
+    compilerTool: cmake
+    parameters: []
+    sourcePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src"
+    buildPath: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build"
+  output:
