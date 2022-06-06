@@ -5,118 +5,12 @@
 package dcmi
 
 // #cgo LDFLAGS: -ldl
-/* #include <stddef.h>
-  #include <dlfcn.h>
-  #include <stdlib.h>
-  #include <stdio.h>
-
-  #include "dcmi_interface_api.h"
-
-  void *dcmiHandle;
-  #define SO_NOT_FOUND  -99999
-  #define FUNCTION_NOT_FOUND  -99998
-  #define SUCCESS  0
-  #define ERROR_UNKNOWN  -99997
-  #define CALL_FUNC(name,...) if(name##_func==NULL){return FUNCTION_NOT_FOUND;}return name##_func(__VA_ARGS__);
-
-  // dcmi
-  int (*dcmi_init_func)();
-  int dcmi_init(){
-	  CALL_FUNC(dcmi_init)
-  }
-
-  int (*dcmi_get_card_num_list_func)(int *card_num, int *card_list, int list_length);
-  int dcmi_get_card_num_list(int *card_num, int *card_list, int list_length){
-	  CALL_FUNC(dcmi_get_card_num_list,card_num,card_list,list_length)
-  }
-
-  int (*dcmi_get_device_num_in_card_func)(int card_id, int *device_num);
-  int dcmi_get_device_num_in_card(int card_id, int *device_num){
-	  CALL_FUNC(dcmi_get_device_num_in_card,card_id,device_num)
-  }
-
-  int (*dcmi_get_device_logic_id_func)(int *device_logic_id, int card_id, int device_id);
-  int dcmi_get_device_logic_id(int *device_logic_id, int card_id, int device_id){
-	  CALL_FUNC(dcmi_get_device_logic_id,device_logic_id,card_id,device_id)
-  }
-
-  int (*dcmi_create_vdevice_func)(int card_id, int device_id, int vdev_id, const char *template_name,
-    struct dcmi_create_vdev_out *out);
-  int dcmi_create_vdevice(int card_id, int device_id, int vdev_id, const char *template_name,
-    struct dcmi_create_vdev_out *out){
-	  CALL_FUNC(dcmi_create_vdevice,card_id,device_id,vdev_id,template_name,out)
-  }
-
-  int (*dcmi_set_destroy_vdevice_func)(int card_id, int device_id, unsigned int VDevid);
-  int dcmi_set_destroy_vdevice(int card_id, int device_id, unsigned int VDevid){
-	  CALL_FUNC(dcmi_set_destroy_vdevice,card_id,device_id,VDevid)
-  }
-
-  // load .so files and functions
-  int dcmiInit_dl(void){
-	  dcmiHandle = dlopen("libdcmi.so",RTLD_LAZY | RTLD_GLOBAL);
-	  if (dcmiHandle == NULL){
-		  fprintf (stderr,"%s\n",dlerror());
-		  return SO_NOT_FOUND;
-	  }
-
-	  dcmi_init_func = dlsym(dcmiHandle,"dcmi_init");
-
-	  dcmi_get_card_num_list_func = dlsym(dcmiHandle,"dcmi_get_card_num_list");
-
-	  dcmi_get_device_num_in_card_func = dlsym(dcmiHandle,"dcmi_get_device_num_in_card");
-
-	  dcmi_get_device_logic_id_func = dlsym(dcmiHandle,"dcmi_get_device_logic_id");
-
-      dcmi_create_vdevice_func = dlsym(dcmiHandle,"dcmi_create_vdevice");
-
-	  dcmi_set_destroy_vdevice_func = dlsym(dcmiHandle,"dcmi_set_destroy_vdevice");
-
-	  return SUCCESS;
-  }
-
-  int dcmiShutDown(void){
-	  if (dcmiHandle == NULL) {
-		  return SUCCESS;
-	  }
-	  return (dlclose(dcmiHandle) ? ERROR_UNKNOWN : SUCCESS);
-  }
-
-  int (*dsmi_get_logicid_from_phyid_func)(unsigned int phyid, unsigned int *logicid);
-  int dsmi_get_logicid_from_phyid(unsigned int phyid, unsigned int *logicid){
-    CALL_FUNC(dsmi_get_logicid_from_phyid,phyid,logicid)
-  }
-  void *dsmiHandle;
-  int dsmiInit_dl(void){
-	dsmiHandle = dlopen("libdrvdsmi_host.so",RTLD_LAZY);
-	if (dsmiHandle == NULL) {
-		dsmiHandle = dlopen("libdrvdsmi.so",RTLD_LAZY);
-	}
-	if (dsmiHandle == NULL){
-		return SO_NOT_FOUND;
-	}
-
-	dsmi_get_logicid_from_phyid_func = dlsym(dsmiHandle,"dsmi_get_logicid_from_phyid");
-
-	return SUCCESS;
-}
-
-int dsmiShutDown(void){
-	if (dsmiHandle == NULL) {
-   	 	return SUCCESS;
-  	}
-	return (dlclose(dsmiHandle) ? ERROR_UNKNOWN : SUCCESS);
-}
-*/
+// #include "dcmi_interface_api.h"
 import "C"
 import (
 	"fmt"
 	"math"
-	"strconv"
-	"strings"
 	"unsafe"
-
-	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 const (
@@ -130,15 +24,12 @@ const (
 	hiAIMaxCardNum = 16
 )
 
-// VDeviceInfo vdevice created info
-type VDeviceInfo struct {
-	CardID    int32
-	DeviceID  int32
-	VdeviceID int32
+// NpuWorker Dcmi worker
+type NpuWorker struct {
 }
 
-// InitDcmi dcmi/dsmi lib
-func InitDcmi() error {
+// Initialize dcmi lib init
+func (w *NpuWorker) Initialize() error {
 	if err := C.dcmiInit_dl(); err != C.SUCCESS {
 		errInfo := fmt.Errorf("dcmi lib load failed, , error code: %d", int32(err))
 		return errInfo
@@ -147,24 +38,18 @@ func InitDcmi() error {
 		errInfo := fmt.Errorf("dcmi init failed, , error code: %d", int32(err))
 		return errInfo
 	}
-	if err := C.dsmiInit_dl(); err != C.SUCCESS {
-		errInfo := fmt.Errorf("dsmi lib load failed, , error code: %d", int32(err))
-		return errInfo
-	}
 	return nil
 }
 
-// ShutDownDcmi shutdown dcmi/dsmi lib
-func ShutDownDcmi() {
+// ShutDown shutdown dcmi lib
+func (w *NpuWorker) ShutDown() {
 	if err := C.dcmiShutDown(); err != C.SUCCESS {
 		println(fmt.Errorf("dcmi shut down failed, error code: %d", int32(err)))
 	}
-	if err := C.dsmiShutDown(); err != C.SUCCESS {
-		println(fmt.Errorf("dsmi shut down failed, error code: %d", int32(err)))
-	}
 }
 
-func getCardList() (int32, []int32, error) {
+// GetCardList  list all cards on system
+func GetCardList() (int32, []int32, error) {
 	var ids [hiAIMaxCardNum]C.int
 	var cNum C.int
 	if err := C.dcmi_get_card_num_list(&cNum, &ids[0], hiAIMaxCardNum); err != 0 {
@@ -172,7 +57,7 @@ func getCardList() (int32, []int32, error) {
 		return retError, nil, errInfo
 	}
 	// checking card's quantity
-	if cNum <= 0 {
+	if cNum <= 0 || cNum > hiAIMaxCardNum {
 		errInfo := fmt.Errorf("get error card quantity: %d", int32(cNum))
 		return retError, nil, errInfo
 	}
@@ -218,8 +103,8 @@ func GetDeviceLogicID(cardID, deviceID int32) (int32, error) {
 	return int32(logicID), nil
 }
 
-// SetCreateVDevice create virtual device
-func SetCreateVDevice(cardID, deviceID int32, coreNum string) (uint32, error) {
+// CreateVDevice create virtual device
+func (w *NpuWorker) CreateVDevice(cardID, deviceID int32, coreNum string) (int32, error) {
 	var createInfo C.struct_dcmi_create_vdev_out
 	createInfo.vdev_id = C.uint(math.MaxUint32)
 	coreTemplate := C.CString(coreNum)
@@ -227,13 +112,19 @@ func SetCreateVDevice(cardID, deviceID int32, coreNum string) (uint32, error) {
 	err := C.dcmi_create_vdevice(C.int(cardID), C.int(deviceID), C.int(0), coreTemplate, &createInfo)
 	if err != 0 {
 		errInfo := fmt.Errorf("create virtual device failed, error code: %d", int32(err))
-		return uint32(math.MaxUint32), errInfo
+		return math.MaxInt32, errInfo
 	}
-	return uint32(createInfo.vdev_id), nil
+	if createInfo.vdev_id > math.MaxInt32 {
+		return math.MaxInt32, fmt.Errorf("create virtual device failed, vdeviceId too large")
+	}
+	return int32(createInfo.vdev_id), nil
 }
 
-// SetDestroyVDevice destroy virtual device
-func SetDestroyVDevice(cardID, deviceID int32, vDevID uint32) error {
+// DestroyVDevice destroy virtual device
+func (w *NpuWorker) DestroyVDevice(cardID, deviceID int32, vDevID int32) error {
+	if vDevID < 0 {
+		return fmt.Errorf("param error on vDevID")
+	}
 	if err := C.dcmi_set_destroy_vdevice(C.int(cardID), C.int(deviceID), C.uint(vDevID)); err != 0 {
 		errInfo := fmt.Errorf("destroy virtual device failed, error code: %d", int32(err))
 		return errInfo
@@ -241,78 +132,31 @@ func SetDestroyVDevice(cardID, deviceID int32, vDevID uint32) error {
 	return nil
 }
 
-// CreateVDevice will create virtual device
-func CreateVDevice(spec *specs.Spec) (VDeviceInfo, error) {
-	visibleDevice, splitDevice, err := extractVpuParam(spec)
-	invalidVDevice := VDeviceInfo{CardID: -1, DeviceID: -1, VdeviceID: -1}
-	if err != nil || visibleDevice == -1 {
-		return invalidVDevice, err
+// FindDevice find device by phyical id
+func (w *NpuWorker) FindDevice(visibleDevice int32) (int32, int32, error) {
+	var logicID C.uint
+	if err := C.dcmi_get_device_logicid_from_phyid(C.uint(visibleDevice), &logicID); err != 0 {
+		return 0, 0, fmt.Errorf("phy id can not be converted to logic id : %v", err)
 	}
-	if err := InitDcmi(); err != nil {
-		return invalidVDevice, fmt.Errorf("cannot init dcmi : %v", err)
+	_, cardList, err := GetCardList()
+	if err != nil {
+		return 0, 0, fmt.Errorf("get card list err : %v", err)
 	}
-	defer ShutDownDcmi()
-	var dsmiLogicID C.uint
-	if err := C.dsmi_get_logicid_from_phyid(C.uint(visibleDevice), &dsmiLogicID); err != 0 {
-		return invalidVDevice, fmt.Errorf("phy id can not be converted to logic id : %v", err)
-	}
-	_, cardList, err := getCardList()
 	targetDeviceID, targetCardID := int32(math.MaxInt32), int32(math.MaxInt32)
 	for _, cardID := range cardList {
 		deviceCount, err := GetDeviceNumInCard(cardID)
 		if err != nil {
-			return invalidVDevice, fmt.Errorf("cannot get device num in card : %v", err)
+			return 0, 0, fmt.Errorf("cannot get device num in card : %v", err)
 		}
 		for deviceID := int32(0); deviceID < deviceCount; deviceID++ {
 			logicID, err := GetDeviceLogicID(cardID, deviceID)
 			if err != nil {
-				return invalidVDevice, fmt.Errorf("cannot get logic id : %v", err)
+				return 0, 0, fmt.Errorf("cannot get logic id : %v", err)
 			}
-			if logicID == int32(dsmiLogicID) {
+			if logicID == int32(logicID) {
 				targetCardID, targetDeviceID = cardID, deviceID
 			}
 		}
 	}
-
-	vdeviceID, err := SetCreateVDevice(targetCardID, targetDeviceID, splitDevice)
-	if err != nil || int(vdeviceID) < 0 {
-		return invalidVDevice, fmt.Errorf("cannot create vd or vdevice is wrong: %v %v", vdeviceID, err)
-	}
-	return VDeviceInfo{CardID: targetCardID, DeviceID: targetDeviceID, VdeviceID: int32(vdeviceID)}, nil
-}
-
-func extractVpuParam(spec *specs.Spec) (int32, string, error) {
-	visibleDevice, splitDevice, needSplit, visibleDeviceLine := int32(-1), "", false, ""
-	allowSplit := map[string]string{
-		"vir01": "vir01", "vir02": "vir02", "vir04": "vir04", "vir08": "vir08", "vir16": "vir16",
-	}
-
-	for _, line := range spec.Process.Env {
-		words := strings.Split(line, "=")
-		const LENGTH int = 2
-		if len(words) != LENGTH {
-			continue
-		}
-		if strings.TrimSpace(words[0]) == "ASCEND_VISIBLE_DEVICES" {
-			visibleDeviceLine = words[1]
-		}
-		if strings.TrimSpace(words[0]) == "ASCEND_VNPU_SPECS" {
-			if split := allowSplit[words[1]]; split != "" {
-				splitDevice = split
-				needSplit = true
-			} else {
-				return -1, "", fmt.Errorf("cannot parse param : %v", words[1])
-			}
-		}
-	}
-	if needSplit {
-		if cardID, err := strconv.Atoi(visibleDeviceLine); err == nil {
-			visibleDevice = int32(cardID)
-		} else {
-			return -1, "", fmt.Errorf("cannot parse param : %v %v", err, visibleDeviceLine)
-		}
-	} else {
-		return -1, "", nil
-	}
-	return visibleDevice, splitDevice, nil
+	return targetDeviceID, targetCardID, nil
 }
