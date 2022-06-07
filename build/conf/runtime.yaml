@@ -12,10 +12,11 @@ compile:
         - remove: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build" ]
       include:
         - commands:
-            - command: " mkdir -p {{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build "
+            - command: "mkdir -p {{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build"
+            - command: "cd {{ systemEnv.workspace }}/ascend-docker-plugin/runtime && go mod download"
   process:
     language: go
-    compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build"
+    compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime"
     parameters: [
       [ "buildmode", "pie" ],
       [ "ldflags", '-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s'],
@@ -25,8 +26,6 @@ compile:
     files:
       include:
         - copy:
-            src: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build/main" ]
+            src: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/main" ]
             des: "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build/ascend-docker-runtime"
             rename: true
-      # exclude:
-      #  - remove: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build" ]

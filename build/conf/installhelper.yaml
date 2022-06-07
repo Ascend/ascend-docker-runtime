@@ -7,11 +7,25 @@ compile:
   name: installhelper
   version:
   input:
-    files: ""
+    files:
+      exclude:
+        - remove: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build" ]
+      include:
+        - commands:
+            - command: "mkdir -p {{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build"
+            - command: "cd {{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src/ && go mod tidy"
   process:
-    language: c
-    compilerTool: cmake
-    parameters: []
-    sourcePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src"
-    buildPath: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build"
+    language: go
+    compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src"
+    parameters: [
+      [ "buildmode", "pie" ],
+      [ "ldflags", '-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s'],
+      [ "trimpath", "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src/main.go"],
+      ]
   output:
+    files:
+      include:
+        - copy:
+            src: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src/main" ]
+            des: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build/ascend-docker-plugin-install-helper"
+            rename: true
