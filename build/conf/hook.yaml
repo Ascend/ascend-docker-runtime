@@ -12,10 +12,11 @@ compile:
         - remove: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build" ]
       include:
         - commands:
-          - command: " mkdir {{ systemEnv.workspace }}/ascend-docker-plugin/hook/build "
+          - command: "mkdir {{ systemEnv.workspace }}/ascend-docker-plugin/hook/build"
+          - command: "cd {{ systemEnv.workspace }}/ascend-docker-plugin/hook/ && go mod download"
   process:
     language: go
-    compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build "
+    compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/"
     parameters: [
       [ "buildmode","pie" ],
       [ "ldflags",'-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s '],
@@ -25,8 +26,6 @@ compile:
     files:
       include:
         - copy:
-            src: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build/main" ]
+            src: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/main" ]
             des: "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build/ascend-docker-hook"
             rename: true
-      # exclude:
-      #  - remove: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build" ]
