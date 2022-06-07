@@ -101,8 +101,9 @@ package:
         srcRoot: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/"
         parameters: [ makeself, help.info, "{{systemEnv.DATE }}"]
       output:
-        include:
-          - move:
-              - src: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg/{{ package.name }}"
-              - des: "{{ systemEnv.workspace }}/ascend-docker-plugin/output"
+        files:
+          include:
+            - move:
+                src: ["{{ systemEnv.workspace }}/ascend-docker-plugin/build/*.run"]
+                des: "{{ systemEnv.workspace }}/ascend-docker-plugin/output"
 
