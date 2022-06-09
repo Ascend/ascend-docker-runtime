@@ -109,7 +109,7 @@ func (w *NpuWorker) CreateVDevice(cardID, deviceID int32, coreNum string) (int32
 	createInfo.vdev_id = C.uint(math.MaxUint32)
 	coreTemplate := C.CString(coreNum)
 	defer C.free(unsafe.Pointer(coreTemplate))
-	err := C.dcmi_create_vdevice(C.int(cardID), C.int(deviceID), C.int(0), coreTemplate, &createInfo)
+	err := C.dcmi_create_vdevice(C.int(cardID), C.int(deviceID), C.int(-1), coreTemplate, &createInfo)
 	if err != 0 {
 		errInfo := fmt.Errorf("create virtual device failed, error code: %d", int32(err))
 		return math.MaxInt32, errInfo
