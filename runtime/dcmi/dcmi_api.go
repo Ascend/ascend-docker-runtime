@@ -5,6 +5,7 @@ package dcmi
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -40,6 +41,7 @@ func CreateVDevice(w WorkerInterface, spec *specs.Spec) (VDeviceInfo, error) {
 	}
 	defer w.ShutDown()
 	targetDeviceID, targetCardID, err := w.FindDevice(visibleDevice)
+	log.Fatal(fmt.Errorf("found device: %v  %v", targetDeviceID, targetCardID))
 	if err != nil {
 		return invalidVDevice, err
 	}
