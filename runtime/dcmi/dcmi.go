@@ -134,10 +134,14 @@ func (w *NpuWorker) DestroyVDevice(cardID, deviceID int32, vDevID int32) error {
 
 // FindDevice find device by phyical id
 func (w *NpuWorker) FindDevice(visibleDevice int32) (int32, int32, error) {
-	var logicID C.uint
-	if err := C.dcmi_get_device_logicid_from_phyid(C.uint(visibleDevice), &logicID); err != 0 {
+	var dcmiLogicID C.uint
+	if err := C.dcmi_get_device_logicid_from_phyid(C.uint(visibleDevice), &dcmiLogicID); err != 0 {
 		return 0, 0, fmt.Errorf("phy id can not be converted to logic id : %v", err)
 	}
+	if uint(dcmiLogicID) > math.MaxInt32 {
+		return 0, 0, fmt.Errorf("logic id too large")
+	}
+	targetLogicID := int32(dcmiLogicID)
 	_, cardList, err := GetCardList()
 	if err != nil {
 		return 0, 0, fmt.Errorf("get card list err : %v", err)
@@ -153,7 +157,7 @@ func (w *NpuWorker) FindDevice(visibleDevice int32) (int32, int32, error) {
 			if err != nil {
 				return 0, 0, fmt.Errorf("cannot get logic id : %v", err)
 			}
-			if logicID == int32(logicID) {
+			if logicID == int32(targetLogicID) {
 				targetCardID, targetDeviceID = cardID, deviceID
 			}
 		}
