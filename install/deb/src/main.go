@@ -38,6 +38,11 @@ const (
 )
 
 func main() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 	log.SetPrefix("LOG: ")
 	log.Printf("running %s", os.Args)
 	err := process()
