@@ -1,7 +1,7 @@
 #!/bin/bash
 # Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
 # Description: ascend-docker-runtime构建脚本
-set -e
+set -ex
 
 ROOT=$(cd $(dirname $0); pwd)/..
 TOP_DIR=$ROOT/..
@@ -62,6 +62,8 @@ function build_bin()
     export GOPATH="${ROOT}/opensource"
     export GO111MODULE=on
     export GONOSUMDB="*"
+    export GONOPROXY=*.huawei.com
+    export GOFLAGS="-mod=mod"
 
     echo "make installhelper"
     cd ${INSTALLHELPERSRCDIR}

@@ -17,12 +17,17 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"go.uber.org/zap"
 
+	"huawei.com/npu-exporter/hwlog"
 	"mindxcheckutils"
 )
 
 const (
-	loggingPrefix       = "ascend-docker-runtime"
+	runLogPath          = "/var/log/ascend-docker-runtime/runtime-run.log"
+	operateLogPath      = "/var/log/ascend-docker-runtime/runtime-operate.log"
+	maxLogLength        = 1024
+	maxCommandLength    = 65535
 	hookCli             = "ascend-docker-hook"
 	destroyHookCli      = "ascend-docker-destroy"
 	hookDefaultFilePath = "/usr/local/bin/ascend-docker-hook"
@@ -60,6 +65,32 @@ func getArgs() (*args, error) {
 	return args, nil
 }
 
+func initLogModule(stopCh <-chan struct{}) error {
+	const backups = 2
+	const logMaxAge = 365
+	runLogConfig := hwlog.LogConfig{
+		LogFileName: runLogPath,
+		LogLevel:    0,
+		MaxBackups:  backups,
+		MaxAge:      logMaxAge,
+	}
+	if err := hwlog.InitRunLogger(&runLogConfig, stopCh); err != nil {
+		fmt.Printf("hwlog init failed, error is %v", err)
+		return err
+	}
+	operateLogConfig := hwlog.LogConfig{
+		LogFileName: operateLogPath,
+		LogLevel:    0,
+		MaxBackups:  backups,
+		MaxAge:      logMaxAge,
+	}
+	if err := hwlog.InitOperateLogger(&operateLogConfig, stopCh); err != nil {
+		fmt.Printf("hwlog init failed, error is %v", err)
+		return err
+	}
+	return nil
+}
+
 var execRunc = func() error {
 	runcPath, err := exec.LookPath(dockerRuncName)
 	if err != nil {
@@ -68,7 +99,7 @@ var execRunc = func() error {
 			return fmt.Errorf("failed to find the path of runc: %v", err)
 		}
 	}
-	if _, err := mindxcheckutils.FileChecker(runcPath, false, true, false, 0); err != nil {
+	if _, err := mindxcheckutils.RealFileChecker(runcPath, true, false, mindxcheckutils.DefaultSize); err != nil {
 		return err
 	}
 
@@ -86,7 +117,7 @@ func addHook(spec *specs.Spec) error {
 	}
 
 	hookCliPath = path.Join(path.Dir(currentExecPath), hookCli)
-	if _, err := mindxcheckutils.FileChecker(hookCliPath, false, true, false, 0); err != nil {
+	if _, err := mindxcheckutils.RealFileChecker(hookCliPath, true, false, mindxcheckutils.DefaultSize); err != nil {
 		return err
 	}
 	if _, err = os.Stat(hookCliPath); err != nil {
@@ -123,7 +154,7 @@ func addHook(spec *specs.Spec) error {
 	}
 
 	vdevice, err := dcmi.CreateVDevice(&dcmi.NpuWorker{}, spec)
-
+	hwlog.RunLog.Infof("vnpu split done: vdevice: %v err: %v", vdevice.VdeviceID, err)
 	if err != nil {
 		return err
 	}
@@ -175,7 +206,7 @@ func modifySpecFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("spec file doesnt exist %s: %v", path, err)
 	}
-	if _, err := mindxcheckutils.FileChecker(path, false, true, true, 0); err != nil {
+	if _, err := mindxcheckutils.RealFileChecker(path, true, true, mindxcheckutils.DefaultSize); err != nil {
 		return err
 	}
 
@@ -244,8 +275,34 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
-	log.SetPrefix(loggingPrefix)
-	if err := doProcess(); err != nil {
+	stopCh := make(chan struct{})
+	if err := initLogModule(stopCh); err != nil {
+		close(stopCh)
 		log.Fatal(err)
 	}
+	logPrefixWords, err := mindxcheckutils.GetLogPrefix()
+	if err != nil {
+		close(stopCh)
+		log.Fatal(err)
+	}
+	hwlog.RunLog.ZapLogger = hwlog.RunLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
+	hwlog.OpLog.ZapLogger = hwlog.OpLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
+	hwlog.RunLog.Infof("ascend docker runtime starting")
+	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
+		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
+		close(stopCh)
+		log.Fatal("command error")
+	}
+	logWords := fmt.Sprintf("running %v", os.Args)
+	if len(logWords) > maxLogLength {
+		logWords = logWords[0:maxLogLength-1] + "..."
+	}
+	hwlog.OpLog.Infof(logWords)
+	if err := doProcess(); err != nil {
+		hwlog.RunLog.Errorf("%v ascend docker runtime failed", logPrefixWords)
+		hwlog.OpLog.Errorf("%v failed", logWords)
+		close(stopCh)
+		log.Fatal(err)
+	}
+	close(stopCh)
 }
