@@ -76,7 +76,6 @@ static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
         Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
-    errno = 0;
     args->pid = strtol(optarg, NULL, DECIMAL);
     const char* pidMax = "/proc/sys/kernel/pid_max";
     const size_t maxFileSzieMb = 10; // max 10MB
@@ -84,6 +83,7 @@ static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
         Logger("failed to check pid_max path.", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
+    errno = 0;
     FILE* pFile = NULL;
     pFile = fopen(pidMax, "r");
     if ((pFile == NULL) || (fgets(buff, PATH_MAX, pFile) == NULL)) {
