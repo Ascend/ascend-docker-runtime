@@ -195,7 +195,13 @@ static bool CheckWhiteList(const char* fileName)
     const char mountWhiteList[WHITE_LIST_NUM][PATH_MAX] = {{"/usr/local/Ascend/driver/lib64"},
         {"/usr/local/Ascend/driver/include"},
         {"/usr/local/dcmi"},
-        {"/usr/local/bin/npu-smi"}};
+        {"/usr/local/bin/npu-smi"},
+        {"/home/data/miniD/driver/lib64"},
+        {"/usr/local/sbin/npu-smi"},
+        {"/usr/local/Ascend/driver/tools"},
+        {"/etc/hdcBasic.cfg"},
+        {"/etc/sys_version.conf"}
+        };
 
     for (size_t iLoop = 0; iLoop < WHITE_LIST_NUM; iLoop++) {
         if (strcmp(mountWhiteList[iLoop], fileName) == 0) {
