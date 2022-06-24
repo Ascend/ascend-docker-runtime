@@ -16,6 +16,8 @@
 #include <dlfcn.h>
 #include "securec.h"
 #include "basic.h"
+#include "logger.h"
+#include "utils.h"
 
 #define DCMI_INIT                  "dcmi_init"
 #define DCMI_SET_DESTROY_VDEVICE   "dcmi_set_destroy_vdevice"
