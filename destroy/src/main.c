@@ -29,7 +29,7 @@
 
 static bool ShowExceptionInfo(const char* exceptionInfo)
 {
-    Logger(exceptionInfo, LEVEL_INFO, SCREEN_YES);
+    Logger(exceptionInfo, LEVEL_ERROR, SCREEN_YES);
     return false;
 }
 
@@ -250,6 +250,9 @@ static int DestroyEntrance(const char *argv[])
     int cardId = 0;
     int deviceId = 0;
     int vDeviceId = 0;
+    char *str = FormatLogMessage("start to destroy v-device %d start...\n", vDeviceId);
+    Logger(str, LEVEL_INFO, SCREEN_YES); //start to destroy v-device
+    free(str);
     if (!GetAndCheckID(argv, &cardId, &deviceId, &vDeviceId)) {
         return -1;
     }
@@ -266,6 +269,9 @@ static int DestroyEntrance(const char *argv[])
         return -1;
     }
     DcmiDlclose(&handle);
+    char *strEnd = FormatLogMessage("destroy v-device %d successfully.\n", vDeviceId);
+    Logger(strEnd, LEVEL_INFO, SCREEN_YES); //start to destroy v-device
+    free(strEnd);
     return 0;
 }
 
