@@ -251,7 +251,7 @@ static int DestroyEntrance(const char *argv[])
     int deviceId = 0;
     int vDeviceId = 0;
     char *str = FormatLogMessage("start to destroy v-device %d start...\n", vDeviceId);
-    Logger(str, LEVEL_INFO, SCREEN_YES); //start to destroy v-device
+    Logger(str, LEVEL_INFO, SCREEN_YES);
     free(str);
     if (!GetAndCheckID(argv, &cardId, &deviceId, &vDeviceId)) {
         return -1;
@@ -270,7 +270,7 @@ static int DestroyEntrance(const char *argv[])
     }
     DcmiDlclose(&handle);
     char *strEnd = FormatLogMessage("destroy v-device %d successfully.\n", vDeviceId);
-    Logger(strEnd, LEVEL_INFO, SCREEN_YES); //start to destroy v-device
+    Logger(strEnd, LEVEL_INFO, SCREEN_YES);
     free(strEnd);
     return 0;
 }
