@@ -13,3 +13,7 @@ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c h1:dUUwHk2QECo/6vqA44rthZ8ie2QXMNeKRTHCNY2nXvo=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+codehub-dg-y.huawei.com/MindX_DL/AtlasEnableWarehouse/npu-exporter.git v0.2.7 h1:yKnqOCGmdknfWhfDBqSKYWuioQzdiXz7VeKh56EGhjw=
+codehub-dg-y.huawei.com/MindX_DL/AtlasEnableWarehouse/npu-exporter.git v0.2.7/go.mod h1:sUdarWqC4+C7fr0rpGUNvx1n1JixILyKOlS1gDfpi/w=
+codehub-dg-y.huawei.com/it-edge-native/edge-native-core/coastguard.git v1.0.6 h1:QO4JTYr7hsyjd8VeE9ARivO3iIes/1GS6DkLiS5w3Xo=
+codehub-dg-y.huawei.com/it-edge-native/edge-native-core/coastguard.git v1.0.6/go.mod h1:mbUvvh/0ox+lNtLoraCsf+NMpTCL2h4L/NtfboraaH4=

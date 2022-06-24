@@ -18,12 +18,16 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"go.uber.org/zap"
 
+	"huawei.com/npu-exporter/hwlog"
 	"mindxcheckutils"
 )
 
 const (
 	loggingPrefix          = "ascend-docker-hook"
+	runLogPath             = "/var/log/ascend-docker-runtime/hook-run.log"
+	operateLogPath         = "/var/log/ascend-docker-runtime/hook-operate.log"
 	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
 	ascendRuntimeOptions   = "ASCEND_RUNTIME_OPTIONS"
 	ascendRuntimeMounts    = "ASCEND_RUNTIME_MOUNTS"
@@ -33,8 +37,10 @@ const (
 	baseConfig             = "base"
 	configFileSuffix       = "list"
 
-	borderNum  = 2
-	kvPairSize = 2
+	borderNum        = 2
+	kvPairSize       = 2
+	maxLogLength     = 1024
+	maxCommandLength = 65535
 )
 
 var (
@@ -53,6 +59,32 @@ type containerConfig struct {
 	Pid    int
 	Rootfs string
 	Env    []string
+}
+
+func initLogModule(stopCh <-chan struct{}) error {
+	const backups = 2
+	const logMaxAge = 365
+	runLogConfig := hwlog.LogConfig{
+		LogFileName: runLogPath,
+		LogLevel:    0,
+		MaxBackups:  backups,
+		MaxAge:      logMaxAge,
+	}
+	if err := hwlog.InitRunLogger(&runLogConfig, stopCh); err != nil {
+		fmt.Printf("hwlog init failed, error is %v", err)
+		return err
+	}
+	operateLogConfig := hwlog.LogConfig{
+		LogFileName: operateLogPath,
+		LogLevel:    0,
+		MaxBackups:  backups,
+		MaxAge:      logMaxAge,
+	}
+	if err := hwlog.InitOperateLogger(&operateLogConfig, stopCh); err != nil {
+		fmt.Printf("hwlog init failed, error is %v", err)
+		return err
+	}
+	return nil
 }
 
 func removeDuplication(devices []int) []int {
@@ -192,7 +224,7 @@ var getContainerConfig = func() (*containerConfig, error) {
 	}
 
 	configPath := path.Join(state.Bundle, "config.json")
-	if _, err := mindxcheckutils.FileChecker(configPath, false, false, true, 0); err != nil {
+	if _, err := mindxcheckutils.RealFileChecker(configPath, false, true, mindxcheckutils.DefaultSize); err != nil {
 		return nil, err
 	}
 
@@ -238,7 +270,8 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 	}
 
 	fileInfo, err := os.Stat(baseConfigFilePath)
-	if _, err := mindxcheckutils.FileChecker(baseConfigFilePath, false, true, false, 0); err != nil {
+	if _, err := mindxcheckutils.RealFileChecker(baseConfigFilePath, true, false,
+		mindxcheckutils.DefaultSize); err != nil {
 		return nil, nil, err
 	}
 	if err != nil {
@@ -345,7 +378,7 @@ func doPrestartHook() error {
 	if _, err = os.Stat(cliPath); err != nil {
 		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %v", cliPath, err)
 	}
-	if _, err := mindxcheckutils.FileChecker(cliPath, false, true, false, 0); err != nil {
+	if _, err := mindxcheckutils.RealFileChecker(cliPath, true, false, mindxcheckutils.DefaultSize); err != nil {
 		return err
 	}
 
@@ -365,11 +398,9 @@ func doPrestartHook() error {
 	if len(parsedOptions) > 0 {
 		args = append(args, "--options", strings.Join(parsedOptions, ","))
 	}
-
 	if err := doExec(cliPath, args, os.Environ()); err != nil {
 		return fmt.Errorf("failed to exec ascend-docker-cli %v: %v", args, err)
 	}
-
 	return nil
 }
 
@@ -381,7 +412,34 @@ func main() {
 	}()
 	log.SetPrefix(loggingPrefix)
 
-	if err := doPrestartHook(); err != nil {
+	stopCh := make(chan struct{})
+	if err := initLogModule(stopCh); err != nil {
+		close(stopCh)
 		log.Fatal(err)
 	}
+	logPrefixWords, err := mindxcheckutils.GetLogPrefix()
+	if err != nil {
+		close(stopCh)
+		log.Fatal(err)
+	}
+	hwlog.RunLog.ZapLogger = hwlog.RunLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
+	hwlog.OpLog.ZapLogger = hwlog.OpLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
+	hwlog.RunLog.Infof("ascend docker hook starting")
+	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
+		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
+		close(stopCh)
+		log.Fatal("command error")
+	}
+	logWords := fmt.Sprintf("running %v", os.Args)
+	if len(logWords) > maxLogLength {
+		logWords = logWords[0:maxLogLength-1] + "..."
+	}
+	hwlog.OpLog.Infof(logWords)
+	if err := doPrestartHook(); err != nil {
+		hwlog.RunLog.Errorf("ascend docker hook failed")
+		hwlog.OpLog.Errorf("failed: err %v", err)
+		close(stopCh)
+		log.Fatal(err)
+	}
+	close(stopCh)
 }
