@@ -82,17 +82,17 @@ func process() error {
 
 	srcFilePath := command[srcFilePosition]
 	if _, err := os.Stat(srcFilePath); os.IsNotExist(err) {
-		if _, err := mindxcheckutils.FileChecker(filepath.Dir(srcFilePath), true, true, false, 0); err != nil {
+		if _, err := mindxcheckutils.RealDirChecker(filepath.Dir(srcFilePath), true, false); err != nil {
 			return err
 		}
 	} else {
-		if _, err := mindxcheckutils.FileChecker(srcFilePath, false, true, false, 0); err != nil {
+		if _, err := mindxcheckutils.RealFileChecker(srcFilePath, true, false, mindxcheckutils.DefaultSize); err != nil {
 			return err
 		}
 	}
 
 	destFilePath := command[destFilePosition]
-	if _, err := mindxcheckutils.FileChecker(filepath.Dir(destFilePath), true, true, false, 0); err != nil {
+	if _, err := mindxcheckutils.RealDirChecker(filepath.Dir(destFilePath), true, false); err != nil {
 		return err
 	}
 	runtimeFilePath := ""

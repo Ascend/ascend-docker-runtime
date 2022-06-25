@@ -1,7 +1,7 @@
 #!/bin/bash
 # Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
 # Description: ascend-docker-runtime构建脚本
-set -e
+set -ex
 
 ROOT=$(cd $(dirname $0); pwd)/..
 TOP_DIR=$ROOT/..
@@ -62,11 +62,17 @@ function build_bin()
     export GOPATH="${ROOT}/opensource"
     export GO111MODULE=on
     export GONOSUMDB="*"
+    export GONOPROXY=*.huawei.com
+    export GOFLAGS="-mod=mod"
 
     echo "make installhelper"
     cd ${INSTALLHELPERSRCDIR}
     go mod tidy
     [ -d "${BUILD}/build/helper/build" ] && rm -rf ${BUILD}/build/helper/build
+    export CGO_ENABLED=1
+    export CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    export CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
+    export CGO_LDFLAGS="-Wl,-z,now -Wl,-s,--build-id=none -pie"
     mkdir -p ${BUILD}/build/helper/build
     go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath  ${INSTALLHELPERSRCDIR}/${INSTALLHELPERSRCNAME}
     mv main ${BUILD}/build/helper/build/ascend-docker-plugin-install-helper
@@ -75,10 +81,6 @@ function build_bin()
     go mod download
     [ -d "${HOOKSRCDIR}/build" ] && rm -rf ${HOOKSRCDIR}/build
     mkdir ${HOOKSRCDIR}/build && cd ${HOOKSRCDIR}/build
-    export CGO_ENABLED=1
-    export CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
-    export CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
-    export CGO_LDFLAGS="-Wl,-z,now -Wl,-s,--build-id=none -pie"
     go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath ../${HOOKSRCNAME}
     mv main ascend-docker-hook
     echo `pwd`

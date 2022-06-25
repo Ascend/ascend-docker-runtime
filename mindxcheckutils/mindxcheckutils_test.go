@@ -66,6 +66,78 @@ func TestFileCheckRegularFile(t *testing.T) {
 	}
 }
 
+func TestGetLogPrefix(t *testing.T) {
+	logPrefix = ""
+	prefix, err := GetLogPrefix()
+	if err != nil {
+		t.Fatalf("get log prefix failed %v %v", prefix, err)
+	}
+	if logPrefix == "" || prefix != logPrefix {
+		t.Fatalf("get log prefix failed 2 %v %v", prefix, prefix)
+	}
+}
+
+func TestRealFileChecker(t *testing.T) {
+	tmpDir, filePath, err := createTestFile(t, "test_file.txt")
+	if err != nil {
+		t.Fatalf("create file failed %q: %s", filePath, err)
+	}
+	defer removeTmpDir(t, tmpDir)
+	const permission os.FileMode = 0700
+	err = os.WriteFile(filePath, []byte("hello\n"), permission)
+	if err != nil {
+		t.Fatalf("create file failed %q: %s", filePath, err)
+	}
+	if _, err = RealFileChecker(filePath, false, true, 0); err == nil {
+		t.Fatalf("size check wrong 0 %q: %s", filePath, err)
+	}
+	if _, err = RealFileChecker(filePath, false, true, 1); err != nil {
+		t.Fatalf("size check wrong 1 %q: %s", filePath, err)
+	}
+}
+
+func TestRealDirChecker(t *testing.T) {
+	tmpDir, filePath, err := createTestFile(t, "test_file.txt")
+	if err != nil {
+		t.Fatalf("create file failed %q: %s", filePath, err)
+	}
+	defer removeTmpDir(t, tmpDir)
+	if _, err = RealDirChecker(filePath, false, true); err == nil {
+		t.Fatalf("should be dir 0 %q: %s", filePath, err)
+	}
+	if _, err = RealDirChecker(tmpDir, false, true); err != nil {
+		t.Fatalf("should be dir 1 %q: %s", filePath, err)
+	}
+}
+
+func TestStringChecker(t *testing.T) {
+	if ok := StringChecker("0123456789abcABC", 0, DefaultStringSize, ""); !ok {
+		t.Fatalf("failed on regular letters")
+	}
+	const testSize = 3
+	if ok := StringChecker("123", 0, testSize, ""); ok {
+		t.Fatalf("failed on max length")
+	}
+	if ok := StringChecker("1234", 0, testSize, ""); ok {
+		t.Fatalf("failed on max length")
+	}
+	if ok := StringChecker("12", 0, testSize, ""); !ok {
+		t.Fatalf("failed on max length")
+	}
+	if ok := StringChecker("", 0, testSize, ""); ok {
+		t.Fatalf("failed on min length")
+	}
+	if ok := StringChecker("123", testSize, DefaultStringSize, ""); ok {
+		t.Fatalf("failed on min length")
+	}
+	if ok := StringChecker("123%", 0, DefaultStringSize, ""); ok {
+		t.Fatalf("failed on strange words")
+	}
+	if ok := StringChecker("123.-/~", 0, DefaultStringSize, DefaultWhiteList); !ok {
+		t.Fatalf("failed on strange words")
+	}
+}
+
 func createTestFile(t *testing.T, fileName string) (string, string, error) {
 	tmpDir := os.TempDir()
 	const permission os.FileMode = 0700
