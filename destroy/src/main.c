@@ -139,7 +139,7 @@ static bool DeclareDcmiApiAndCheck(void **handle)
 {
     *handle = dlopen("libdcmi.so", RTLD_LAZY);
     if (*handle == NULL) {
-        Logger("dlopen failed.\n", LEVEL_ERROR, SCREEN_YES);
+        Logger("dlopen failed.", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
     char pLinkMap[sizeof(struct link_map)] = {0};
@@ -148,11 +148,11 @@ static bool DeclareDcmiApiAndCheck(void **handle)
         struct link_map* pLink = *(struct link_map**)pLinkMap;
         const size_t maxFileSzieMb = 10; // max 10 mb
         if (!CheckAExternalFile(pLink->l_name, strlen(pLink->l_name), maxFileSzieMb, true)) {
-            Logger("check sofile failed.\n", LEVEL_ERROR, SCREEN_YES);
+            Logger("check sofile failed.", LEVEL_ERROR, SCREEN_YES);
             return false;
         }
     } else {
-        Logger("dlinfo sofile failed.\n", LEVEL_ERROR, SCREEN_YES);
+        Logger("dlinfo sofile failed.", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
     
@@ -216,7 +216,7 @@ static bool DcmiInitProcess(void *handle)
     }
     int ret = dcmi_init();
     if (ret != 0) {
-        Logger("dcmi_init faile.\n", LEVEL_ERROR, SCREEN_YES);
+        Logger("dcmi_init faile.", LEVEL_ERROR, SCREEN_YES);
         DcmiDlclose(&handle);
         return false;
     }
@@ -237,7 +237,7 @@ static bool DcmiDestroyProcess(void *handle, const int cardId,
     }
     int ret = dcmi_set_destroy_vdevice(cardId, deviceId, vDeviceId);
     if (ret != 0) {
-        Logger("dcmi_set_destroy_vdevice failed.\n", LEVEL_ERROR, SCREEN_YES);
+        Logger("dcmi_set_destroy_vdevice failed.", LEVEL_ERROR, SCREEN_YES);
         DcmiDlclose(&handle);
         return false;
     }
@@ -252,7 +252,7 @@ static int DestroyEntrance(const char *argv[])
     int cardId = 0;
     int deviceId = 0;
     int vDeviceId = 0;
-    char *str = FormatLogMessage("start to destroy v-device %d start...\n", vDeviceId);
+    char *str = FormatLogMessage("start to destroy v-device %d start...", vDeviceId);
     Logger(str, LEVEL_INFO, SCREEN_YES);
     free(str);
     if (!GetAndCheckID(argv, &cardId, &deviceId, &vDeviceId)) {
@@ -261,7 +261,7 @@ static int DestroyEntrance(const char *argv[])
 
     void *handle = NULL;
     if (!DeclareDcmiApiAndCheck(&handle)) {
-        Logger("Declare dcmi failed.\n", LEVEL_ERROR, SCREEN_YES);
+        Logger("Declare dcmi failed.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
     if (!DcmiInitProcess(handle)) {
@@ -271,7 +271,7 @@ static int DestroyEntrance(const char *argv[])
         return -1;
     }
     DcmiDlclose(&handle);
-    char *strEnd = FormatLogMessage("destroy v-device %d successfully.\n", vDeviceId);
+    char *strEnd = FormatLogMessage("destroy v-device %d successfully", vDeviceId);
     Logger(strEnd, LEVEL_INFO, SCREEN_YES);
     free(strEnd);
     return 0;
@@ -280,7 +280,7 @@ static int DestroyEntrance(const char *argv[])
 static bool EntryCheck(const int argc, const char *argv[])
 {
     if (argc != DESTROY_PARAMS_NUM) {
-        Logger("destroy params namber error.\n", LEVEL_ERROR, SCREEN_YES);
+        Logger("destroy params namber error.", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
     for (int iLoop = 1; iLoop < argc; iLoop++) {
@@ -296,7 +296,7 @@ static bool EntryCheck(const int argc, const char *argv[])
 int main(const int argc, const char *argv[])
 {
     if (!EntryCheck(argc, argv)) {
-        Logger("destroy params value error.\n", LEVEL_ERROR, SCREEN_YES);
+        Logger("destroy params value error.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
