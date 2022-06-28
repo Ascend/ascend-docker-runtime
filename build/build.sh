@@ -67,7 +67,6 @@ function build_bin()
 
     echo "make installhelper"
     cd ${INSTALLHELPERSRCDIR}
-    go mod tidy
     [ -d "${BUILD}/build/helper/build" ] && rm -rf ${BUILD}/build/helper/build
     export CGO_ENABLED=1
     export CGO_CFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
@@ -78,7 +77,6 @@ function build_bin()
     mv main ${BUILD}/build/helper/build/ascend-docker-plugin-install-helper
 
     echo "make hook"
-    go mod tidy
     [ -d "${HOOKSRCDIR}/build" ] && rm -rf ${HOOKSRCDIR}/build
     mkdir ${HOOKSRCDIR}/build && cd ${HOOKSRCDIR}/build
     go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath ../${HOOKSRCNAME}
@@ -87,7 +85,6 @@ function build_bin()
     ls
 
     echo "make runtime"
-    go mod tidy
     cd ${RUNTIMEDIR}
     [ -d "${RUNTIMESRCDIR}/build" ] && rm -rf ${RUNTIMESRCDIR}/build
     mkdir ${RUNTIMESRCDIR}/build&&cd ${RUNTIMESRCDIR}/build
