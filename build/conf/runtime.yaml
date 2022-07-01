@@ -13,7 +13,8 @@ compile:
       include:
         - commands:
             - command: "mkdir -p {{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build"
-            - command: "cd {{ systemEnv.workspace }}/ascend-docker-plugin/runtime && go mod download"
+            - command: "cd {{ systemEnv.workspace }}/ascend-docker-plugin/runtime"
+            - command: "env"
   process:
     language: go
     compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime"
