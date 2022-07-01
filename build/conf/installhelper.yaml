@@ -13,7 +13,8 @@ compile:
       include:
         - commands:
             - command: "mkdir -p {{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build"
-            - command: "cd {{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src/ && go mod tidy"
+            - command: "cd {{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src"
+            - command: "env"
   process:
     language: go
     compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src"
