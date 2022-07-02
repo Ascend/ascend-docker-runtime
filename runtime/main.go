@@ -17,7 +17,6 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"go.uber.org/zap"
 
 	"huawei.com/npu-exporter/hwlog"
 	"mindxcheckutils"
@@ -154,7 +153,6 @@ func addHook(spec *specs.Spec) error {
 	}
 
 	vdevice, err := dcmi.CreateVDevice(&dcmi.NpuWorker{}, spec)
-	hwlog.RunLog.Infof("vnpu split done: vdevice: %v err: %v", vdevice.VdeviceID, err)
 	if err != nil {
 		return err
 	}
@@ -275,34 +273,7 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
-	stopCh := make(chan struct{})
-	if err := initLogModule(stopCh); err != nil {
-		close(stopCh)
-		log.Fatal(err)
-	}
-	logPrefixWords, err := mindxcheckutils.GetLogPrefix()
-	if err != nil {
-		close(stopCh)
-		log.Fatal(err)
-	}
-	hwlog.RunLog.ZapLogger = hwlog.RunLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
-	hwlog.OpLog.ZapLogger = hwlog.OpLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
-	hwlog.RunLog.Infof("ascend docker runtime starting")
-	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
-		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
-		close(stopCh)
-		log.Fatal("command error")
-	}
-	logWords := fmt.Sprintf("running %v", os.Args)
-	if len(logWords) > maxLogLength {
-		logWords = logWords[0:maxLogLength-1] + "..."
-	}
-	hwlog.OpLog.Infof(logWords)
 	if err := doProcess(); err != nil {
-		hwlog.RunLog.Errorf("%v ascend docker runtime failed", logPrefixWords)
-		hwlog.OpLog.Errorf("%v failed", logWords)
-		close(stopCh)
 		log.Fatal(err)
 	}
-	close(stopCh)
 }
