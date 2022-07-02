@@ -14,7 +14,7 @@ compile:
         - commands:
           - command: "mkdir {{ systemEnv.workspace }}/ascend-docker-plugin/hook/build"
           - command: "cd {{ systemEnv.workspace }}/ascend-docker-plugin/hook"
-          - command: "env"
+          - command: "export GOPATH={{ systemEnv.workspace }}/ascend-docker-plugin/opensource && env"
   process:
     language: go
     compilePath: "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/"
