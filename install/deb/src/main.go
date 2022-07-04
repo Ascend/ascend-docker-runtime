@@ -190,7 +190,7 @@ func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]inter
 	return daemon, nil
 }
 
-func loadOrigin(srcFilePath string) (map[string]interface{}, error) {
+func loadOriginJSON(srcFilePath string) (map[string]interface{}, error) {
 	if fileInfo, err := os.Stat(srcFilePath); err != nil {
 		return nil, err
 	} else if fileInfo.Size() > maxFileSize {
