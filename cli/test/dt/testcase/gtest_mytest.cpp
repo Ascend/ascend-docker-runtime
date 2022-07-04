@@ -62,6 +62,8 @@ extern "C" bool IsOptionNoDrvSet();
 extern "C" bool IsVirtual();
 extern "C" int MakeMountPoints(const char *path, mode_t mode);
 extern "C" int LogLoop(const char* filename);
+extern "C" bool TakeNthWord(char **pLine, unsigned int n, char **word);
+extern "C" bool CheckRootDir(char **pLine);
 
 struct MountList {
     unsigned int count;
@@ -991,6 +993,25 @@ TEST_F(Test_Fhho, StatusOneProcess)
     char **argv = NULL;
     int ret = Process(argc, argv);
     EXPECT_EQ(-1, ret);
+}
+
+TEST_F(Test_Fhho, TakeNthWord)
+{
+    // test parameter is null
+    char **pLine = nullptr;
+    unsigned int n = 2;
+    char **word = nullptr;
+    bool ret = TakeNthWord(pLine, n, word);
+    EXPECT_EQ(false, ret);
+}
+
+
+TEST_F(Test_Fhho, CheckRootDir)
+{
+    // test parameter is null
+    char **pLine = nullptr;
+    bool ret = CheckRootDir(pLine);
+    EXPECT_EQ(false, ret);
 }
 
 TEST_F(Test_Fhho, StatusTwoProcess)
