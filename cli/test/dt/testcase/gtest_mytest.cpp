@@ -430,7 +430,7 @@ TEST_F(Test_Fhho, StatusTwo2)
     // Assign a false file path
     char *rootfs="/home/notexists";
     char *deviceName="davinci0";
-    EXPECT_EQ(0, MountDevice(rootfs, deviceName));
+    EXPECT_EQ(-1, MountDevice(rootfs, deviceName));
 }
 
 TEST_F(Test_Fhho, StatusThree1)
@@ -442,8 +442,7 @@ TEST_F(Test_Fhho, StatusThree1)
     MOCKER(mount).stubs().will(invoke(stub_Mount_failed));
     char *deviceName="davinci0";
     GlobalMockObject::verify();
-    EXPECT_EQ(0, MountDevice(rootfs, deviceName));
-
+    EXPECT_EQ(-1, MountDevice(rootfs, deviceName));
 }
 
 TEST_F(Test_Fhho, StatusFour)
@@ -453,7 +452,7 @@ TEST_F(Test_Fhho, StatusFour)
     MOCKER(stat).stubs().will(invoke(stub_stat_failed));
     char *deviceName="davinci0";
     GlobalMockObject::verify();
-    EXPECT_EQ(0, MountDevice(rootfs, deviceName));
+    EXPECT_EQ(-1, MountDevice(rootfs, deviceName));
 }
 
 TEST_F(Test_Fhho, StatusOneDoDeviceMounting)
@@ -734,7 +733,7 @@ TEST_F(Test_Fhho, StatusOneDoCtrlDeviceMounting)
     MOCKER(MountDir).stubs().will(invoke(Stub_MountDir_Failed));
     int ret = DoCtrlDeviceMounting(rootfs);
     GlobalMockObject::verify();
-    EXPECT_EQ(0, ret);
+    EXPECT_EQ(-1, ret);
 }
 
 TEST_F(Test_Fhho, StatusTwoDoCtrlDeviceMounting)
