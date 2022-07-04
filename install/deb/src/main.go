@@ -101,11 +101,11 @@ func process() error {
 	}
 
 	// check file permission
-	writeContent, err := createJsonString(srcFilePath, runtimeFilePath, action)
+	writeContent, err := createJSONString(srcFilePath, runtimeFilePath, action)
 	if err != nil {
 		return err
 	}
-	return writeJson(destFilePath, writeContent)
+	return writeJSON(destFilePath, writeContent)
 }
 
 func createJSONString(srcFilePath, runtimeFilePath, action string) ([]byte, error) {
@@ -151,7 +151,7 @@ func writeJSON(destFilePath string, writeContent []byte) error {
 
 func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]interface{}, error) {
 	// existed...
-	daemon, err := loadOriginJson(srcFilePath)
+	daemon, err := loadOriginJSON(srcFilePath)
 	if err != nil {
 		return nil, err
 	}
