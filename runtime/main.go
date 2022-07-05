@@ -73,6 +73,7 @@ func initLogModule(stopCh <-chan struct{}) error {
 		LogLevel:    0,
 		MaxBackups:  backups,
 		MaxAge:      logMaxAge,
+		OnlyToFile:  true,
 	}
 	if err := hwlog.InitRunLogger(&runLogConfig, stopCh); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
