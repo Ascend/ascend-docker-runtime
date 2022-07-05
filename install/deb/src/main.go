@@ -101,14 +101,14 @@ func process() error {
 	}
 
 	// check file permission
-	writeContent, err := createJsonString(srcFilePath, runtimeFilePath, action)
+	writeContent, err := createJSONString(srcFilePath, runtimeFilePath, action)
 	if err != nil {
 		return err
 	}
-	return writeJson(destFilePath, writeContent)
+	return writeJSON(destFilePath, writeContent)
 }
 
-func createJsonString(srcFilePath, runtimeFilePath, action string) ([]byte, error) {
+func createJSONString(srcFilePath, runtimeFilePath, action string) ([]byte, error) {
 	var writeContent []byte
 	if _, err := os.Stat(srcFilePath); err == nil {
 		daemon, err := modifyDaemon(srcFilePath, runtimeFilePath, action)
@@ -128,7 +128,7 @@ func createJsonString(srcFilePath, runtimeFilePath, action string) ([]byte, erro
 	return writeContent, nil
 }
 
-func writeJson(destFilePath string, writeContent []byte) error {
+func writeJSON(destFilePath string, writeContent []byte) error {
 	if _, err := os.Stat(destFilePath); os.IsNotExist(err) {
 		const perm = 0600
 		file, err := os.OpenFile(destFilePath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, perm)
@@ -145,14 +145,13 @@ func writeJson(destFilePath string, writeContent []byte) error {
 			return fmt.Errorf("close target file failed")
 		}
 		return nil
-	} else {
-		return fmt.Errorf("target file already existed")
 	}
+	return fmt.Errorf("target file already existed")
 }
 
 func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]interface{}, error) {
 	// existed...
-	daemon, err := loadOriginJson(srcFilePath)
+	daemon, err := loadOriginJSON(srcFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +190,7 @@ func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]inter
 	return daemon, nil
 }
 
-func loadOriginJson(srcFilePath string) (map[string]interface{}, error) {
+func loadOriginJSON(srcFilePath string) (map[string]interface{}, error) {
 	if fileInfo, err := os.Stat(srcFilePath); err != nil {
 		return nil, err
 	} else if fileInfo.Size() > maxFileSize {

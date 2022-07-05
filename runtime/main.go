@@ -19,9 +19,8 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"go.uber.org/zap"
 
-	"mindxcheckutils"
-
 	"huawei.com/npu-exporter/hwlog"
+	"mindxcheckutils"
 )
 
 const (

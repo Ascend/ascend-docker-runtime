@@ -9,7 +9,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
-const mockDeviceId = 100
+const mockDeviceID = 100
 
 type mockWorker struct{}
 
