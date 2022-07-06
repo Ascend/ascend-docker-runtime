@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -94,12 +95,16 @@ func initLogModule(stopCh <-chan struct{}) error {
 }
 
 var execRunc = func() error {
-	runcPath, err := exec.LookPath(dockerRuncName)
+	tempRuncPath, err := exec.LookPath(dockerRuncName)
 	if err != nil {
-		runcPath, err = exec.LookPath(runcName)
+		tempRuncPath, err = exec.LookPath(runcName)
 		if err != nil {
 			return fmt.Errorf("failed to find the path of runc: %v", err)
 		}
+	}
+	runcPath, err := filepath.EvalSymlinks(tempRuncPath)
+	if err != nil {
+		return fmt.Errorf("failed to find realpath of runc %v", err)
 	}
 	if _, err := mindxcheckutils.RealFileChecker(runcPath, true, false, mindxcheckutils.DefaultSize); err != nil {
 		return err
