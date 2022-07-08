@@ -21,8 +21,8 @@ compile:
     parameters: [
       [ "buildmode", "pie" ],
       [ "ldflags", '-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s'],
-      [ "trimpath", "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src/main.go"],
       [ "o", "{{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build/ascend-docker-plugin-install-helper"],
+      [ "trimpath", "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src/main.go"],
       ]
   output:
     files:

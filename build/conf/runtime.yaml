@@ -21,8 +21,8 @@ compile:
     parameters: [
       [ "buildmode", "pie" ],
       [ "ldflags", '-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s'],
+      [ "o", "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build/ascend-docker-runtime"],
       [ "trimpath", "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/main.go" ],
-      [ "o", "{{ systemEnv.workspace }}/ascend-docker-plugin/runtime/build/ascend-docker-runtime"]
       ]
   output:
     files:
