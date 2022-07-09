@@ -25,9 +25,3 @@ compile:
       [ "trimpath", "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src/main.go"],
       ]
   output:
-    files:
-      include:
-        - copy:
-            src: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/install/deb/src/main" ]
-            des: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build/ascend-docker-plugin-install-helper"
-            rename: true
