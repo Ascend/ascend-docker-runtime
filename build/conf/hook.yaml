@@ -21,12 +21,7 @@ compile:
     parameters: [
       [ "buildmode","pie" ],
       [ "ldflags",'-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s '],
+      [ "o", "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build/ascend-docker-hook"],
       [ "trimpath","{{ systemEnv.workspace }}/ascend-docker-plugin/hook/main.go"],
       ]
   output:
-    files:
-      include:
-        - copy:
-            src: [ "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/main" ]
-            des: "{{ systemEnv.workspace }}/ascend-docker-plugin/hook/build/ascend-docker-hook"
-            rename: true
