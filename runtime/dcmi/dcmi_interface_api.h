@@ -9,6 +9,7 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -29,6 +30,12 @@ struct dcmi_create_vdev_out {
     unsigned int pcie_func;
     unsigned int vfg_id;
     unsigned char reserved[DCMI_VDEV_FOR_RESERVE];
+};
+struct dcmi_create_vdev_res_stru {
+    unsigned int vdev_id;
+    unsigned int vfg_id;
+    char template_name[32];
+    unsigned char reserved[64];
 };
 
 // dcmi
@@ -56,12 +63,14 @@ int dcmi_get_device_logic_id(int *device_logic_id, int card_id, int device_id)
     CALL_FUNC(dcmi_get_device_logic_id, device_logic_id, card_id, device_id);
 }
 
-int (*dcmi_create_vdevice_func)(int card_id, int device_id, int vdev_id, const char *template_name,
+int (*dcmi_create_vdevice_func)(int card_id, int device_id,
+                                struct dcmi_create_vdev_res_stru *vdev,
                                 struct dcmi_create_vdev_out *out);
-int dcmi_create_vdevice(int card_id, int device_id, int vdev_id, const char *template_name,
+int dcmi_create_vdevice(int card_id, int device_id,
+                        struct dcmi_create_vdev_res_stru *vdev,
                         struct dcmi_create_vdev_out *out)
 {
-    CALL_FUNC(dcmi_create_vdevice, card_id, device_id, vdev_id, template_name, out);
+    CALL_FUNC(dcmi_create_vdevice, card_id, device_id, vdev, out);
 }
 
 int (*dcmi_set_destroy_vdevice_func)(int card_id, int device_id, unsigned int VDevid);
