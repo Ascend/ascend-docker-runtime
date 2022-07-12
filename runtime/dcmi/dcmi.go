@@ -10,7 +10,6 @@ import "C"
 import (
 	"fmt"
 	"math"
-	"unsafe"
 )
 
 const (
@@ -22,6 +21,8 @@ const (
 
 	// maxErrorCodeCount is the max number of error code
 	hiAIMaxCardNum = 16
+	coreNumLen     = 32
+	deviceNum      = 4294967295 // vfg_id表示指定虚拟设备所属的虚拟分组ID，默认自动分配，默认值为0xFFFFFFFF，转换成10进制为4294967295。
 )
 
 // NpuWorker Dcmi worker
@@ -107,9 +108,20 @@ func GetDeviceLogicID(cardID, deviceID int32) (int32, error) {
 func (w *NpuWorker) CreateVDevice(cardID, deviceID int32, coreNum string) (int32, error) {
 	var createInfo C.struct_dcmi_create_vdev_out
 	createInfo.vdev_id = C.uint(math.MaxUint32)
-	coreTemplate := C.CString(coreNum)
-	defer C.free(unsafe.Pointer(coreTemplate))
-	err := C.dcmi_create_vdevice(C.int(cardID), C.int(deviceID), C.int(-1), coreTemplate, &createInfo)
+	var deviceCreateStr C.struct_dcmi_create_vdev_res_stru
+	deviceCreateStr = C.struct_dcmi_create_vdev_res_stru{
+		vdev_id: C.uint(deviceNum),
+		vfg_id:  C.uint(deviceNum),
+	}
+	deviceCreateStrArr := [coreNumLen]C.char{0}
+	for i := 0; i < len(coreNum); i++ {
+		if i >= coreNumLen {
+			return math.MaxInt32, fmt.Errorf("wrong template")
+		}
+		deviceCreateStrArr[i] = C.char(coreNum[i])
+	}
+	deviceCreateStr.template_name = deviceCreateStrArr
+	err := C.dcmi_create_vdevice(C.int(cardID), C.int(deviceID), &deviceCreateStr, &createInfo)
 	if err != 0 {
 		errInfo := fmt.Errorf("create virtual device failed, error code: %d", int32(err))
 		return math.MaxInt32, errInfo
