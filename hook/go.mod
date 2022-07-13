@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/prashantv/gostub v1.1.0
-	huawei.com/npu-exporter v0.2.13
+	huawei.com/npu-exporter v0.2.14
 	mindxcheckutils v1.0.0
 )
 
@@ -18,7 +18,7 @@ replace (
 	k8s.io/client-go => codehub-dg-y.huawei.com/OpenSourceCenter/kubernetes.git/staging/src/k8s.io/client-go v1.19.4-h4
 	k8s.io/cri-api => codehub-dg-y.huawei.com/OpenSourceCenter/kubernetes.git/staging/src/k8s.io/cri-api v1.19.4-h4
 	github.com/agiledragon/gomonkey/v2 => github.com/agiledragon/gomonkey/v2 v2.2.0
-	github.com/fsnotify/fsnotify => github.com/fsnotify/fsnotify v1.4.9
+	github.com/fsnotify/fsnotify => github.com/fsnotify/fsnotify v1.5.1
 	github.com/golang/protobuf => github.com/golang/protobuf v1.5.1
 	github.com/patrickmn/go-cache => github.com/patrickmn/go-cache v2.1.1-0.20191004192108-46f407853014+incompatible
 	github.com/pkg/errors => github.com/pkg/errors v0.9.1
