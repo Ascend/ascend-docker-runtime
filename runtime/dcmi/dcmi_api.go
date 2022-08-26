@@ -55,7 +55,8 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 	visibleDevice, splitDevice, needSplit, visibleDeviceLine := int32(-1), "", false, ""
 	allowSplit := map[string]string{
 		"vir01": "vir01", "vir02": "vir02", "vir04": "vir04", "vir08": "vir08", "vir16": "vir16",
-		"vir04_3c": "vir04_3c", "vir02_1c": "vir02_1c",
+		"vir04_3c": "vir04_3c", "vir02_1c": "vir02_1c", "vir04_4c_dvpp": "vir04_4c_dvpp",
+		"vir04_3c_ndvpp": "vir04_3c_ndvpp",
 	}
 
 	for _, line := range spec.Process.Env {
