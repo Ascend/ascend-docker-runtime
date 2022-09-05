@@ -11,9 +11,14 @@
 #include "gtest/gtest.h"
 #include "mockcpp/mockcpp.hpp"
 
-
 using namespace std;
 using namespace testing;
+
+#ifndef GOOGLE_TEST
+# define STATIC static
+#else
+# define STATIC
+#endif
 
 #define DAVINCI_MANAGER_PATH        "/dev/davinci_manager"
 #define DEVICE_NAME  "davinci"
@@ -30,15 +35,15 @@ extern "C" int stat(const char *file_name, struct stat *buf);
 extern "C" int mount(const char *source, const char *target,
                      const char *filesystemtype, unsigned long mountflags, const void *data);
 extern "C" int Mount(const char *src, const char *dst);
-extern "C" int MkDir(const char *dir, int mode);
+STATIC int MkDir(const char *dir, mode_t mode);
 extern "C" int rmdir(const char *pathname);
 extern "C" int EnterNsByFd(int fd, int nsType);
-extern "C" int StrHasPrefix(const char *str, const char *prefix);
+extern "C" bool StrHasPrefix(const char *str, const char *prefix);
 extern "C" int GetNsPath(const int pid, const char *nsType, char *buf, size_t bufSize);
 extern "C" int GetSelfNsPath(const char *nsType, char *buf, size_t bufSize);
 extern "C" int EnterNsByPath(const char *path, int nsType);
 extern "C" int MountDevice(const char *rootfs, const char *deviceName);
-extern "C" int DoDeviceMounting(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr);
+extern "C" int DoDeviceMounting(const char *rootfs, const char *device_name, const size_t ids[], size_t idsNr);
 extern "C" int CheckDirExists(char *dir, int len);
 extern "C" int GetParentPathStr(const char *path, char *parent, size_t bufSize);
 extern "C" int MakeDirWithParent(const char *path, mode_t mode);
@@ -222,12 +227,12 @@ int Stub_EnterNsByPath_Failed(const char *path, int nsType)
     return 0;
 }
 
-int Stub_DoDeviceMounting_Success(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr)
+int Stub_DoDeviceMounting_Success(const char *rootfs, const char *device_name, const size_t ids[], size_t idsNr)
 {
     return 0;
 }
 
-int Stub_DoDeviceMounting_Failed(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr)
+int Stub_DoDeviceMounting_Failed(const char *rootfs, const char *device_name, const size_t ids[], size_t idsNr)
 {
     return -1;
 }
@@ -461,7 +466,7 @@ TEST_F(Test_Fhho, StatusOneDoDeviceMounting)
 {
     MOCKER(MountDevice).stubs().will(invoke(Stub_MountDevice_Success));
     char *rootfs = "/home";
-    unsigned int devicesList[2] = {1, 2};
+    size_t devicesList[2] = {1, 2};
     size_t idNr = 2;
     char *device_name = "davinci";
     int ret = DoDeviceMounting(rootfs, device_name, devicesList, idNr);
@@ -473,7 +478,7 @@ TEST_F(Test_Fhho,  StatusTwoDoDeviceMounting)
 {
     MOCKER(MountDevice).stubs().will(invoke(Stub_MountDevice_Failed));
     char *rootfs = "/home";
-    unsigned int devicesList[2] = {1, 2};
+    size_t devicesList[2] = {1, 2};
     size_t idNr = 2;
     char *device_name = "davinci";
     int ret = DoDeviceMounting(rootfs, device_name, devicesList, idNr);
@@ -630,17 +635,6 @@ TEST_F(Test_Fhho, MakeMountPoints1)
     EXPECT_EQ(-1, ret);
 }
 
-
-TEST_F(Test_Fhho, MkDirtestsuccess)
-{
-    // The test create directory contains the parent directory
-    mode_t mode = 0755;
-    char *dir = "/home";
-    int ret = MkDir(dir, mode);
-    EXPECT_EQ(-1, ret);
-}
-
-
 TEST_F(Test_Fhho, LogLoopSuccess)
 {
     // The test create directory contains the parent directory
@@ -659,6 +653,16 @@ TEST_F(Test_Fhho, StatusTwoMakeDirWithParent)
     EXPECT_EQ(0, ret);
 }
 
+#ifdef GOOGLE_TEST
+TEST_F(Test_Fhho, MkDirtestsuccess)
+{
+    // The test create directory contains the parent directory
+    mode_t mode = 0755;
+    char *dir = "/home";
+    int ret = MkDir(dir, mode);
+    EXPECT_EQ(-1, ret);
+}
+
 TEST_F(Test_Fhho, StatusThreeMakeDirWithParent)
 {
     char *pathData = "/path/abc/abcd";
@@ -672,6 +676,18 @@ TEST_F(Test_Fhho, StatusThreeMakeDirWithParent)
     GlobalMockObject::verify();
     EXPECT_EQ(0, ret);
 }
+
+TEST_F(Test_Fhho, StatusThreeMountDir)
+{
+    MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
+    MOCKER(MkDir).stubs().will(invoke(stub_MkDir_failed));
+    char *rootfs = "/rootfs";
+    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
+    int ret = MountDir(rootfs, "/home", reMountRwFlag);
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+#endif
 
 TEST_F(Test_Fhho, StatusOneMountDir)
 {
@@ -687,17 +703,6 @@ TEST_F(Test_Fhho, StatusTwoMountDir)
 {
     MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
     MOCKER(MakeDirWithParent).stubs().will(invoke(Stub_MakeDirWithParent_Failed));
-    char *rootfs = "/rootfs";
-    unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
-    int ret = MountDir(rootfs, "/home", reMountRwFlag);
-    GlobalMockObject::verify();
-    EXPECT_EQ(-1, ret);
-}
-
-TEST_F(Test_Fhho, StatusThreeMountDir)
-{
-    MOCKER(CheckDirExists).stubs().will(invoke(Stub_CheckDirExists_Failed));
-    MOCKER(MkDir).stubs().will(invoke(stub_MkDir_failed));
     char *rootfs = "/rootfs";
     unsigned long reMountRwFlag = MS_BIND | MS_REMOUNT | MS_RDONLY | MS_NOSUID | MS_NOEXEC;
     int ret = MountDir(rootfs, "/home", reMountRwFlag);
@@ -788,7 +793,7 @@ TEST_F(Test_Fhho, StatusOneSetupDeviceCgroup)
     MOCKER(stat).stubs().will(invoke(stub_stat_failed));
     int ret = SetupDeviceCgroup(cgroupAllow, cgroupPath);
     if (cgroupAllow != NULL) {
-        fclose(cgroupAllow);
+        (void)fclose(cgroupAllow);
     }
     EXPECT_EQ(-1, ret);
 }
@@ -803,7 +808,7 @@ TEST_F(Test_Fhho, StatusTwoSetupDeviceCgroup)
     MOCKER(stat).stubs().will(invoke(stub_stat_success));
     int ret = SetupDeviceCgroup(cgroupAllow, cgroupPath);
     if (cgroupAllow != NULL) {
-        fclose(cgroupAllow);
+        (void)fclose(cgroupAllow);
     }
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
@@ -817,7 +822,7 @@ TEST_F(Test_Fhho, StatusOneSetupDriverCgroup)
     MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Success));
     int ret = SetupDriverCgroup(cgroupAllow);
     if (cgroupAllow != NULL) {
-        fclose(cgroupAllow);
+        (void)fclose(cgroupAllow);
     }
     GlobalMockObject::verify();
     EXPECT_EQ(0, ret);
@@ -831,7 +836,7 @@ TEST_F(Test_Fhho, StatusTwoSetupDriverCgroup)
     MOCKER(SetupDeviceCgroup).stubs().will(invoke(Stub_SetupDeviceCgroup_Failed));
     int ret = SetupDriverCgroup(cgroupAllow);
     if (cgroupAllow != NULL) {
-        fclose(cgroupAllow);
+        (void)fclose(cgroupAllow);
     }
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);

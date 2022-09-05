@@ -7,7 +7,7 @@
 
 #include "basic.h"
 
-int GetCgroupPath(int pid, char *effPath, size_t maxSize);
+int GetCgroupPath(const long pid, char *effPath, size_t maxSize);
 int SetupCgroup(const struct ParsedConfig *config);
 
 #endif

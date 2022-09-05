@@ -15,9 +15,9 @@
 #define DEVMM_SVM             "devmm_svm"
 #define HISI_HDC              "hisi_hdc"
 #define DEFAULT_DIR_MODE      0755
-#define DEFAULT_LOG_MODE      0640
-#define DUMP_LOG_MODE         0440
-#define DEFAULT_LOGDIR_MODE   0750
+#define DEFAULT_LOG_MODE      0600
+#define DUMP_LOG_MODE         0400
+#define DEFAULT_LOGDIR_MODE   0700
 #define BUF_SIZE              1024
 #define MAX_DEVICE_NR         1024
 #define MAX_MOUNT_NR          512
@@ -65,7 +65,7 @@ struct MountList {
 
 struct ParsedConfig {
     char rootfs[BUF_SIZE];
-    unsigned int devices[MAX_DEVICE_NR];
+    size_t devices[MAX_DEVICE_NR];
     size_t devicesNr;
     char containerNsPath[BUF_SIZE];
     char cgroupPath[BUF_SIZE];

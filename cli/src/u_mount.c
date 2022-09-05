@@ -19,8 +19,10 @@
 static bool checkSrcFile(const char *src)
 {
     struct stat fileStat;
-    if ((stat(src, &fileStat) == 0) &&
-        ((S_ISREG(fileStat.st_mode) != 0) || (S_ISDIR(fileStat.st_mode) != 0))) { // 只校验文件和目录
+    if (stat(src, &fileStat) != 0) {
+        return -1; // 待挂载源文件不存在
+    }
+    if ((S_ISREG(fileStat.st_mode) != 0) || (S_ISDIR(fileStat.st_mode) != 0)) { // 只校验文件和目录
             const size_t maxFileSzieMb = 10 * 1024; // max 10 G
             if (!CheckExternalFile(src, strlen(src), maxFileSzieMb, false)) {
                 char* str = FormatLogMessage("failed to mount src: %s.", src);
@@ -187,7 +189,7 @@ int MountDevice(const char *rootfs, const char *srcDeviceName, const char *dstDe
     return 0;
 }
 
-int DoDeviceMounting(const char *rootfs, const char *device_name, const unsigned int ids[], size_t idsNr)
+int DoDeviceMounting(const char *rootfs, const char *device_name, const size_t ids[], size_t idsNr)
 {
     if (rootfs == NULL || device_name == NULL || ids == NULL) {
         Logger("rootfs, device_name pointer is null!", LEVEL_ERROR, SCREEN_YES);

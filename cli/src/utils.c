@@ -17,6 +17,8 @@
 #include "securec.h"
 #include "logger.h"
 
+static bool g_checkWgroup = true;
+
 char *FormatLogMessage(char *format, ...)
 {
     if (format == NULL) {
@@ -28,11 +30,12 @@ char *FormatLogMessage(char *format, ...)
     // 获取格式化后字符串的长度
     va_start(list, format);
     char buff[1024] = {0};
-    int size = vsnprintf_s(buff, sizeof(buff), sizeof(buff) - 1, format, list);
+    int ret = vsnprintf_s(buff, sizeof(buff), sizeof(buff) - 1, format, list);
     va_end(list);
-    if (size <= 0) {
+    if (ret <= 0) {
         return NULL;
     }
+    size_t size = (size_t)ret;
     size++;
     // 复位va_list, 将格式化字符串写入到buf
     va_start(list, format);
@@ -40,7 +43,7 @@ char *FormatLogMessage(char *format, ...)
     if (buf == NULL) {
         return NULL;
     }
-    int ret = vsnprintf_s(buf, size, size - 1, format, list);
+    ret = vsnprintf_s(buf, size, size - 1, format, list);
     va_end(list);
     if (ret <= 0) {
         free(buf);
@@ -54,12 +57,12 @@ int IsStrEqual(const char *s1, const char *s2)
     return (strcmp(s1, s2) == 0);
 }
 
-int StrHasPrefix(const char *str, const char *prefix)
+bool StrHasPrefix(const char *str, const char *prefix)
 {
-    return (!strncmp(str, prefix, strlen(prefix)));
+    return (strncmp(str, prefix, strlen(prefix)) == 0);
 }
 
-int MkDir(const char *dir, int mode)
+static int MkDir(const char *dir, mode_t mode)
 {
     if (dir == NULL) {
         (void)fprintf(stderr, "dir pointer is null!\n");
@@ -195,11 +198,11 @@ static bool CheckFileOwner(const struct stat fileStat, const bool checkOwner)
     return true;
 }
 
-static bool CheckParentDir(const char* resolvedPath, const size_t resolvedPathLen,
+static bool CheckParentDir(const char* filePath, const size_t filePathLen,
     struct stat fileStat, const bool checkOwner)
 {
     char buf[PATH_MAX] = {0};
-    if (strncpy_s(buf, sizeof(buf), resolvedPath, resolvedPathLen) != EOK) {
+    if (strncpy_s(buf, sizeof(buf), filePath, filePathLen) != EOK) {
         return false;
     }
     for (int iLoop = 0; iLoop < PATH_MAX; iLoop++) {
@@ -209,32 +212,42 @@ static bool CheckParentDir(const char* resolvedPath, const size_t resolvedPathLe
         if ((fileStat.st_mode & S_IWOTH) != 0) { // 操作文件对other用户可写
             return ShowExceptionInfo("Please check the write permission!");
         }
+        if (g_checkWgroup && ((fileStat.st_mode & S_IWGRP) != 0)) { // 除日志文件外对group可写
+            return ShowExceptionInfo("Please check the write permission!");
+        }
+        if (S_ISLNK(fileStat.st_mode) != 0) { // 存在软链接
+            return ShowExceptionInfo("resolvedPath is symbolic link!");
+        }
         if ((strcmp(buf, "/") == 0) || (strstr(buf, "/") == NULL)) {
             break;
         }
         if (strcmp(dirname(buf), ".") == 0) {
             break;
         }
-        if (stat(buf, &fileStat) != 0) {
+        if (lstat(buf, &fileStat) != 0) {
             return false;
         }
     }
     return true;
 }
 
-static bool CheckLegality(const char* resolvedPath, const size_t resolvedPathLen,
+static bool CheckLegality(const char* filePath, const size_t filePathLen,
     const unsigned long long maxFileSzieMb, const bool checkOwner)
 {
     const unsigned long long maxFileSzieB = maxFileSzieMb * 1024 * 1024;
-    struct stat fileStat;
-    if ((stat(resolvedPath, &fileStat) != 0) ||
-        ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
-        return ShowExceptionInfo("resolvedPath does not exist or is not a file!");
+    char buf[PATH_MAX] = {0};
+    if (strncpy_s(buf, sizeof(buf), filePath, filePathLen) != EOK) {
+        return false;
     }
-    if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
+    struct stat fileStat;
+    if ((lstat(buf, &fileStat) != 0) ||
+        ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
+        return ShowExceptionInfo("filePath does not exist or is not a file/dir!");
+    }
+    if ((maxFileSzieMb > 0) && (fileStat.st_size >= maxFileSzieB)) { // 文件大小超限，日志文件不校验大小，由轮滚机制保护
         return ShowExceptionInfo("fileSize out of bounds!");
     }
-    return CheckParentDir(resolvedPath, resolvedPathLen, fileStat, checkOwner);
+    return CheckParentDir(filePath, filePathLen, fileStat, checkOwner);
 }
 
 bool IsValidChar(const char c)
@@ -261,14 +274,26 @@ bool CheckExternalFile(const char* filePath, const size_t filePathLen,
             return ShowExceptionInfo("filePath has an illegal character!");
         }
     }
-    char resolvedPath[PATH_MAX] = {0};
-    if (realpath(filePath, resolvedPath) == NULL && errno != ENOENT) {
-        return ShowExceptionInfo("realpath failed!");
+    return CheckLegality(filePath, filePathLen, maxFileSzieMb, checkOwner);
+}
+
+bool CheckExistsFile(const char* filePath, const size_t filePathLen,
+    const size_t maxFileSzieMb, const bool checkWgroup)
+{
+    struct stat fileStat;
+    if (lstat(filePath, &fileStat) != 0) {
+        return true; // 文件不存在
     }
-    if (strcmp(resolvedPath, filePath) != 0) { // 存在软链接
-        return ShowExceptionInfo("filePath has a soft link!");
+    if (S_ISREG(fileStat.st_mode) == 0) { // 不是文件
+        return false;
     }
-    return CheckLegality(resolvedPath, strlen(resolvedPath), maxFileSzieMb, checkOwner);
+    g_checkWgroup = checkWgroup;
+    if (!CheckExternalFile(filePath, filePathLen, maxFileSzieMb, true)) {
+        g_checkWgroup = true;
+        return false;
+    }
+    g_checkWgroup = true;
+    return true;
 }
 
 static bool CheckFileSubset(const char* filePath, const size_t filePathLen,
@@ -284,23 +309,19 @@ static bool CheckFileSubset(const char* filePath, const size_t filePathLen,
             return ShowExceptionInfo("filePath has an illegal character!");
         }
     }
-    char resolvedPath[PATH_MAX] = {0};
-    if (realpath(filePath, resolvedPath) == NULL && errno != ENOENT) {
-        return ShowExceptionInfo("realpath failed!");
-    }
-    if (strcmp(resolvedPath, filePath) != 0) { // 存在软链接
-        return ShowExceptionInfo("filePath has a soft link!");
-    }
     struct stat fileStat;
-    if (stat(filePath, &fileStat) != 0) {
-        return ShowExceptionInfo("filePath does not exist or is not a file!");
+    if (lstat(filePath, &fileStat) != 0) {
+        return ShowExceptionInfo("filePath does not exist!");
+    }
+    if (S_ISLNK(fileStat.st_mode) != 0) { // 存在软链接
+        return ShowExceptionInfo("filePath is symbolic link!");
     }
     if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
         return ShowExceptionInfo("fileSize out of bounds!");
     }
     return true;
 }
- 
+
 bool GetFileSubsetAndCheck(const char *basePath, const size_t basePathLen)
 {
     DIR *dir = NULL;
@@ -324,7 +345,7 @@ bool GetFileSubsetAndCheck(const char *basePath, const size_t basePathLen)
         }
         if (ptr->d_type == DT_REG) { // 文件
             const size_t maxFileSzieMb = 10; // max 10 MB
-            if (!CheckFileSubset(base, strlen(base), maxFileSzieMb)) {
+            if (!(base, strlen(base), maxFileSzieMb)) {
                 return false;
             }
         } else if (ptr->d_type == DT_LNK) { // 软链接

@@ -28,7 +28,7 @@
 struct CmdArgs {
     char     devices[BUF_SIZE];
     char     rootfs[BUF_SIZE];
-    int      pid;
+    long      pid;
     char     options[BUF_SIZE];
     struct MountList files;
     struct MountList dirs;
@@ -224,7 +224,7 @@ static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
         return false;
     }
 
-    if (args->files.count == MAX_MOUNT_NR) {
+    if (args->files.count >= MAX_MOUNT_NR) {
         char* str = FormatLogMessage("too many files to mount, max number is %u", MAX_MOUNT_NR);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
@@ -239,7 +239,6 @@ static bool MountFileCmdArgParser(struct CmdArgs *args, const char *arg)
         free(str);
         return false;
     }
-
     const size_t maxFileSzieMb = 50; // max 50MB
     if (!CheckFileLegality(dst, strlen(dst), maxFileSzieMb)) {
         char* str = FormatLogMessage("failed to check files: %s", dst);
@@ -258,7 +257,7 @@ static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
         return false;
     }
 
-    if (args->dirs.count == MAX_MOUNT_NR) {
+    if (args->dirs.count >= MAX_MOUNT_NR) {
         char* str = FormatLogMessage("too many directories to mount, max number is %u", MAX_MOUNT_NR);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
@@ -335,7 +334,7 @@ static inline bool IsCmdArgsValid(const struct CmdArgs *args)
     return (strlen(args->devices) > 0) && (strlen(args->rootfs) > 0) && (args->pid > 0);
 }
 
-static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *devices)
+static int ParseDeviceIDs(size_t *idList, size_t *idListSize, char *devices)
 {
     if (idList == NULL || idListSize == NULL || devices == NULL) {
         Logger("idList, idListSize, devices pointer is null!", LEVEL_ERROR, SCREEN_YES);
@@ -348,7 +347,7 @@ static int ParseDeviceIDs(unsigned int *idList, size_t *idListSize, char *device
     size_t idx = 0;
 
     token = strtok_s(devices, sep, &context);
-    while (token != NULL) {
+    while (token != NULL && idx < *idListSize) {
         if (idx >= *idListSize) {
             char* str = FormatLogMessage("too many devices(%u), support %u devices maximally", idx, *idListSize);
             Logger(str, LEVEL_ERROR, SCREEN_YES);
