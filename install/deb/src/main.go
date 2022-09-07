@@ -11,6 +11,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"huawei.com/npu-exporter/hwlog"
 
 	"mindxcheckutils"
 )
@@ -33,25 +36,57 @@ const (
 	rmCommandLength     = 3
 	addCommandLength    = 4
 	addCommand          = "add"
+	maxCommandLength    = 65535
+	logPath             = "/var/log/ascend-docker-runtime/installer.log"
 	rmCommand           = "rm"
 	maxFileSize         = 1024 * 1024 * 10
 )
 
 func main() {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-	log.SetPrefix("LOG: ")
-	log.Printf("running %s", os.Args)
-	err := process()
-	if err != nil {
-		log.Printf("run %s failed", os.Args)
+	stopCh := make(chan struct{})
+	if err := initLogModule(stopCh); err != nil {
+		close(stopCh)
 		log.Fatal(err)
-	} else {
-		log.Printf("run %s success", os.Args)
 	}
+	logPrefixWords, err := mindxcheckutils.GetLogPrefix()
+	if err != nil {
+		close(stopCh)
+		log.Fatal(err)
+	}
+	hwlog.OpLog.Infof("%v installer started", logPrefixWords)
+
+	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
+		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
+		hwlog.OpLog.Infof("%v run failed", logPrefixWords)
+		close(stopCh)
+		log.Fatal("command error")
+	}
+
+	err = process()
+	if err != nil {
+		hwlog.OpLog.Infof("%v run %s failed", logPrefixWords, os.Args)
+		close(stopCh)
+		log.Fatal(fmt.Errorf("error in installation"))
+	} else {
+		hwlog.OpLog.Infof("%v run %s success", logPrefixWords, os.Args)
+		close(stopCh)
+	}
+}
+
+func initLogModule(stopCh <-chan struct{}) error {
+	const backups = 2
+	const logMaxAge = 365
+	logConfig := hwlog.LogConfig{
+		LogFileName: logPath,
+		LogLevel:    0,
+		MaxBackups:  backups,
+		MaxAge:      logMaxAge,
+	}
+	if err := hwlog.InitOperateLogger(&logConfig, stopCh); err != nil {
+		fmt.Printf("hwlog init failed, error is %v", err)
+		return err
+	}
+	return nil
 }
 
 func process() error {
@@ -101,14 +136,14 @@ func process() error {
 	}
 
 	// check file permission
-	writeContent, err := createJSONString(srcFilePath, runtimeFilePath, action)
+	writeContent, err := createJsonString(srcFilePath, runtimeFilePath, action)
 	if err != nil {
 		return err
 	}
-	return writeJSON(destFilePath, writeContent)
+	return writeJson(destFilePath, writeContent)
 }
 
-func createJSONString(srcFilePath, runtimeFilePath, action string) ([]byte, error) {
+func createJsonString(srcFilePath, runtimeFilePath, action string) ([]byte, error) {
 	var writeContent []byte
 	if _, err := os.Stat(srcFilePath); err == nil {
 		daemon, err := modifyDaemon(srcFilePath, runtimeFilePath, action)
@@ -128,7 +163,7 @@ func createJSONString(srcFilePath, runtimeFilePath, action string) ([]byte, erro
 	return writeContent, nil
 }
 
-func writeJSON(destFilePath string, writeContent []byte) error {
+func writeJson(destFilePath string, writeContent []byte) error {
 	if _, err := os.Stat(destFilePath); os.IsNotExist(err) {
 		const perm = 0600
 		file, err := os.OpenFile(destFilePath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, perm)
@@ -145,13 +180,14 @@ func writeJSON(destFilePath string, writeContent []byte) error {
 			return fmt.Errorf("close target file failed")
 		}
 		return nil
+	} else {
+		return fmt.Errorf("target file already existed")
 	}
-	return fmt.Errorf("target file already existed")
 }
 
 func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]interface{}, error) {
 	// existed...
-	daemon, err := loadOriginJSON(srcFilePath)
+	daemon, err := loadOriginJson(srcFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +226,7 @@ func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]inter
 	return daemon, nil
 }
 
-func loadOriginJSON(srcFilePath string) (map[string]interface{}, error) {
+func loadOriginJson(srcFilePath string) (map[string]interface{}, error) {
 	if fileInfo, err := os.Stat(srcFilePath); err != nil {
 		return nil, err
 	} else if fileInfo.Size() > maxFileSize {

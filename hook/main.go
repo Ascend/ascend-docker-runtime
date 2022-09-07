@@ -20,8 +20,9 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"go.uber.org/zap"
 
-	"huawei.com/npu-exporter/hwlog"
 	"mindxcheckutils"
+
+	"huawei.com/npu-exporter/hwlog"
 )
 
 const (
@@ -39,7 +40,6 @@ const (
 
 	borderNum        = 2
 	kvPairSize       = 2
-	maxLogLength     = 1024
 	maxCommandLength = 65535
 )
 
@@ -69,6 +69,7 @@ func initLogModule(stopCh <-chan struct{}) error {
 		LogLevel:    0,
 		MaxBackups:  backups,
 		MaxAge:      logMaxAge,
+		OnlyToFile:  true,
 	}
 	if err := hwlog.InitRunLogger(&runLogConfig, stopCh); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
@@ -79,6 +80,7 @@ func initLogModule(stopCh <-chan struct{}) error {
 		LogLevel:    0,
 		MaxBackups:  backups,
 		MaxAge:      logMaxAge,
+		OnlyToFile:  true,
 	}
 	if err := hwlog.InitOperateLogger(&operateLogConfig, stopCh); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
@@ -105,6 +107,7 @@ func removeDuplication(devices []int) []int {
 
 func parseDevices(visibleDevices string) ([]int, error) {
 	devices := make([]int, 0)
+	const maxDevice = 128
 
 	for _, d := range strings.Split(visibleDevices, ",") {
 		d = strings.TrimSpace(d)
@@ -118,12 +121,12 @@ func parseDevices(visibleDevices string) ([]int, error) {
 			borders[1] = strings.TrimSpace(borders[1])
 
 			left, err := strconv.Atoi(borders[0])
-			if err != nil {
+			if err != nil || left < 0 {
 				return nil, fmt.Errorf("invalid left boarder range parameter: %s", borders[0])
 			}
 
 			right, err := strconv.Atoi(borders[1])
-			if err != nil {
+			if err != nil || right > maxDevice {
 				return nil, fmt.Errorf("invalid right boarder range parameter: %s", borders[1])
 			}
 
@@ -150,6 +153,10 @@ func parseDevices(visibleDevices string) ([]int, error) {
 
 func parseMounts(mounts string) []string {
 	if mounts == "" {
+		return []string{baseConfig}
+	}
+	const maxMountLength = 128
+	if len(mounts) > maxMountLength {
 		return []string{baseConfig}
 	}
 
@@ -179,11 +186,15 @@ func parseRuntimeOptions(runtimeOptions string) ([]string, error) {
 	if runtimeOptions == "" {
 		return parsedOptions, nil
 	}
+	const maxLength = 128
+	if len(runtimeOptions) > maxLength {
+		return nil, fmt.Errorf("invalid runtime option")
+	}
 
 	for _, option := range strings.Split(runtimeOptions, ",") {
 		option = strings.TrimSpace(option)
 		if !isRuntimeOptionValid(option) {
-			return nil, fmt.Errorf("invalid runtime option %s", option)
+			return nil, fmt.Errorf("invalid runtime option")
 		}
 
 		parsedOptions = append(parsedOptions, option)
@@ -224,7 +235,7 @@ var getContainerConfig = func() (*containerConfig, error) {
 	}
 
 	configPath := path.Join(state.Bundle, "config.json")
-	if _, err := mindxcheckutils.RealFileChecker(configPath, false, true, mindxcheckutils.DefaultSize); err != nil {
+	if _, err := mindxcheckutils.RealFileChecker(configPath, true, true, mindxcheckutils.DefaultSize); err != nil {
 		return nil, err
 	}
 
@@ -247,14 +258,14 @@ var getContainerConfig = func() (*containerConfig, error) {
 	return ret, nil
 }
 
-func getValueByKey(data []string, key string) string {
+func getValueByKey(data []string, name string) string {
 	for _, s := range data {
 		p := strings.SplitN(s, "=", 2)
 		if len(p) != kvPairSize {
 			log.Panicln("environment error")
 		}
 
-		if p[0] == key {
+		if p[0] == name && len(p) == kvPairSize {
 			return p[1]
 		}
 	}
@@ -288,12 +299,16 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 	}
 	defer f.Close()
 
-	fileMountList := make([]string, 0)
-	dirMountList := make([]string, 0)
-
+	fileMountList, dirMountList := make([]string, 0), make([]string, 0)
+	const maxEntryNumber = 128
+	entryCount := 0
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		mountPath := scanner.Text()
+		entryCount = entryCount + 1
+		if entryCount > maxEntryNumber {
+			return nil, nil, fmt.Errorf("mount list too long")
+		}
 		absMountPath, err := filepath.Abs(mountPath)
 		if err != nil {
 			continue // skipping files/dirs with any problems
@@ -305,7 +320,7 @@ func readMountConfig(dir string, name string) ([]string, []string, error) {
 			continue // skipping files/dirs with any problems
 		}
 
-		if stat.Mode().IsRegular() || stat.Mode()&os.ModeSocket != 0 {
+		if stat.Mode().IsRegular() {
 			fileMountList = append(fileMountList, mountPath)
 		} else if stat.Mode().IsDir() {
 			dirMountList = append(dirMountList, mountPath)
@@ -339,6 +354,20 @@ func readConfigsOfDir(dir string, configs []string) ([]string, []string, error) 
 	}
 
 	return fileMountList, dirMountList, nil
+}
+
+func getArgs(cliPath string, devices []int, containerConfig *containerConfig,
+	fileMountList []string, dirMountList []string) []string {
+	args := append([]string{cliPath},
+		"--devices", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(devices)), ","), "[]"),
+		"--pid", fmt.Sprintf("%d", containerConfig.Pid), "--rootfs", containerConfig.Rootfs)
+	for _, filePath := range fileMountList {
+		args = append(args, "--mount-file", filePath)
+	}
+	for _, dirPath := range dirMountList {
+		args = append(args, "--mount-dir", dirPath)
+	}
+	return args
 }
 
 func doPrestartHook() error {
@@ -381,22 +410,13 @@ func doPrestartHook() error {
 	if _, err := mindxcheckutils.RealFileChecker(cliPath, true, false, mindxcheckutils.DefaultSize); err != nil {
 		return err
 	}
-
-	args := append([]string{cliPath},
-		"--devices", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(devices)), ","), "[]"),
-		"--pid", fmt.Sprintf("%d", containerConfig.Pid),
-		"--rootfs", containerConfig.Rootfs)
-
-	for _, filePath := range fileMountList {
-		args = append(args, "--mount-file", filePath)
-	}
-
-	for _, dirPath := range dirMountList {
-		args = append(args, "--mount-dir", dirPath)
-	}
-
+	args := getArgs(cliPath, devices, containerConfig, fileMountList, dirMountList)
 	if len(parsedOptions) > 0 {
 		args = append(args, "--options", strings.Join(parsedOptions, ","))
+	}
+	hwlog.OpLog.Infof("ascend docker hook success, will start cli")
+	if err := mindxcheckutils.ChangeRuntimeLogMode("hook-run-", "hook-operate-"); err != nil {
+		return err
 	}
 	if err := doExec(cliPath, args, os.Environ()); err != nil {
 		return fmt.Errorf("failed to exec ascend-docker-cli %v: %v", args, err)
@@ -422,24 +442,27 @@ func main() {
 		close(stopCh)
 		log.Fatal(err)
 	}
+	defer func() {
+		if err := mindxcheckutils.ChangeRuntimeLogMode("hook-run-", "hook-operate-"); err != nil {
+			fmt.Println("defer changeFileMode function failed")
+		}
+	}()
 	hwlog.RunLog.ZapLogger = hwlog.RunLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
 	hwlog.OpLog.ZapLogger = hwlog.OpLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
+	hwlog.OpLog.Infof("ascend docker hook starting, try to setup container")
 	hwlog.RunLog.Infof("ascend docker hook starting")
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
+		hwlog.RunLog.Errorf("ascend docker hook failed")
+		hwlog.OpLog.Errorf("ascend docker hook failed")
 		close(stopCh)
 		log.Fatal("command error")
 	}
-	logWords := fmt.Sprintf("running %v", os.Args)
-	if len(logWords) > maxLogLength {
-		logWords = logWords[0:maxLogLength-1] + "..."
-	}
-	hwlog.OpLog.Infof(logWords)
 	if err := doPrestartHook(); err != nil {
 		hwlog.RunLog.Errorf("ascend docker hook failed")
-		hwlog.OpLog.Errorf("failed: err %v", err)
+		hwlog.OpLog.Errorf("ascend docker hook failed")
 		close(stopCh)
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("failed in runtime.doProcess "))
 	}
 	close(stopCh)
 }

@@ -24,7 +24,11 @@ const (
 	// DefaultStringSize default string max length
 	DefaultStringSize = 256
 	// DefaultPathSize default string max length
-	DefaultPathSize = 4096
+	DefaultPathSize               = 4096
+	runLogDir                     = "/var/log/ascend-docker-runtime/"
+	backupLogFileMode os.FileMode = 0400
+	runLogFileMode    os.FileMode = 0750
+	maxFileNum                    = 32
 )
 
 var logPrefix = ""
@@ -205,4 +209,38 @@ func StringChecker(text string, minLength, maxLength int, whiteList string) bool
 		return false
 	}
 	return true
+}
+
+// ChangeRuntimeLogMode change log mode
+func ChangeRuntimeLogMode(runLog, operLog string) error {
+	runLogDirLen := len(runLogDir)
+	var logMode os.FileMode
+	counter := 0
+	err := filepath.Walk(runLogDir, func(fileOrPath string, fileInfo os.FileInfo, err error) error {
+		counter += 1
+		if counter > maxFileNum {
+			return fmt.Errorf("the counter file is over maxFileNum")
+		}
+		if err != nil {
+			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", fileOrPath, err)
+			return err
+		}
+		hasLogPrefix := strings.HasPrefix(fileOrPath[runLogDirLen:],
+			runLog) || strings.HasPrefix(fileOrPath[runLogDirLen:], operLog)
+		if !hasLogPrefix {
+			return nil
+		}
+		logMode = backupLogFileMode
+		if fileInfo.Mode()&os.ModeSymlink == os.ModeSymlink {
+			return fmt.Errorf("the file or path is symlink")
+		}
+		if errChmod := os.Chmod(fileOrPath, logMode); errChmod != nil {
+			return fmt.Errorf("set file mode %s failed", fileOrPath)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("traversal runLogDir failed")
+	}
+	return nil
 }

@@ -110,6 +110,10 @@ var execRunc = func() error {
 		return err
 	}
 
+	hwlog.OpLog.Infof("ascend docker runtime success, will start runc")
+	if err := mindxcheckutils.ChangeRuntimeLogMode("runtime-run-", "runtime-operate-"); err != nil {
+		return err
+	}
 	if err = syscall.Exec(runcPath, append([]string{runcPath}, os.Args[1:]...), os.Environ()); err != nil {
 		return fmt.Errorf("failed to exec runc: %v", err)
 	}
@@ -292,11 +296,19 @@ func main() {
 		close(stopCh)
 		log.Fatal(err)
 	}
+	defer func() {
+		if err := mindxcheckutils.ChangeRuntimeLogMode("runtime-run-", "runtime-operate-"); err != nil {
+			fmt.Println("defer changeFileMode function failed")
+		}
+	}()
 	hwlog.RunLog.ZapLogger = hwlog.RunLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
 	hwlog.OpLog.ZapLogger = hwlog.OpLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
 	hwlog.RunLog.Infof("ascend docker runtime starting")
+	hwlog.OpLog.Infof("ascend docker runtime starting, try to setup container")
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
+		hwlog.RunLog.Infof("ascend docker runtime failed")
+		hwlog.OpLog.Errorf("ascend docker runtime failed")
 		close(stopCh)
 		log.Fatal("command error")
 	}
