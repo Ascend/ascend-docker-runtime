@@ -83,6 +83,7 @@ bool CheckSubStr(char **pLine, const char *subsys)
 
     return strstr(substr, subsys) != NULL;
 }
+
 typedef char *(*ParseFileLine)(char *, const char *);
 static bool GetFileInfo(const char* resolvedPath, char* buffer, const int bufferSize, const ParseFileLine fn)
 {
@@ -274,7 +275,7 @@ int SetupDriverCgroup(FILE *cgroupAllow)
     return 0;
 }
 
-int GetCgroupPath(int pid, char *effPath, size_t maxSize)
+int GetCgroupPath(const long pid, char *effPath, size_t maxSize)
 {
     if (effPath == NULL) {
         (void)fprintf(stderr, "effPath pointer is null!\n");

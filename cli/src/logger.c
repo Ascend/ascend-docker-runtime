@@ -29,6 +29,9 @@ int GetCurrentLocalTime(char* buffer, int length)
     }
 
     time_t timep = time(NULL);
+    if (timep == (time_t)-1) {
+        return -1;
+    }
     struct tm result = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     struct tm *timeinfo = localtime_r(&timep, &result);
     if (timeinfo == NULL) {
@@ -96,12 +99,8 @@ long GetLogSize(const char* filename)
     if (strlen(filename) > PATH_MAX || realpath(filename, path) == NULL) {
         return -1;
     }
-    struct stat fileStat;
-    if ((stat(path, &fileStat) == 0) && (S_ISREG(fileStat.st_mode) != 0)) {
-        const size_t maxFileSzieMb = 50; // max 50MB
-        if (!CheckExternalFile(path, strlen(path), maxFileSzieMb, true)) {
-            return -1;
-        }
+    if (!CheckExistsFile(path, strlen(path), 0, false)) {
+        return -1;
     }
     return GetLogSizeProcess(path);
 }
@@ -115,12 +114,19 @@ int LogLoop(const char* filename)
 
     int ret;
     char* loopPath = LOG_PATH_DIR"docker-runtime-log.log.1";
-    int exist;
-    exist = access(loopPath, 0);
-    if (exist == 0) {
+
+    if (!CheckExistsFile(loopPath, strlen(loopPath), 0, false)) {
+        return -1;
+    }
+    if (!CheckExistsFile(filename, strlen(filename), 0, false)) {
+        return -1;
+    }
+    if (access(loopPath, 0) == 0) {
         unlink(loopPath);
     }
-    rename(filename, loopPath);
+    if (rename(filename, loopPath) == -1) {
+        return -1;
+    }
     if (chmod(loopPath, DUMP_LOG_MODE) != 0) {
         return -1;
     }
@@ -182,12 +188,8 @@ static void LogFileProcess(const char* filename, const long maxSize, const char*
     if (strlen(filename) > PATH_MAX || realpath(filename, path) == NULL) {
         return;
     }
-    struct stat fileStat;
-    if ((stat(path, &fileStat) == 0) && (S_ISREG(fileStat.st_mode) != 0)) {
-        const size_t maxFileSzieMb = 50; // max 50MB
-        if (!CheckExternalFile(path, strlen(path), maxFileSzieMb, true)) {
-            return;
-        }
+    if (!CheckExistsFile(path, strlen(path), 0, false)) {
+        return;
     }
     WriteLogInfo(path, PATH_MAX + 1, buffer, bufferSize);
 }
@@ -199,30 +201,32 @@ void WriteLogFile(const char* filename, long maxSize, const char* buffer, unsign
         return;
     }
     
-    if (filename != NULL && buffer != NULL) {
-        LogFileProcess(filename, maxSize, buffer, bufferSize);
-    }
+    LogFileProcess(filename, maxSize, buffer, bufferSize);
 }
 
 static void DivertAndWrite(const char *logPath, const char *msg, const int level)
 {
     int ret;
-    char* buffer = malloc(LOG_LENGTH);
+    size_t destMax = LOG_LENGTH;
+    if (destMax <= 0) {
+        return;
+    }
+    char* buffer = (char*)malloc(destMax * sizeof(char));
     if (buffer == NULL) {
         return;
     }
     switch (level) {
         case LEVEL_DEBUG:
-            ret = sprintf_s(buffer, LOG_LENGTH, "[Debug]%s\n", msg);
+            ret = sprintf_s(buffer, destMax, "[Debug]%s\n", msg);
             break;
         case LEVEL_ERROR:
-            ret = sprintf_s(buffer, LOG_LENGTH, "[Error]%s\n", msg);
+            ret = sprintf_s(buffer, destMax, "[Error]%s\n", msg);
             break;
         case LEVEL_WARN:
-            ret = sprintf_s(buffer, LOG_LENGTH, "[Warn]%s\n", msg);
+            ret = sprintf_s(buffer, destMax, "[Warn]%s\n", msg);
             break;
         default:
-            ret = sprintf_s(buffer, LOG_LENGTH, "[Info]%s\n", msg);
+            ret = sprintf_s(buffer, destMax, "[Info]%s\n", msg);
     }
     if (ret < 0) {
         free(buffer);

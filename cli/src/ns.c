@@ -13,7 +13,7 @@
 #include "utils.h"
 #include "logger.h"
 
-int GetNsPath(const int pid, const char *nsType, char *buf, const size_t bufSize)
+int GetNsPath(const long pid, const char *nsType, char *buf, const size_t bufSize)
 {
     if ((nsType == NULL) || (buf == NULL)) {
         return -1;

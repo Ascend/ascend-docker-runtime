@@ -35,6 +35,10 @@ void ParseRuntimeOptions(const char *options)
 
     static const char *seperator = ",";
     char *runtimeOptions = strdup(options);
+    if (runtimeOptions == NULL) {
+        (void)fprintf(stderr, "strdup failed!\n");
+        return;
+    }
     char *context = NULL;
     char *token = NULL;
 
@@ -42,7 +46,7 @@ void ParseRuntimeOptions(const char *options)
     token != NULL;
     token = strtok_s(NULL, seperator, &context)) {
         for (int i = 0; g_optionNameFlagTable[i].name != NULL; i++) {
-            if (!strcmp((const char *)token, g_optionNameFlagTable[i].name)) {
+            if (strcmp((const char *)token, g_optionNameFlagTable[i].name) == 0) {
                 *g_optionNameFlagTable[i].flag = true;
             }
         }

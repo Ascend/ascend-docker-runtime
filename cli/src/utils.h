@@ -15,8 +15,7 @@
 
 char *FormatLogMessage(char *format, ...);
 int IsStrEqual(const char *s1, const char *s2);
-int StrHasPrefix(const char *str, const char *prefix);
-int MkDir(const char *dir, int mode);
+bool StrHasPrefix(const char *str, const char *prefix);
 int VerifyPathInfo(const struct PathInfo* pathInfo);
 int CheckDirExists(const char *dir);
 int GetParentPathStr(const char *path, char *parent, size_t bufSize);
@@ -26,4 +25,6 @@ bool IsValidChar(const char c);
 bool CheckExternalFile(const char* filePath, const size_t filePathLen,
     const size_t maxFileSzieMb, const bool checkOwner);
 bool GetFileSubsetAndCheck(const char *basePath, const size_t basePathLen);
+bool CheckExistsFile(const char* filePath, const size_t filePathLen,
+    const size_t maxFileSzieMb, const bool checkWgroup);
 #endif
