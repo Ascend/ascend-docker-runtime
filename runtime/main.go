@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,9 +19,8 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"go.uber.org/zap"
 
-	"huawei.com/npu-exporter/hwlog"
+	"huawei.com/mindx/common/hwlog"
 	"mindxcheckutils"
 )
 
@@ -66,7 +66,7 @@ func getArgs() (*args, error) {
 	return args, nil
 }
 
-func initLogModule(stopCh <-chan struct{}) error {
+func initLogModule(ctx context.Context) error {
 	const backups = 2
 	const logMaxAge = 365
 	runLogConfig := hwlog.LogConfig{
@@ -76,7 +76,7 @@ func initLogModule(stopCh <-chan struct{}) error {
 		MaxAge:      logMaxAge,
 		OnlyToFile:  true,
 	}
-	if err := hwlog.InitRunLogger(&runLogConfig, stopCh); err != nil {
+	if err := hwlog.InitRunLogger(&runLogConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
 		return err
 	}
@@ -87,7 +87,7 @@ func initLogModule(stopCh <-chan struct{}) error {
 		MaxAge:      logMaxAge,
 		OnlyToFile:  true,
 	}
-	if err := hwlog.InitOperateLogger(&operateLogConfig, stopCh); err != nil {
+	if err := hwlog.InitOperateLogger(&operateLogConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
 		return err
 	}
@@ -110,6 +110,10 @@ var execRunc = func() error {
 		return err
 	}
 
+	hwlog.OpLog.Infof("ascend docker runtime success, will start runc")
+	if err := mindxcheckutils.ChangeRuntimeLogMode("runtime-run-", "runtime-operate-"); err != nil {
+		return err
+	}
 	if err = syscall.Exec(runcPath, append([]string{runcPath}, os.Args[1:]...), os.Environ()); err != nil {
 		return fmt.Errorf("failed to exec runc: %v", err)
 	}
@@ -282,34 +286,35 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
-	stopCh := make(chan struct{})
-	if err := initLogModule(stopCh); err != nil {
-		close(stopCh)
+	ctx, _ := context.WithCancel(context.Background())
+	if err := initLogModule(ctx); err != nil {
 		log.Fatal(err)
 	}
 	logPrefixWords, err := mindxcheckutils.GetLogPrefix()
 	if err != nil {
-		close(stopCh)
 		log.Fatal(err)
 	}
-	hwlog.RunLog.ZapLogger = hwlog.RunLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
-	hwlog.OpLog.ZapLogger = hwlog.OpLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
+	defer func() {
+		if err := mindxcheckutils.ChangeRuntimeLogMode("runtime-run-", "runtime-operate-"); err != nil {
+			fmt.Println("defer changeFileMode function failed")
+		}
+	}()
 	hwlog.RunLog.Infof("ascend docker runtime starting")
+	hwlog.OpLog.Infof("%v ascend docker runtime starting, try to setup container", logPrefixWords)
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
-		close(stopCh)
+		hwlog.RunLog.Infof("%v ascend docker runtime failed", logPrefixWords)
+		hwlog.OpLog.Errorf("%v ascend docker runtime failed", logPrefixWords)
 		log.Fatal("command error")
 	}
-	logWords := fmt.Sprintf("running %v", os.Args)
+	logWords := fmt.Sprintf("%v running %v", logPrefixWords, os.Args)
 	if len(logWords) > maxLogLength {
 		logWords = logWords[0:maxLogLength-1] + "..."
 	}
 	hwlog.OpLog.Infof(logWords)
 	if err := doProcess(); err != nil {
 		hwlog.RunLog.Errorf("%v ascend docker runtime failed", logPrefixWords)
-		hwlog.OpLog.Errorf("%v failed", logWords)
-		close(stopCh)
+		hwlog.OpLog.Errorf("%v %v failed", logPrefixWords, logWords)
 		log.Fatal(err)
 	}
-	close(stopCh)
 }
