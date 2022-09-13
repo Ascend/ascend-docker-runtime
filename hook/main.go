@@ -6,6 +6,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -18,11 +19,10 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"go.uber.org/zap"
 
 	"mindxcheckutils"
 
-	"huawei.com/npu-exporter/hwlog"
+	"huawei.com/mindx/common/hwlog"
 )
 
 const (
@@ -61,7 +61,7 @@ type containerConfig struct {
 	Env    []string
 }
 
-func initLogModule(stopCh <-chan struct{}) error {
+func initLogModule(ctx context.Context) error {
 	const backups = 2
 	const logMaxAge = 365
 	runLogConfig := hwlog.LogConfig{
@@ -71,7 +71,7 @@ func initLogModule(stopCh <-chan struct{}) error {
 		MaxAge:      logMaxAge,
 		OnlyToFile:  true,
 	}
-	if err := hwlog.InitRunLogger(&runLogConfig, stopCh); err != nil {
+	if err := hwlog.InitRunLogger(&runLogConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
 		return err
 	}
@@ -82,7 +82,7 @@ func initLogModule(stopCh <-chan struct{}) error {
 		MaxAge:      logMaxAge,
 		OnlyToFile:  true,
 	}
-	if err := hwlog.InitOperateLogger(&operateLogConfig, stopCh); err != nil {
+	if err := hwlog.InitOperateLogger(&operateLogConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
 		return err
 	}
@@ -432,14 +432,12 @@ func main() {
 	}()
 	log.SetPrefix(loggingPrefix)
 
-	stopCh := make(chan struct{})
-	if err := initLogModule(stopCh); err != nil {
-		close(stopCh)
+	ctx, _ := context.WithCancel(context.Background())
+	if err := initLogModule(ctx); err != nil {
 		log.Fatal(err)
 	}
 	logPrefixWords, err := mindxcheckutils.GetLogPrefix()
 	if err != nil {
-		close(stopCh)
 		log.Fatal(err)
 	}
 	defer func() {
@@ -447,22 +445,17 @@ func main() {
 			fmt.Println("defer changeFileMode function failed")
 		}
 	}()
-	hwlog.RunLog.ZapLogger = hwlog.RunLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
-	hwlog.OpLog.ZapLogger = hwlog.OpLog.ZapLogger.With(zap.String("user-info", logPrefixWords))
-	hwlog.OpLog.Infof("ascend docker hook starting, try to setup container")
+	hwlog.OpLog.Infof("%v ascend docker hook starting, try to setup container", logPrefixWords)
 	hwlog.RunLog.Infof("ascend docker hook starting")
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
 		hwlog.RunLog.Errorf("ascend docker hook failed")
-		hwlog.OpLog.Errorf("ascend docker hook failed")
-		close(stopCh)
+		hwlog.OpLog.Errorf("%v ascend docker hook failed", logPrefixWords)
 		log.Fatal("command error")
 	}
 	if err := doPrestartHook(); err != nil {
 		hwlog.RunLog.Errorf("ascend docker hook failed")
-		hwlog.OpLog.Errorf("ascend docker hook failed")
-		close(stopCh)
+		hwlog.OpLog.Errorf("%v ascend docker hook failed", logPrefixWords)
 		log.Fatal(fmt.Errorf("failed in runtime.doProcess "))
 	}
-	close(stopCh)
 }

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"huawei.com/npu-exporter/hwlog"
+	"huawei.com/mindx/common/hwlog"
 
 	"mindxcheckutils"
 )
@@ -43,14 +44,12 @@ const (
 )
 
 func main() {
-	stopCh := make(chan struct{})
-	if err := initLogModule(stopCh); err != nil {
-		close(stopCh)
+	ctx, _ := context.WithCancel(context.Background())
+	if err := initLogModule(ctx); err != nil {
 		log.Fatal(err)
 	}
 	logPrefixWords, err := mindxcheckutils.GetLogPrefix()
 	if err != nil {
-		close(stopCh)
 		log.Fatal(err)
 	}
 	hwlog.OpLog.Infof("%v installer started", logPrefixWords)
@@ -58,22 +57,19 @@ func main() {
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
 		hwlog.OpLog.Infof("%v run failed", logPrefixWords)
-		close(stopCh)
 		log.Fatal("command error")
 	}
 
 	err = process()
 	if err != nil {
 		hwlog.OpLog.Infof("%v run %s failed", logPrefixWords, os.Args)
-		close(stopCh)
 		log.Fatal(fmt.Errorf("error in installation"))
 	} else {
 		hwlog.OpLog.Infof("%v run %s success", logPrefixWords, os.Args)
-		close(stopCh)
 	}
 }
 
-func initLogModule(stopCh <-chan struct{}) error {
+func initLogModule(ctx context.Context) error {
 	const backups = 2
 	const logMaxAge = 365
 	logConfig := hwlog.LogConfig{
@@ -82,7 +78,7 @@ func initLogModule(stopCh <-chan struct{}) error {
 		MaxBackups:  backups,
 		MaxAge:      logMaxAge,
 	}
-	if err := hwlog.InitOperateLogger(&logConfig, stopCh); err != nil {
+	if err := hwlog.InitOperateLogger(&logConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
 		return err
 	}
