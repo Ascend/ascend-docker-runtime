@@ -1022,8 +1022,8 @@ TEST_F(Test_Fhho, CheckRootDir)
 TEST_F(Test_Fhho, StatusTwoProcess)
 {
     // Test the correct options
-    int argc = 7;
-    const char *argvData[7] = {"ascend-docker-cli", "--devices", "1,2", "--pid", "123", "--rootfs", "/home"};
+    const int argc = 7;
+    const char *argvData[argc] = {"ascend-docker-cli", "--devices", "1,2", "--pid", "123", "--rootfs", "/home"};
     int ret = Process(argc,const_cast<char **>(argvData));
     EXPECT_EQ(-1, ret);
 }
@@ -1031,16 +1031,49 @@ TEST_F(Test_Fhho, StatusTwoProcess)
 TEST_F(Test_Fhho, StatusThreeProcess)
 {
     // Test error options
-    int argc = 7;
-    const char *argvData[7] = {"ascend-docker-cli", "--evices", "1,2", "--idd", "123", "--ootfs", "/home"};
+    const int argc = 7;
+    const char *argvData[argc] = {"ascend-docker-cli", "--evices", "1,2", "--idd", "123", "--ootfs", "/home"};
     int ret = Process(argc, const_cast<char **>(argvData));
     EXPECT_EQ(-1, ret);
 }
 
 TEST_F(Test_Fhho, StatusFourProcess)
 {
-    int argc = 7;
-    const char *argvData[7] = {"ascend-docker-cli", "--evices", "1,2", "--idd", "123", "--ootfs", "/home"};
+    const int argc = 7;
+    const char *argvData[argc] = {"ascend-docker-cli", "--evices", "1,2", "--idd", "123", "--ootfs", "/home"};
+    MOCKER(SetupContainer).stubs().will(invoke(Stub_SetupContainer_Success));
+    int ret = Process(argc,const_cast<char **>(argvData));
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST_F(Test_Fhho, StatusFiveProcess)
+{
+    const int argc = 13;
+    const char *argvData[argc] = {"ascend-docker-cli", "--devices", "1,2", "--pid", "123", "--rootfs",
+    "/home", "--options", "base", "--mount-file", "a.list", "--mount-dir", "/home/code"};
+    MOCKER(SetupContainer).stubs().will(invoke(Stub_SetupContainer_Success));
+    int ret = Process(argc,const_cast<char **>(argvData));
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST_F(Test_Fhho, StatusSixProcess)
+{
+    const int argc = 13;
+    const char *argvData[argc] = {"ascend-docker-cli", "--devices", "1,2", "--pid", "123", "--rootfs",
+    "/home", "--opt", "base", "--mount-f", "a.list", "--mount-dir", "/root/sxv"};
+    MOCKER(SetupContainer).stubs().will(invoke(Stub_SetupContainer_Success));
+    int ret = Process(argc,const_cast<char **>(argvData));
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST_F(Test_Fhho, StatusSevenProcess)
+{
+    const int argc = 13;
+    const char *argvData[argc] = {"ascend-docker-cli", "--ops", "--devices", "1,2", "--pid", "123",
+    "--rootfs", "/home", "base", "--mounle", "a.list", "--mount-dir", "/home/code"};
     MOCKER(SetupContainer).stubs().will(invoke(Stub_SetupContainer_Success));
     int ret = Process(argc,const_cast<char **>(argvData));
     GlobalMockObject::verify();
@@ -1129,6 +1162,18 @@ TEST_F(Test_Fhho, StatusFiveDoPrepare)
     struct ParsedConfig config;
     config.devicesNr = 1024;
     int ret = DoPrepare(&args, &config);
+    GlobalMockObject::verify();
+    EXPECT_EQ(-1, ret);
+}
+
+TEST_F(Test_Fhho, StatusSixDoPrepare)
+{
+    MOCKER(GetCgroupPath).stubs().will(invoke(Stub_GetCgroupPath_Success));
+    MOCKER(open).stubs().will(invoke(stub_open_failed));
+    
+    struct ParsedConfig config;
+    config.devicesNr = 1024;
+    int ret = DoPrepare(NULL, &config);
     GlobalMockObject::verify();
     EXPECT_EQ(-1, ret);
 }
