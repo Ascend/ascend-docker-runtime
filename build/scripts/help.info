@@ -2,5 +2,4 @@
   --install-path                    Specify the installation path (default: /usr/local/Ascend/Ascend-Docker-Runtime)
   --uninstall                       Uninstall the installed ascend-docker-runtime tool
   --upgrade                         Upgrade the installed ascend-docker-runtime tool
-  --devel                           Install as devel mode
-  --install-type=<type>             A500 and A200 need to specify the installation type of Ascend-mindx-toolbox (eg: --install-type=A500)
+  --install-type=<type>             A500, A200ISoC and A200 need to specify the installation type of Ascend-mindx-toolbox (eg: --install-type=A500)
