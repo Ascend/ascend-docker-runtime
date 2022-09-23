@@ -82,6 +82,7 @@ package:
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A500"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A200"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A200ISoC"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/assets"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/README.md"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/run_main.sh"

@@ -52,6 +52,8 @@ function install()
         cp -f ./base.list_A500 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     elif [ "${a200}" == "y" ]; then
         cp -f ./base.list_A200 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    elif [ "${a200isoc}" == "y" ]; then
+        cp -f ./base.list_A200ISoC ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     else
         cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     fi
@@ -134,9 +136,9 @@ INSTALL_FLAG=n
 INSTALL_PATH_FLAG=n
 UNINSTALL_FLAG=n
 UPGRADE_FLAG=n
-DEVEL_FLAG=n
 a500=n
 a200=n
+a200isoc=n
 
 while true
 do
@@ -175,16 +177,8 @@ do
             UPGRADE_FLAG=y
             shift
             ;;
-        --devel)
-            if [ "${DEVEL_FLAG}" == "y" ]; then
-                echo "warning :Repeat parameter!"
-                exit 1
-            fi
-            DEVEL_FLAG=y
-            shift
-            ;;
         --install-type=*)
-            if [ "${a500}" == "y" ] || [ "${a200}" == "y" ]; then
+            if [ "${a500}" == "y" ] || [ "${a200}" == "y" ] || [ "${a200isoc}" == "y" ]; then
                 echo "warning :Repeat parameter!"
                 exit 1
             fi
@@ -193,6 +187,8 @@ do
                 a500=y
             elif [ "$3" == "--install-type=A200" ]; then
                 a200=y
+            elif [ "$3" == "--install-type=A200ISoC" ]; then
+                a200isoc=y
             else
                 echo "error :Please check the parameter of --install-type=<type>"
                 exit 1
@@ -219,8 +215,7 @@ fi
 if [ "${INSTALL_PATH_FLAG}" == "y" ] && \
    [ "${INSTALL_FLAG}" == "n" ] && \
    [ "${UNINSTALL_FLAG}" == "n" ] && \
-   [ "${UPGRADE_FLAG}" == "n" ] && \
-   [ "${DEVEL_FLAG}" == "n" ]; then
+   [ "${UPGRADE_FLAG}" == "n" ]; then
       echo "Error:only input <install_path> command. When use --install-path you also need intput --install or --uninstall or --upgrade or --devel"
       exit 1
 fi
@@ -231,7 +226,7 @@ if [ "${UID}" != "0" ]; then
     exit 1
 fi
 
-if [ "${INSTALL_FLAG}" == "y" ] || [ "${DEVEL_FLAG}" == "y" ]; then
+if [ "${INSTALL_FLAG}" == "y" ]; then
     install
     exit 0
 fi
