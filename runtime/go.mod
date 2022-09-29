@@ -3,7 +3,7 @@ module main
 go 1.16
 
 require (
-	github.com/opencontainers/runtime-spec v1.0.2
+	github.com/opencontainers/runtime-spec v1.0.3-0.20220718201635-a8106e99982b
 	github.com/prashantv/gostub v1.1.0
 	github.com/stretchr/testify v1.8.0 // indirect
 	huawei.com/mindx/common/hwlog v0.0.0
