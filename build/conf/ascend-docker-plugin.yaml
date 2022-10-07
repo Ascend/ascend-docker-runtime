@@ -78,7 +78,6 @@ package:
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build/ascend-docker*"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/cli/build/ascend-docker*"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/destroy/build/ascend-docker*"
-                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/uninstall.sh"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A500"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A200"
