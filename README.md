@@ -25,20 +25,6 @@ Ascend Docker在prestart-hook这个钩子函数中，对容器做了以下配置
 2.在Host上配置该容器的device cgroup，确保该容器只可以使用指定的NPU，保证设备的隔离。
 3.将Host上的CANN Runtime Library挂载到容器的namespace。
 
-# 发行说明
-## Ascend-Docker-Runtime2.0
-### 更新说明
- - 容器内设备序号保持不变
- - 添加NODRV选项不挂载驱动目录
- - 适配驱动--run安装模式
- - 适配训练驱动npu-smi位置从sbin移动到bin
- - 挂载列表可配置
- - 适配海思驱动移除add-ons目录修改
- - 跳过不存在的挂载项
- 
-### 约束
- - Ascend-Docker-Runtime暂不支持Atlas 200 AI加速模块（RC场景）和Atlas 500智能小站
-
 # 下载和安装
 ## 安装前准备
 
@@ -46,40 +32,102 @@ Ascend Docker在prestart-hook这个钩子函数中，对容器做了以下配置
 
 - 宿主机已安装驱动和固件，详情请参见[《CANN 软件安装指南 (开发&运行场景, 通过命令行方式)》](https://support.huawei.com/enterprise/zh/doc/EDOC1100180788?idPath=23710424|251366513|22892968|251168373) 的“准备硬件环境”章节。
 
-
-
-
 ## 下载
 ### run包
-开发人员可从昇腾社区下载Toolbox,下载链接为：https://www.hiascend.com/software/mindx-dl，
-下载后安装Toolbox，Ascend-docker-runtime，已集成至实用工具包toolbox中。
+开发人员可从昇腾社区下载Toolbox,下载链接为：https://www.hiascend.com/software/mindx-dl/community，
+下载后安装Toolbox，Ascend-docker-runtime已集成至实用工具包toolbox中。
 
 # 功能
-## 默认挂载目录
-| 挂载项       | 备注        |
-|:-----------:| :-------------:|
-|/dev/davinciX|NPU设备，X是物理ID号例如davinci0|
-|/dev/davinci_manager |管理设备|
-| /dev/devmm_svm| 管理设备|
-|/dev/hisi_hdc | 管理设备|
-|/usr/local/Ascend/driver/{lib64, include, tools}  |驱动目录|
- |/usr/local/dcmi | DCMI目录|
-|/usr/local/bin/npu-smi | npu-smi工具|
+## 默认挂载内容
+### Atlas 200 AI加速模块 RC场景
+|              挂载项               |           备注            |
+|:------------------------------:|:-----------------------:|
+|         /dev/davinciX          | NPU设备，X是ID号，例如，davinci0 |
+|      /dev/davinci_manager      |          管理设备           |
+| /usr/local/Ascend/driver/tools |       目录，驱动提供的工具包       |
+| /usr/local/Ascend/driver/lib64 |      目录，驱动提供的用户态库       |
+|    /usr/local/sbin/npu-smi     |      文件，npu-smi工具       |
+|       /etc/hdcBasic.cfg        |       文件，hdc基础文件        |
+|     /etc/sys_version.conf      |       文件，驱动的版本信息        |
+
+
+### Atlas 200I SoC A1核心板
+|                       挂载项                        |            备注             |
+|:------------------------------------------------:|:-------------------------:|
+|                  /dev/davinciX                   |  NPU设备，X是ID号，例如，davinci0  |
+|               /dev/davinci_manager               |           管理设备            |
+|              /usr/local/bin/npu-smi              |       文件，npu-smi工具        |
+|                /etc/hdcBasic.cfg                 |        文件，hdc基础文件         |
+|              /etc/sys_version.conf               |        文件，驱动的版本信息         |
+
+### Atlas 500 智能小站
+|              挂载项              |           备注            |
+|:-----------------------------:|:-----------------------:|
+|         /dev/davinciX         | NPU设备，X是ID号，例如，davinci0 |
+|     /dev/davinci_manager      |          管理设备           |
+|         /dev/hisi_hdc         |          管理设备           |
+|        /dev/devmm_svm         |          管理设备           |
+| /home/data/miniD/driver/lib64 |      目录，驱动提供的用户态库       |
+|        /usr/local/dcmi        |      目录，DCMI头文件和库       |
+|    /usr/local/bin/npu-smi     |      文件，npu-smi工具       |
+
+### 其他设备
+|                挂载项                |           备注            |
+|:---------------------------------:|:-----------------------:|
+|           /dev/davinciX           | NPU设备，X是ID号，例如，davinci0 |
+|       /dev/davinci_manager        |          管理设备           |
+|           /dev/hisi_hdc           |          管理设备           |
+|          /dev/devmm_svm           |          管理设备           |
+|   /home/data/miniD/driver/lib64   |      目录，驱动提供的用户态库       |
+| /usr/local/Ascend/driver/include  |       目录，驱动提供的头文件       |
+|          /usr/local/dcmi          |      目录，DCMI头文件和库       |
+|      /usr/local/bin/npu-smi       |      文件，npu-smi工具       |
 ## Ascend-Docker-runtime安装
-单独安装
-```
-chmod +x Ascend-cann-toolbox*.run
-./Ascend-cann-toolbox*.run  --install --whitelist=docker-runtime
+### 单独安装
+```shell
+chmod +x Ascend-mindx-toolbox_{version}_linux-{arch}.run
+./Ascend-mindx-toolbox_{version}_linux-{arch}.run  --install --whitelist=docker-runtime
 systemctl daemon-reload
 systenctl restart docker
 ```
-集成工具toolboox安装
-```
-chmod +x Ascend-cann-toolbox*.run
-./Ascend-cann-toolbox*.run  --install
+### 或者 集成工具toolboox安装
+```shell
+chmod +x Ascend-mindx-toolbox_{version}_linux-{arch}.run
+./Ascend-mindx-toolbox_{version}_linux-{arch}.run  --install
 systemctl daemon-reload
 systemctl restart docker
 ```
+### 说明
+```
+· Atlas 200 AI加速模块（RC场景）、Atlas 200I SoC A1核心板和Atlas 500 智能小站支持Ascend-Docker-Runtime工具
+
+  安装时需指定--install-type=<type>用于设置Ascend-Docker-Runtime的默认挂载：
+
+    Atlas 200 AI加速模块（RC场景）安装时执行如下命令：
+
+    ./Ascend-mindx-toolbox_{version}_linux-{arch}.run --install --install-type=A200
+
+    Atlas 200I SoC A1核心板安装时执行如下命令：
+    
+    ./Ascend-mindx-toolbox_{version}_linux-{arch}.run --install --install-type=A200ISoC
+    
+    Atlas 500 智能小站安装时执行如下命令：
+    
+    ./Ascend-mindx-toolbox_{version}_linux-{arch}.run --install --whitelist=docker-runtime --install-type=A500
+
+· 如果以root用户安装，建议不要安装在非root用户目录下，否则存在被非root用户替换root用户文件以达到提权目的的安全风险。
+
+· 如果用户指定路径安装时，请确认指定路径符合所在组织的安全要求。
+
+· 如果用户未指定安装路径，则软件会安装到默认路径下，默认安装路径如下：
+
+   root用户：“/usr/local/Ascend”
+   
+   非root用户：“${HOME}/Ascend”
+
+   其中${HOME}为当前用户目录。
+```
+
 安装docker-runtime后会修改配置文件/etc/docker/daemon.json
 
 ![image](assets/20210329103157123.png)
@@ -87,15 +135,16 @@ systemctl restart docker
 同时自动生成默认挂载目录文件/etc/ascend-docker-runtime.d/base.list
 
 ![image](assets/20210329103157125.png)
+
 ## 挂载单芯片
 例子：
-```
+```shell
 docker run -it -e ASCEND_VISIBLE_DEVICES=0 imageId /bin/bash
 ```
 imageId 替换为实际镜像名或者ID
 
 检查挂载成功：
-```
+```shell
 ls /dev | grep davinci* && ls /dev | grep devmm_svm && ls /dev | grep hisi_hdc && ls /usr/local/Ascend/driver && ls /usr/local/ |grep dcmi && ls /usr/local/bin
 ```
 ![image](assets/20210329103157126.png)
@@ -103,7 +152,7 @@ ls /dev | grep davinci* && ls /dev | grep devmm_svm && ls /dev | grep hisi_hdc &
 ASCEND_VISIBLE_DEVICES=0，参数0替换为要挂载的芯片物理ID
 ## 挂载多芯片
 例子：
-```
+```shell
 docker run --rm -it -e ASCEND_VISIBLE_DEVICES=0-3 imageId /bin/bash
 或者
 docker run --rm -it -e ASCEND_VISIBLE_DEVICES=0,1,2,3 imageId /bin/bash
@@ -111,10 +160,20 @@ docker run --rm -it -e ASCEND_VISIBLE_DEVICES=0,1,2,3 imageId /bin/bash
 docker run --rm -it -e ASCEND_VISIBLE_DEVICES=0-2,3 imageId /bin/bash
 ```
 检查挂载成功：
-```
+```shell
 ls /dev | grep davinci* && ls /dev | grep devmm_svm && ls /dev | grep hisi_hdc && ls /usr/local/Ascend/driver && ls /usr/local/ |grep dcmi && ls /usr/local/bin
 ```
 ![image](assets/20210329103157128.png)
+## 挂载虚拟芯片
+```shell
+docker run -it -e ASCEND_VISIBLE_DEVICES=100 -e ASCEND_RUNTIME_OPTIONS=VIRTUAL imageId /bin/bash
+```
+该命令会挂载虚拟芯片ID为100的芯片
+## 切分AI Core
+```shell
+docker run -it --rm -e ASCEND_VISIBLE_DEVICES=0 -e ASCEND_VNPU_SPECS=vir04 imageId /bin/bash
+```
+该命令表示，启动容器时，从物理芯片ID为0的芯片上，切分出4个AI Core作为虚拟设备并挂载至容器中。
 ## 在默认的挂载的基础上新增挂载内容
 ```
 在/etc/ascend-docker-runtime.d目录下新建挂载文件xxx.list，内容格式例子：
@@ -136,8 +195,8 @@ xxx是新增挂载内容文件名，文件名必须是小写
 ## 卸载
 
 集成工具toolboox卸载
-```
-./Ascend-cann-toolbox*.run --uninstall
+```shell
+./Ascend-mindx-toolbox_{version}_linux-{arch}.run --uninstall
 ```
 卸载docker-runtime后会自动删除安装时配置文件/etc/docker/daemon.json中新增的内
 
@@ -147,7 +206,7 @@ xxx是新增挂载内容文件名，文件名必须是小写
 ## 升级
 
 集成工具toolboox安装方式升级
-```
-./Ascend-cann-toolbox*.run --upgrade
+```shell
+./Ascend-mindx-toolbox_{version}_linux-{arch}.run --upgrade
 ```
 
