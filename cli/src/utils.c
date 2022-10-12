@@ -17,6 +17,8 @@
 #include "securec.h"
 #include "logger.h"
 
+#define LOG_LENGTH 1024
+
 static bool g_checkWgroup = true;
 
 char *FormatLogMessage(char *format, ...)
@@ -29,7 +31,7 @@ char *FormatLogMessage(char *format, ...)
     va_list list;
     // 获取格式化后字符串的长度
     va_start(list, format);
-    char buff[1024] = {0};
+    char buff[LOG_LENGTH] = {0};
     int ret = vsnprintf_s(buff, sizeof(buff), sizeof(buff) - 1, format, list);
     va_end(list);
     if (ret <= 0) {
