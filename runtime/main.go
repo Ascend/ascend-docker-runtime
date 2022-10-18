@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"main/dcmi"
 	"os"
 	"os/exec"
 	"path"
@@ -19,8 +18,9 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
-
 	"huawei.com/mindx/common/hwlog"
+
+	"main/dcmi"
 	"mindxcheckutils"
 )
 
@@ -165,10 +165,10 @@ func addHook(spec *specs.Spec) error {
 	}
 
 	vdevice, err := dcmi.CreateVDevice(&dcmi.NpuWorker{}, spec)
-	hwlog.RunLog.Infof("vnpu split done: vdevice: %v err: %v", vdevice.VdeviceID, err)
 	if err != nil {
 		return err
 	}
+	hwlog.RunLog.Infof("vnpu split done: vdevice: %v", vdevice.VdeviceID)
 
 	if vdevice.VdeviceID != -1 {
 		updateEnvAndPostHook(spec, vdevice)
@@ -217,7 +217,7 @@ func modifySpecFile(path string) error {
 	if err != nil {
 		return fmt.Errorf("spec file doesnt exist %s: %v", path, err)
 	}
-	if _, err := mindxcheckutils.RealFileChecker(path, true, true, mindxcheckutils.DefaultSize); err != nil {
+	if _, err = mindxcheckutils.RealFileChecker(path, true, true, mindxcheckutils.DefaultSize); err != nil {
 		return err
 	}
 
@@ -234,11 +234,11 @@ func modifySpecFile(path string) error {
 	}
 
 	var spec specs.Spec
-	if err := json.Unmarshal(jsonContent, &spec); err != nil {
+	if err = json.Unmarshal(jsonContent, &spec); err != nil {
 		return fmt.Errorf("failed to unmarshal oci spec file %s: %v", path, err)
 	}
 
-	if err := addHook(&spec); err != nil {
+	if err = addHook(&spec); err != nil {
 		return fmt.Errorf("failed to inject hook: %v", err)
 	}
 
@@ -247,7 +247,7 @@ func modifySpecFile(path string) error {
 		return fmt.Errorf("failed to marshal OCI spec file: %v", err)
 	}
 
-	if _, err := jsonFile.WriteAt(jsonOutput, 0); err != nil {
+	if _, err = jsonFile.WriteAt(jsonOutput, 0); err != nil {
 		return fmt.Errorf("failed to write OCI spec file: %v", err)
 	}
 
@@ -273,7 +273,7 @@ func doProcess() error {
 
 	specFilePath := args.bundleDirPath + "/config.json"
 
-	if err := modifySpecFile(specFilePath); err != nil {
+	if err = modifySpecFile(specFilePath); err != nil {
 		return fmt.Errorf("failed to modify spec file %s: %v", specFilePath, err)
 	}
 
@@ -295,7 +295,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer func() {
-		if err := mindxcheckutils.ChangeRuntimeLogMode("runtime-run-", "runtime-operate-"); err != nil {
+		if err = mindxcheckutils.ChangeRuntimeLogMode("runtime-run-", "runtime-operate-"); err != nil {
 			fmt.Println("defer changeFileMode function failed")
 		}
 	}()
@@ -303,18 +303,13 @@ func main() {
 	hwlog.OpLog.Infof("%v ascend docker runtime starting, try to setup container", logPrefixWords)
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
-		hwlog.RunLog.Infof("%v ascend docker runtime failed", logPrefixWords)
-		hwlog.OpLog.Errorf("%v ascend docker runtime failed", logPrefixWords)
+		hwlog.RunLog.Errorf("%v ascend docker runtime args check failed", logPrefixWords)
+		hwlog.OpLog.Errorf("%v ascend docker runtime args check failed", logPrefixWords)
 		log.Fatal("command error")
 	}
-	logWords := fmt.Sprintf("%v running %v", logPrefixWords, os.Args)
-	if len(logWords) > maxLogLength {
-		logWords = logWords[0:maxLogLength-1] + "..."
-	}
-	hwlog.OpLog.Infof(logWords)
-	if err := doProcess(); err != nil {
-		hwlog.RunLog.Errorf("%v ascend docker runtime failed", logPrefixWords)
-		hwlog.OpLog.Errorf("%v %v failed", logPrefixWords, logWords)
+	if err = doProcess(); err != nil {
+		hwlog.RunLog.Errorf("%v docker runtime failed: %v", logPrefixWords, err)
+		hwlog.OpLog.Errorf("%v docker runtime failed: %v", logPrefixWords, err)
 		log.Fatal(err)
 	}
 }

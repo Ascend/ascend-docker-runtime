@@ -62,11 +62,10 @@ func main() {
 
 	err = process()
 	if err != nil {
-		hwlog.OpLog.Infof("%v run %s failed", logPrefixWords, os.Args)
+		hwlog.OpLog.Errorf("%v run install failed: %v", logPrefixWords, err)
 		log.Fatal(fmt.Errorf("error in installation"))
-	} else {
-		hwlog.OpLog.Infof("%v run %s success", logPrefixWords, os.Args)
 	}
+	hwlog.OpLog.Infof("%v run install success", logPrefixWords)
 }
 
 func initLogModule(ctx context.Context) error {
