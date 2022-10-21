@@ -142,12 +142,11 @@ static bool DeclareDcmiApiAndCheck(void **handle)
         Logger("dlopen failed.", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
-    char pLinkMap[sizeof(struct link_map)] = {0};
+    struct link_map *pLinkMap;
     int ret = dlinfo(*handle, RTLD_DI_LINKMAP, &pLinkMap);
     if (ret == 0) {
-        struct link_map* pLink = *(struct link_map**)pLinkMap;
         const size_t maxFileSzieMb = 10; // max 10 mb
-        if (!CheckAExternalFile(pLink->l_name, strlen(pLink->l_name), maxFileSzieMb, true)) {
+        if (!CheckAExternalFile(pLinkMap->l_name, strlen(pLinkMap->l_name), maxFileSzieMb, true)) {
             Logger("check sofile failed.", LEVEL_ERROR, SCREEN_YES);
             return false;
         }

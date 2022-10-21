@@ -24,6 +24,8 @@
 #include "logger.h"
 
 #define DECIMAL     10
+#define MAX_ARGC    1024
+#define MAX_ARG_LEN 1024
 
 struct CmdArgs {
     char     devices[BUF_SIZE];
@@ -52,6 +54,11 @@ static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
         Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
+    if (strlen(arg) > MAX_ARG_LEN) {
+        Logger("argument value too long!", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+
     for (size_t iLoop = 0; iLoop < strlen(arg); iLoop++) {
         if ((isdigit(arg[iLoop]) == 0) && (arg[iLoop] != ',')) {
             Logger("failed to check devices.", LEVEL_ERROR, SCREEN_YES);
@@ -76,7 +83,7 @@ static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
         Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
-    args->pid = strtol(optarg, NULL, DECIMAL);
+    args->pid = strtol(arg, NULL, DECIMAL);
     const char* pidMax = "/proc/sys/kernel/pid_max";
     const size_t maxFileSzieMb = 10; // max 10MB
     if (!CheckExternalFile(pidMax, strlen(pidMax), maxFileSzieMb, true)) {
@@ -206,6 +213,7 @@ static bool CheckWhiteList(const char* fileName)
     for (size_t iLoop = 0; iLoop < WHITE_LIST_NUM; iLoop++) {
         if (strcmp(mountWhiteList[iLoop], fileName) == 0) {
             fileExists = true;
+            break;
         }
     }
     if (!fileExists) {
@@ -309,12 +317,6 @@ static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *valu
         }
     }
 
-    if (i == NUM_OF_CMD_ARGS) {
-        char* str = FormatLogMessage("unrecognized cmd arg: indicate char: %c, value: %s.", indicator, value);
-        Logger(str, LEVEL_ERROR, SCREEN_YES);
-        free(str);
-        return -1;
-    }
     bool isOK = g_cmdArgParsers[i].parser(args, value);
     if (!isOK) {
         char* str = FormatLogMessage("failed while parsing cmd arg, indicate char: %c, value: %s.", indicator, value);
@@ -491,13 +493,16 @@ int Process(int argc, char **argv)
         Logger("argv pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
+    if (argc > MAX_ARGC) {
+        Logger("too many arguments!", LEVEL_ERROR, SCREEN_YES);
+        return -1;
+    }
     int c;
     int ret;
-    int optionIndex;
     struct CmdArgs args = {0};
 
     Logger("runc start prestart-hook ...", LEVEL_INFO, SCREEN_YES);
-    while ((c = getopt_long(argc, argv, "d:p:r:o:f:i", g_cmdOpts, &optionIndex)) != -1) {
+    while ((c = getopt_long(argc, argv, "d:p:r:o:f:i", g_cmdOpts, NULL)) != -1) {
         ret = ParseOneCmdArg(&args, (char)c, optarg);
         if (ret < 0) {
             Logger("failed to parse cmd args.", LEVEL_ERROR, SCREEN_YES);

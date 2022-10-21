@@ -243,6 +243,9 @@ var getContainerConfig = func() (*containerConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse OCI spec: %v", err)
 	}
+	if len(ociSpec.Process.Env) > maxCommandLength {
+		return nil, fmt.Errorf("too many items in spec file")
+	}
 	// when use ctr->containerd. the rootfs in config.json is a relative path
 	rfs := ociSpec.Root.Path
 	if !filepath.IsAbs(rfs) {

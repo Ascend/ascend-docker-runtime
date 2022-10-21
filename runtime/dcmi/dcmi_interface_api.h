@@ -6,7 +6,10 @@
 #ifndef __DCMI_INTERFACE_API_H__
 #define __DCMI_INTERFACE_API_H__
 #include <stddef.h>
+#define _GNU_SOURCE
+#include <link.h>
 #include <dlfcn.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,6 +24,7 @@ void *dcmiHandle;
 #define FUNCTION_NOT_FOUND  (-99998)
 #define SUCCESS  (0)
 #define ERROR_UNKNOWN  (-99997)
+#define SO_NOT_CORRECT  (-99996)
 #define CALL_FUNC(name, ...) if (name##_func == NULL) {return FUNCTION_NOT_FOUND;}return name##_func(__VA_ARGS__)
 #define DCMI_VDEV_FOR_RESERVE (32)
 struct dcmi_create_vdev_out {
@@ -86,12 +90,23 @@ int dcmi_get_device_logicid_from_phyid(unsigned int phyid, unsigned int *logicid
 }
 
 // load .so files and functions
-int dcmiInit_dl(void)
+int dcmiInit_dl(char *dl_path)
 {
     dcmiHandle = dlopen("libdcmi.so", RTLD_LAZY | RTLD_GLOBAL);
     if (dcmiHandle == NULL) {
         fprintf (stderr, "%s\n", dlerror());
         return SO_NOT_FOUND;
+    }
+    struct link_map *pLinkMap;
+    int ret = dlinfo(dcmiHandle, RTLD_DI_LINKMAP, &pLinkMap);
+    if (ret != 0) {
+        fprintf(stderr, "dlinfo sofile failed :%s\n", dlerror());
+        return SO_NOT_CORRECT;
+    }
+
+    size_t path_size = strlen(pLinkMap->l_name);
+    for (int i = 0; i < path_size && i < PATH_MAX; i++) {
+        dl_path[i] = pLinkMap->l_name[i];
     }
 
     dcmi_init_func = dlsym(dcmiHandle, "dcmi_init");
