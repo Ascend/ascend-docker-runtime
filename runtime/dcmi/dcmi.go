@@ -10,19 +10,20 @@ import "C"
 import (
 	"fmt"
 	"math"
+	"mindxcheckutils"
+	"unsafe"
 )
 
 const (
 	// RetError return error when the function failed
 	retError = -1
+	// hiAIMaxCardNum is the max number of cards
+	hiAIMaxCardNum = 64
+	// hiAIMaxDeviceNum is the max number of devices in a card
+	hiAIMaxDeviceNum = 4
 
-	// dcmiMaxVdevNum is max number of vdevice, value is from driver specification
-	dcmiMaxVdevNum = 16
-
-	// maxErrorCodeCount is the max number of error code
-	hiAIMaxCardNum = 16
-	coreNumLen     = 32
-	deviceNum      = 4294967295 // vfg_id表示指定虚拟设备所属的虚拟分组ID，默认自动分配，默认值为0xFFFFFFFF，转换成10进制为4294967295。
+	coreNumLen = 32
+	vfgID      = 4294967295 // vfg_id表示指定虚拟设备所属的虚拟分组ID，默认自动分配，默认值为0xFFFFFFFF，转换成10进制为4294967295。
 )
 
 // NpuWorker Dcmi worker
@@ -31,9 +32,15 @@ type NpuWorker struct {
 
 // Initialize dcmi lib init
 func (w *NpuWorker) Initialize() error {
-	if err := C.dcmiInit_dl(); err != C.SUCCESS {
+	cDlPath := C.CString(string(make([]byte, int32(C.PATH_MAX))))
+	defer C.free(unsafe.Pointer(cDlPath))
+	if err := C.dcmiInit_dl(cDlPath); err != C.SUCCESS {
 		errInfo := fmt.Errorf("dcmi lib load failed, , error code: %d", int32(err))
 		return errInfo
+	}
+	dlPath := C.GoString(cDlPath)
+	if _, err := mindxcheckutils.RealFileChecker(dlPath, true, false, mindxcheckutils.DefaultSize); err != nil {
+		return err
 	}
 	if err := C.dcmi_init(); err != C.SUCCESS {
 		errInfo := fmt.Errorf("dcmi init failed, , error code: %d", int32(err))
@@ -81,7 +88,7 @@ func GetDeviceNumInCard(cardID int32) (int32, error) {
 		errInfo := fmt.Errorf("get device count on the card failed, error code: %d", int32(err))
 		return retError, errInfo
 	}
-	if deviceNum <= 0 {
+	if deviceNum <= 0 || deviceNum > hiAIMaxDeviceNum {
 		errInfo := fmt.Errorf("the number of chips obtained is invalid, the number is: %d", int32(deviceNum))
 		return retError, errInfo
 	}
@@ -110,8 +117,8 @@ func (w *NpuWorker) CreateVDevice(cardID, deviceID int32, coreNum string) (int32
 	createInfo.vdev_id = C.uint(math.MaxUint32)
 	var deviceCreateStr C.struct_dcmi_create_vdev_res_stru
 	deviceCreateStr = C.struct_dcmi_create_vdev_res_stru{
-		vdev_id: C.uint(deviceNum),
-		vfg_id:  C.uint(deviceNum),
+		vdev_id: C.uint(vfgID),
+		vfg_id:  C.uint(vfgID),
 	}
 	deviceCreateStrArr := [coreNumLen]C.char{0}
 	for i := 0; i < len(coreNum); i++ {

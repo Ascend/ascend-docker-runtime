@@ -347,7 +347,7 @@ bool GetFileSubsetAndCheck(const char *basePath, const size_t basePathLen)
         }
         if (ptr->d_type == DT_REG) { // 文件
             const size_t maxFileSzieMb = 10; // max 10 MB
-            if (!(base, strlen(base), maxFileSzieMb)) {
+            if (!CheckFileSubset(base, strlen(base), maxFileSzieMb)) {
                 return false;
             }
         } else if (ptr->d_type == DT_LNK) { // 软链接

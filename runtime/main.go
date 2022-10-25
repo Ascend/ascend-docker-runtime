@@ -138,6 +138,7 @@ func addHook(spec *specs.Spec) error {
 	if spec.Hooks == nil {
 		spec.Hooks = &specs.Hooks{}
 	}
+
 	needUpdate := true
 	for _, hook := range spec.Hooks.Prestart {
 		if strings.Contains(hook.Path, hookCli) {
@@ -236,6 +237,10 @@ func modifySpecFile(path string) error {
 	var spec specs.Spec
 	if err = json.Unmarshal(jsonContent, &spec); err != nil {
 		return fmt.Errorf("failed to unmarshal oci spec file %s: %v", path, err)
+	}
+
+	if len(spec.Process.Env) > maxCommandLength || len(spec.Hooks.Prestart) > maxCommandLength {
+		return fmt.Errorf("too many items in spec file. ")
 	}
 
 	if err = addHook(&spec); err != nil {
