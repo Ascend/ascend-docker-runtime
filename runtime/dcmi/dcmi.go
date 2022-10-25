@@ -10,8 +10,9 @@ import "C"
 import (
 	"fmt"
 	"math"
-	"mindxcheckutils"
 	"unsafe"
+
+	"mindxcheckutils"
 )
 
 const (
@@ -71,7 +72,7 @@ func GetCardList() (int32, []int32, error) {
 	}
 	var cardNum = int32(cNum)
 	var cardIDList []int32
-	for i := int32(0); i < cardNum && i < hiAIMaxCardNum; i++ {
+	for i := int32(0); i < cardNum; i++ {
 		cardID := int32(ids[i])
 		if cardID < 0 {
 			continue
@@ -157,7 +158,7 @@ func (w *NpuWorker) FindDevice(visibleDevice int32) (int32, int32, error) {
 	if err := C.dcmi_get_device_logicid_from_phyid(C.uint(visibleDevice), &dcmiLogicID); err != 0 {
 		return 0, 0, fmt.Errorf("phy id can not be converted to logic id : %v", err)
 	}
-	if uint(dcmiLogicID) > math.MaxInt32 {
+	if int32(dcmiLogicID) < 0 || int32(dcmiLogicID) >= hiAIMaxCardNum*hiAIMaxDeviceNum {
 		return 0, 0, fmt.Errorf("logic id too large")
 	}
 	targetLogicID := int32(dcmiLogicID)
