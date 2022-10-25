@@ -73,12 +73,12 @@ function build_bin()
     export CGO_CPPFLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2 -fPIC -ftrapv"
     export CGO_LDFLAGS="-Wl,-z,now -Wl,-s,--build-id=none -pie"
     mkdir -p ${BUILD}/build/helper/build
-    go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath  ${INSTALLHELPERSRCDIR}/${INSTALLHELPERSRCNAME} -o ${BUILD}/build/helper/build/ascend-docker-plugin-install-helper
+    go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath -o ${BUILD}/build/helper/build/ascend-docker-plugin-install-helper ${INSTALLHELPERSRCDIR}/${INSTALLHELPERSRCNAME}
 
     echo "make hook"
     [ -d "${HOOKSRCDIR}/build" ] && rm -rf ${HOOKSRCDIR}/build
     mkdir ${HOOKSRCDIR}/build && cd ${HOOKSRCDIR}/build
-    go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath ../${HOOKSRCNAME} -o ascend-docker-hook
+    go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath  -o ascend-docker-hook ../${HOOKSRCNAME}
     echo `pwd`
     ls
 
@@ -86,34 +86,26 @@ function build_bin()
     cd ${RUNTIMEDIR}
     [ -d "${RUNTIMESRCDIR}/build" ] && rm -rf ${RUNTIMESRCDIR}/build
     mkdir ${RUNTIMESRCDIR}/build&&cd ${RUNTIMESRCDIR}/build
-    go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath ../${RUNTIMESRCNAME} -o ascend-docker-runtime
+    go build -buildmode=pie  -ldflags='-linkmode=external -buildid=IdNetCheck -extldflags "-Wl,-z,now" -w -s' -trimpath  -o ascend-docker-runtime ../${RUNTIMESRCNAME}
 }
 
-function build_run_package()
+function copy_file_output()
 {
     cd ${BUILD}
-    mkdir run_pkg
+    mkdir -p ${OUTPUT}
 
-    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli,${BUILD}/build/destroy}/build/ascend-docker*  run_pkg
-    /bin/cp -f scripts/uninstall.sh run_pkg
-    /bin/cp -f scripts/base.list run_pkg
-    /bin/cp -f scripts/base.list_A500 run_pkg
-    /bin/cp -f scripts/base.list_A200 run_pkg
-    FILECNT=$(ls -l run_pkg |grep "^-"|wc -l)
+    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli,${BUILD}/build/destroy}/build/ascend-docker*  ${OUTPUT}
+    /bin/cp -f scripts/base.list ${OUTPUT}
+    /bin/cp -f scripts/base.list_A500 ${OUTPUT}
+    /bin/cp -f scripts/base.list_A200 ${OUTPUT}
+    /bin/cp -f scripts/base.list_A200ISoC ${OUTPUT}
+    FILECNT=$(ls -l ${OUTPUT} |grep "^-"|wc -l)
     echo "prepare package $FILECNT bins"
     if [ $FILECNT -ne 9 ]; then
         exit 1
     fi
-    /bin/cp -rf ${ROOT}/assets run_pkg
-    /bin/cp -f ${ROOT}/README.md run_pkg
-    /bin/cp -f scripts/run_main.sh run_pkg
-    chmod 550 run_pkg/run_main.sh
-
-    RUN_PKG_NAME="${PACKAGENAME}-${VERSION}-${CPUARCH}.run"
-    DATE=$(date -u "+%Y-%m-%d")
-    bash ${OPENSRC}/makeself-release-2.4.2/makeself.sh --nomd5 --nocrc --help-header scripts/help.info --packaging-date ${DATE} \
-    --tar-extra "--mtime=${DATE}" run_pkg "${RUN_PKG_NAME}" ascend-docker-runtime ./run_main.sh
-    mv ${RUN_PKG_NAME} ${OUTPUT}
+    /bin/cp -rf ${ROOT}/assets ${OUTPUT}
+    /bin/cp -f ${ROOT}/README.md ${OUTPUT}
 }
 
 function clean()
@@ -123,4 +115,4 @@ function clean()
 
 clean
 build_bin
-build_run_package
+copy_file_output
