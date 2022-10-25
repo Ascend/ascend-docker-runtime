@@ -143,6 +143,7 @@ func addHook(spec *specs.Spec) error {
 	for _, hook := range spec.Hooks.Prestart {
 		if strings.Contains(hook.Path, hookCli) {
 			needUpdate = false
+			break
 		}
 	}
 	if needUpdate {
@@ -158,6 +159,7 @@ func addHook(spec *specs.Spec) error {
 		if len(words) == envLength && strings.TrimSpace(words[0]) == "ASCEND_RUNTIME_OPTIONS" {
 			if strings.Contains(words[1], "VIRTUAL") {
 				hasVirtualFlag = true
+				break
 			}
 		}
 	}

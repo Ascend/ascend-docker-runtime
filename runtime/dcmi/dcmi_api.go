@@ -5,7 +5,6 @@ package dcmi
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -52,7 +51,7 @@ func CreateVDevice(w WorkerInterface, spec *specs.Spec) (VDeviceInfo, error) {
 }
 
 func extractVpuParam(spec *specs.Spec) (int32, string, error) {
-	visibleDevice, splitDevice, needSplit, visibleDeviceLine := int32(-1), "", false, ""
+	splitDevice, needSplit, visibleDeviceLine := "", false, ""
 	allowSplit := map[string]string{
 		"vir01": "vir01", "vir02": "vir02", "vir04": "vir04", "vir08": "vir08", "vir16": "vir16",
 		"vir04_3c": "vir04_3c", "vir02_1c": "vir02_1c", "vir04_4c_dvpp": "vir04_4c_dvpp",
@@ -80,10 +79,11 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 	if !needSplit {
 		return -1, "", nil
 	}
-	if cardID, err := strconv.Atoi(visibleDeviceLine); err == nil && cardID >= 0 && cardID <= math.MaxInt32 {
-		visibleDevice = int32(cardID)
-	} else {
-		return -1, "", fmt.Errorf("cannot parse param : %v %v", err, visibleDeviceLine)
+	visibleDevice, err := strconv.Atoi(visibleDeviceLine)
+	if err != nil || visibleDevice < 0 || visibleDevice >= hiAIMaxCardNum*hiAIMaxDeviceNum {
+		return -1, "", fmt.Errorf("cannot parse param : %v %s", err, visibleDeviceLine)
+
 	}
-	return visibleDevice, splitDevice, nil
+
+	return int32(visibleDevice), splitDevice, nil
 }
