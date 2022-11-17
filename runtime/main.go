@@ -140,6 +140,9 @@ func addHook(spec *specs.Spec) error {
 	}
 
 	needUpdate := true
+	if len(spec.Hooks.Prestart) > maxCommandLength {
+		return fmt.Errorf("too many items in Prestart ")
+	}
 	for _, hook := range spec.Hooks.Prestart {
 		if strings.Contains(hook.Path, hookCli) {
 			needUpdate = false
@@ -153,18 +156,15 @@ func addHook(spec *specs.Spec) error {
 		})
 	}
 
-	hasVirtualFlag := false
+	if len(spec.Process.Env) > maxCommandLength {
+		return fmt.Errorf("too many items in Env ")
+	}
 	for _, line := range spec.Process.Env {
 		words := strings.Split(line, "=")
-		if len(words) == envLength && strings.TrimSpace(words[0]) == "ASCEND_RUNTIME_OPTIONS" {
-			if strings.Contains(words[1], "VIRTUAL") {
-				hasVirtualFlag = true
-				break
-			}
+		if len(words) == envLength && strings.TrimSpace(words[0]) == "ASCEND_RUNTIME_OPTIONS" &&
+			strings.Contains(words[1], "VIRTUAL") {
+			return nil
 		}
-	}
-	if hasVirtualFlag {
-		return nil
 	}
 
 	vdevice, err := dcmi.CreateVDevice(&dcmi.NpuWorker{}, spec)
@@ -239,10 +239,6 @@ func modifySpecFile(path string) error {
 	var spec specs.Spec
 	if err = json.Unmarshal(jsonContent, &spec); err != nil {
 		return fmt.Errorf("failed to unmarshal oci spec file %s: %v", path, err)
-	}
-
-	if len(spec.Process.Env) > maxCommandLength || len(spec.Hooks.Prestart) > maxCommandLength {
-		return fmt.Errorf("too many items in spec file. ")
 	}
 
 	if err = addHook(&spec); err != nil {
