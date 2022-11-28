@@ -1,0 +1,5 @@
+  --install                         Install into this system
+  --install-path                    Specify the installation path (default: /usr/local/Ascend/Ascend-Docker-Runtime)
+  --uninstall                       Uninstall the installed ascend-docker-runtime tool
+  --upgrade                         Upgrade the installed ascend-docker-runtime tool
+  --install-type=<type>             Only A500, A200ISoC and A200 need to specify the installation type of Ascend-docker-runtime (eg: --install-type=A500)

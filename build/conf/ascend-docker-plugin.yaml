@@ -66,7 +66,7 @@ package:
   service: Ascend-docker-runtime
   MindXSDK: b050
   packageInfo:
-    - name: "Ascend-docker-runtime-{{ version }}-{{ systemEnv.processor }}.zip"
+    - name: "Ascend-docker-runtime-{{ version }}-{{ systemEnv.processor }}.run"
       input:
         files:
           include:
@@ -78,23 +78,31 @@ package:
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/helper/build/ascend-docker*"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/cli/build/ascend-docker*"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/destroy/build/ascend-docker*"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/uninstall.sh"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A500"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A200"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/base.list_A200ISoC"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/assets"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/README.md"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/build/scripts/run_main.sh"
                 des: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg/"
+            - copy:
+                src:
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/opensource/makeself-release-2.4.2/makeself.sh"
+                  - "{{ systemEnv.workspace }}/ascend-docker-plugin/opensource/makeself-release-2.4.2/makeself-header.sh"
+                des: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/conf/scripts/"
             - commands:
-              - command: "cd {{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg && zip -r Ascend-docker-runtime-{{ version }}-{{ systemEnv.processor }}.zip ./*"
+                - command: "chmod 550 {{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg/run_main.sh"
 
       process:
         type: run
         srcRoot: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/"
+        parameters: [ makeself, help.info, "{{systemEnv.DATE }}"]
       output:
         files:
           include:
             - move:
-                src: ["{{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg/*.zip"]
+                src: ["{{ systemEnv.workspace }}/ascend-docker-plugin/build/*.run"]
                 des: "{{ systemEnv.workspace }}/ascend-docker-plugin/output"
 
