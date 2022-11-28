@@ -14,7 +14,7 @@
 #include "utils.h"
 #include "logger.h"
 
-#define FILE_MAX_SIZE (1024 * 1024 * 10)
+#define FILE_MAX_SIZE (1024 * 1024 * 2)
 #define LOG_PATH_DIR "/var/log/ascend-docker-runtime/"
 #define TEMP_BUFFER 30
 #define YEAR_OFFSET 1900

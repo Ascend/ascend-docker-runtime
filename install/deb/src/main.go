@@ -76,6 +76,7 @@ func initLogModule(ctx context.Context) error {
 		LogLevel:    0,
 		MaxBackups:  backups,
 		MaxAge:      logMaxAge,
+		FileMaxSize: 2,
 	}
 	if err := hwlog.InitOperateLogger(&logConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)

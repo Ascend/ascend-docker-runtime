@@ -70,6 +70,7 @@ func initLogModule(ctx context.Context) error {
 		MaxBackups:  backups,
 		MaxAge:      logMaxAge,
 		OnlyToFile:  true,
+		FileMaxSize: 2,
 	}
 	if err := hwlog.InitRunLogger(&runLogConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
@@ -81,6 +82,7 @@ func initLogModule(ctx context.Context) error {
 		MaxBackups:  backups,
 		MaxAge:      logMaxAge,
 		OnlyToFile:  true,
+		FileMaxSize: 2,
 	}
 	if err := hwlog.InitOperateLogger(&operateLogConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
