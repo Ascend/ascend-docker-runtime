@@ -176,10 +176,18 @@ UPGRADE_FLAG=n
 a500=n
 a200=n
 a200isoc=n
+quiet_flag=n
 
 while true
 do
     case "$3" in
+        --check)
+          exit 0
+          ;;
+        --quiet)
+          quiet_flag=y
+          shift
+          ;;
         --install)
             if [ "${INSTALL_FLAG}" == "y" ]; then
                 echo "warning :Repeat parameter!"
