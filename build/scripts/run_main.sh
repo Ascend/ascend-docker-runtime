@@ -6,6 +6,24 @@ set -e
 ASCEND_RUNTIME_CONFIG_DIR=/etc/ascend-docker-runtime.d
 DOCKER_CONFIG_DIR=/etc/docker
 INSTALL_PATH=/usr/local/Ascend/Ascend-Docker-Runtime
+readonly PACKAGE_VERSION=%{PACKAGE_VERSION}%
+
+
+function save_install_args() {
+    if [ -f "${INSTALL_PATH}"/ascend_docker_runtime_install.info ]; then
+        rm "${INSTALL_PATH}"/ascend_docker_runtime_install.info
+    fi
+    {
+      echo -e "version=${PACKAGE_VERSION}"
+      echo -e "arch=$(uname -m)"
+      echo -e "os=linux"
+      echo -e "path=${INSTALL_PATH}"
+      echo -e "build=Ascend-docker-runtime_${PACKAGE_VERSION}-$(uname -m)"
+      echo -e "a500=${a500}"
+      echo -e "a200=${a200}"
+      echo -e "a200isoc=${a200isoc}"
+    } >> "${INSTALL_PATH}"/ascend_docker_runtime_install.info
+}
 
 function install()
 {
@@ -76,12 +94,15 @@ function install()
     mv ${SRC} ${DST}
     chmod 600 ${DST}
     echo 'create damom.json success'
+    save_install_args
+    echo "[INFO]: Ascend Docker Runtime has been installed in: ${INSTALL_PATH}"
+    echo "[INFO]: The version of Ascend Docker Runtime is: ${PACKAGE_VERSION}"
     echo 'please reboot docker daemon to take effect'
 }
 
 function uninstall()
 {
-    echo 'uninstalling ascend docker runtime'
+    echo "[INFO]: Uninstalling ascend docker runtime ${PACKAGE_VERSION}"
 
     if [ ! -d "${INSTALL_PATH}" ]; then
         echo 'WARNING: the specified install path does not exist, skipping'
@@ -120,16 +141,32 @@ function upgrade()
     cp -f ./ascend-docker-plugin-install-helper ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     cp -f ./ascend-docker-destroy ${INSTALL_PATH}/ascend-docker-destroy
     cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
-    cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     chmod 550 ${INSTALL_PATH}/ascend-docker-runtime
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
     chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     chmod 550 ${INSTALL_PATH}/ascend-docker-destroy
     chmod 500 ${INSTALL_PATH}/script/uninstall.sh
+    if [ -f "${INSTALL_PATH}"/ascend_docker_runtime_install.info ]; then
+        if [ "$(grep "a500=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a500=y" ];then
+            a500=y
+            cp -f ./base.list_A500 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        elif [ "$(grep "a200=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a200=y" ]; then
+            a200=y
+            cp -f ./base.list_A200 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        elif [ "x$(grep "a200isoc=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "xa200isoc=y" ]; then
+            a200isoc=y
+            cp -f ./base.list_A200ISoC ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        else
+            cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        fi
+        save_install_args
+    fi
     chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
-    echo 'upgrade ascend docker runtime success'
+    echo "[INFO]: Ascend Docker Runtime has been installed in: ${INSTALL_PATH}"
+    echo '[INFO]: upgrade ascend docker runtime success'
+    echo "[INFO]: The version of Ascend Docker Runtime is: ${PACKAGE_VERSION}"
 }
 
 INSTALL_FLAG=n
