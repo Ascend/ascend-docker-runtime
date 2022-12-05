@@ -52,7 +52,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	hwlog.OpLog.Infof("%v installer started", logPrefixWords)
+	hwlog.OpLog.Infof("%v start running script", logPrefixWords)
 
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
@@ -60,12 +60,12 @@ func main() {
 		log.Fatal("command error")
 	}
 
-	err = process()
+	err, behavior := process()
 	if err != nil {
-		hwlog.OpLog.Errorf("%v run install failed: %v", logPrefixWords, err)
+		hwlog.OpLog.Errorf("%v run script failed: %v", logPrefixWords, err)
 		log.Fatal(fmt.Errorf("error in installation"))
 	}
-	hwlog.OpLog.Infof("%v run install success", logPrefixWords)
+	hwlog.OpLog.Infof("%v run %v success", logPrefixWords, behavior)
 }
 
 func initLogModule(ctx context.Context) error {
@@ -85,7 +85,7 @@ func initLogModule(ctx context.Context) error {
 	return nil
 }
 
-func process() error {
+func process() (error, string) {
 	const helpMessage = "\tadd <daemon.json path> <daemon.json.result path> <ascend-docker-runtime path>\n" +
 		"\t rm <daemon.json path> <daemon.json.result path>\n" +
 		"\t -h help command"
@@ -93,38 +93,40 @@ func process() error {
 	flag.Parse()
 	if *helpFlag {
 		_, err := fmt.Println(helpMessage)
-		return err
+		return err, ""
 	}
 	command := flag.Args()
 	if len(command) == 0 {
-		return fmt.Errorf("error param")
+		return fmt.Errorf("error param"), ""
 	}
-	action := command[actionPosition]
+	action, behavior := command[actionPosition], ""
 	correctParam := false
 	if action == addCommand && len(command) == addCommandLength {
 		correctParam = true
+		behavior = "install"
 	}
 	if action == rmCommand && len(command) == rmCommandLength {
 		correctParam = true
+		behavior = "uninstall"
 	}
 	if !correctParam {
-		return fmt.Errorf("error param")
+		return fmt.Errorf("error param"), ""
 	}
 
 	srcFilePath := command[srcFilePosition]
 	if _, err := os.Stat(srcFilePath); os.IsNotExist(err) {
 		if _, err := mindxcheckutils.RealDirChecker(filepath.Dir(srcFilePath), true, false); err != nil {
-			return err
+			return err, behavior
 		}
 	} else {
 		if _, err := mindxcheckutils.RealFileChecker(srcFilePath, true, false, mindxcheckutils.DefaultSize); err != nil {
-			return err
+			return err, behavior
 		}
 	}
 
 	destFilePath := command[destFilePosition]
 	if _, err := mindxcheckutils.RealDirChecker(filepath.Dir(destFilePath), true, false); err != nil {
-		return err
+		return err, behavior
 	}
 	runtimeFilePath := ""
 	if len(command) == addCommandLength {
@@ -134,9 +136,9 @@ func process() error {
 	// check file permission
 	writeContent, err := createJsonString(srcFilePath, runtimeFilePath, action)
 	if err != nil {
-		return err
+		return err, behavior
 	}
-	return writeJson(destFilePath, writeContent)
+	return writeJson(destFilePath, writeContent), behavior
 }
 
 func createJsonString(srcFilePath, runtimeFilePath, action string) ([]byte, error) {

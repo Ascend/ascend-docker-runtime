@@ -92,6 +92,10 @@ package:
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/opensource/makeself-release-2.4.2/makeself.sh"
                   - "{{ systemEnv.workspace }}/ascend-docker-plugin/opensource/makeself-release-2.4.2/makeself-header.sh"
                 des: "{{ systemEnv.workspace }}/ascend-docker-plugin/build/conf/scripts/"
+            - sed:
+                option: "-i"
+                srcstr: 's/%{PACKAGE_VERSION}%/{{ version }}/g'
+                curfile: '{{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg/run_main.sh'
             - commands:
                 - command: "chmod 550 {{ systemEnv.workspace }}/ascend-docker-plugin/build/run_pkg/run_main.sh"
 
