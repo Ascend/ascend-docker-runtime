@@ -265,6 +265,15 @@ if [ "${INSTALL_PATH_FLAG}" == "y" ] && \
       exit 1
 fi
 
+# it is not allowed to input only quiet
+if [ "${quiet_flag}" == "y" ] && \
+   [ "${INSTALL_FLAG}" == "n" ] && \
+   [ "${UNINSTALL_FLAG}" == "n" ] && \
+   [ "${UPGRADE_FLAG}" == "n" ]; then
+     echo "[ERROR] parameter error ! Mode is neither install, uninstall, upgrade."
+     exit 1
+fi
+
 # must run with root permission
 if [ "${UID}" != "0" ]; then
     echo 'please run with root permission'
