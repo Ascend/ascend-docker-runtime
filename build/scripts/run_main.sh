@@ -225,7 +225,7 @@ do
             fi
             INSTALL_PATH_FLAG=y
             INSTALL_PATH=$(echo $3 | cut -d"=" -f2)
-            INSTALL_PATH=$(echo ${INSTALL_PATH} | sed "s/\/*$//g")
+            INSTALL_PATH=$(echo ${INSTALL_PATH}/Ascend-Docker-Runtime | sed "s/\/*$//g")
             shift
             ;;
         --upgrade)
