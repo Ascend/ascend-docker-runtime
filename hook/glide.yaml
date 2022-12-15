@@ -1,6 +1,0 @@
-package: ascend-docker-hook
-import:
-- package: github.com/opencontainers/runtime-spec
-  version: 1.0.2
-  subpackages:
-  - specs-go
