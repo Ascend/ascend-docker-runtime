@@ -49,8 +49,9 @@ HOOKSRCDIR=${HOOKSRCPATH%/${HOOKSRCNAME}}
 RUNTIMESRCPATH=$(find ${RUNTIMEDIR} -name "${RUNTIMESRCNAME}")
 RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
-VERSION=$(cat $TOP_DIR/Toolbox_CI/config/version.ini | grep "PackageName" | cut -d "=" -f 2)
 PACKAGENAME="Ascend-docker-runtime"
+VERSION="3.0.0"
+
 CPUARCH=$(uname -m)
 
 function build_bin()
@@ -106,20 +107,29 @@ function build_bin()
 function copy_file_output()
 {
     cd ${BUILD}
-    mkdir -p ${OUTPUT}
-
-    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli,${BUILD}/build/destroy}/build/ascend-docker*  ${OUTPUT}
-    /bin/cp -f scripts/base.list ${OUTPUT}
-    /bin/cp -f scripts/base.list_A500 ${OUTPUT}
-    /bin/cp -f scripts/base.list_A200 ${OUTPUT}
-    /bin/cp -f scripts/base.list_A200ISoC ${OUTPUT}
-    FILECNT=$(ls -l ${OUTPUT} |grep "^-"|wc -l)
-    echo "prepare package $FILECNT bins"
-    if [ $FILECNT -ne 9 ]; then
-        exit 1
+    if [ -d "run_pkg" ]; then
+      rm -r run_pkg
     fi
-    /bin/cp -rf ${ROOT}/assets ${OUTPUT}
-    /bin/cp -f ${ROOT}/README.md ${OUTPUT}
+    mkdir run_pkg
+
+    /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli,${BUILD}/build/destroy}/build/ascend-docker*  run_pkg
+    /bin/cp -f scripts/uninstall.sh run_pkg
+    /bin/cp -f scripts/base.list run_pkg
+    /bin/cp -f scripts/base.list_A500 run_pkg
+    /bin/cp -f scripts/base.list_A200 run_pkg
+    /bin/cp -f scripts/base.list_A200ISoC run_pkg
+
+    /bin/cp -rf ${ROOT}/assets run_pkg
+    /bin/cp -f ${ROOT}/README.md run_pkg
+    /bin/cp -f scripts/run_main.sh run_pkg
+
+    chmod 550 run_pkg/run_main.sh
+
+    RUN_PKG_NAME="${PACKAGENAME}_${VERSION}_linux-${CPUARCH}.run"
+    DATE=$(date -u "+%Y-%m-%d")
+    bash ${OPENSRC}/makeself-release-2.4.2/makeself.sh --nomd5 --nocrc --help-header scripts/help.info --packaging-date ${DATE} \
+    --tar-extra "--mtime=${DATE}" run_pkg "${RUN_PKG_NAME}" ascend-docker-runtime ./run_main.sh
+    mv ${RUN_PKG_NAME} ${OUTPUT}
 }
 
 function clean()
