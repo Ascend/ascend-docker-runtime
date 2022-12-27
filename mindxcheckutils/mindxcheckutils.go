@@ -251,7 +251,7 @@ func ChangeRuntimeLogMode(runLog, operLog string) error {
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("traversal runLogDir failed")
+		return fmt.Errorf("traversal runLogDir failed: %s", err)
 	}
 	return nil
 }
