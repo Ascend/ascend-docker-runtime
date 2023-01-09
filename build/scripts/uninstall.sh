@@ -20,7 +20,14 @@ LOG_FILE="/var/log/ascend_seclog/ascend_toolbox_install.log"
 echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"
 echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"  >>${LOG_FILE}
 ROOT=$(cd $(dirname $0); pwd)/..
-DST='/etc/docker/daemon.json'
+if [ "$*" == "y" ] ; then
+  DST='/etc/isulad/daemon.json'
+  echo "[INFO]: You will recover iSula's daemon"
+else
+  DST='/etc/docker/daemon.json'
+  echo "[INFO]: You will recover Docker's daemon"
+fi
+
 SRC="${DST}.${PPID}"
 ASCEND_RUNTIME_CONFIG_DIR=/etc/ascend-docker-runtime.d
 
