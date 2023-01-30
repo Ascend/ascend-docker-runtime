@@ -27,7 +27,7 @@ usage()
     exit 1
 }
 
-makepre() 
+makepre()
 {
     if [ -f ${CUR_DIR}/../../../googletest.tar.gz ]; then
       cd ${CUR_DIR}/../../../
@@ -36,7 +36,7 @@ makepre()
       cd ${CUR_DIR}
     fi
     if [ -d ${CUR_DIR}/../../../googletest ]; then
-      cp -rf ${CUR_DIR}/../../../googletest ${CUR_DIR}/Depend/googletest/
+      cp -rf ${CUR_DIR}/../../../googletest/* ${CUR_DIR}/Depend/googletest/
     fi
 
     if [ -f ${CUR_DIR}/../../../mockcpp.tar.gz ]; then
@@ -47,17 +47,13 @@ makepre()
     if [ -d ${CUR_DIR}/../../../mockcpp ]; then
       cp -rf ${CUR_DIR}/../../../mockcpp/* ${CUR_DIR}/Depend/mockcpp/
       cd ${CUR_DIR}/Depend/mockcpp
-      sed -i 's/${PYTHON_EXECUTABLE}/python2/g' src/CMakeLists.txt
-      sed -i '57i #if 0' ./include/mockcpp/mockcpp.h
-      sed -i '64i #endif' ./include/mockcpp/mockcpp.h
-      sed -i '5s/SET(PYTHON ${PYTHON_EXECUTABLE})/SET(PYTHON python2)/' ./src/CMakeLists.txt
-      sed -i '14s/SET(MOCKCPP_SRC_ROOT ${CMAKE_SOURCE_DIR})/SET(MOCKCPP_SRC_ROOT ${CMAKE_SOURCE_DIR}\/mockcpp)/' ./src/CMakeLists.txt
+      sed -i '16s/SET(MOCKCPP_SRC_ROOT ${CMAKE_SOURCE_DIR})/SET(MOCKCPP_SRC_ROOT ${CMAKE_SOURCE_DIR}\/mockcpp)/' ./src/CMakeLists.txt
       cmake .
       make
       cd ${CUR_DIR}
     fi
 
-    # 如果没有生成过，则需要生成
+    # need to compile lib if it is not present
     if [ ! -d Depend/lib ]
     then
         echo "-------------make pre begin-------------------"
@@ -76,20 +72,20 @@ makepre()
     fi
 }
 
-build_huaweisecurec()
+build_boundscheck()
 {
-    echo "-------------build_ut huaweisecurec begin-------------------"
-    if [ -f ${CUR_DIR}/../../../HuaweiSecureC.tar.gz ]; then
+    echo "-------------build_ut boundscheck begin-------------------"
+    if [ -f ${CUR_DIR}/../../../libboundscheck.tar.gz ]; then
       cd ${CUR_DIR}/../../../
-      tar xf ${CUR_DIR}/../../../HuaweiSecureC.tar.gz
-      mv huawei_secure_c-tag_Huawei_Secure_C_V100R001C01SPC011B003_00001/ HuaweiSecureC
+      tar xf ${CUR_DIR}/../../../libboundscheck.tar.gz
+      mv libboundscheck-v1.1.10/ libboundscheck
       cd ${CUR_DIR}
     fi
-    if [ -d ${CUR_DIR}/../../../HuaweiSecureC/ ]; then
-        cp -rf ${CUR_DIR}/../../../HuaweiSecureC/* ${CUR_DIR}/Depend/HuaweiSecureC/
-        cp -rf ${CUR_DIR}/../../../HuaweiSecureC/* ${SRC_ROOT}/HuaweiSecureC/
+    if [ -d ${CUR_DIR}/../../../libboundscheck ]; then
+        cp -rf ${CUR_DIR}/../../../libboundscheck/* ${CUR_DIR}/Depend/libboundscheck/
+        cp -rf ${CUR_DIR}/../../../libboundscheck/* ${SRC_ROOT}/libboundscheck/
     fi
-    cd ${CUR_DIR}/Depend/HuaweiSecureC
+    cd ${CUR_DIR}/Depend/libboundscheck
     if [ -d ./build ]; then
         rm -rf ./build
     fi
@@ -97,8 +93,8 @@ build_huaweisecurec()
     cd ./build
     cmake ..
     make
-    cp libHuaweiSecureC.a ${CUR_DIR}/srclib
-    echo "-------------build_ut huaweisecurec end-------------------"
+    cp liblibboundscheck.a ${CUR_DIR}/srclib
+    echo "-------------build_ut boundscheck end-------------------"
 }
 
 build_cli()
@@ -160,7 +156,7 @@ main()
     echo SRC_ROOT is "$SRC_ROOT"
 
     # step_3 编译对应模块
-    build_huaweisecurec
+    build_boundscheck
     build_cli
     if [ $? -ne 0 ]
     then

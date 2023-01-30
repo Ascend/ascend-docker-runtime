@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"huawei.com/mindx/common/hwlog"
+	"huawei.com/npu-exporter/v3/common-utils/hwlog"
 
 	"mindxcheckutils"
 )

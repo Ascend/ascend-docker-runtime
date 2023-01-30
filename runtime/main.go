@@ -29,7 +29,7 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"huawei.com/mindx/common/hwlog"
+	"huawei.com/npu-exporter/v3/common-utils/hwlog"
 
 	"main/dcmi"
 	"mindxcheckutils"

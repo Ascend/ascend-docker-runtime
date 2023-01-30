@@ -81,6 +81,7 @@ target_link_libraries(ut_demo
         )
 target_link_libraries(ut_demo -fprofile-arcs -pthread)
 target_include_directories(ut_demo PUBLIC ${PROJECT_SOURCE_DIR}/Depend/googletest/googletest/include)
+target_include_directories(ut_demo PUBLIC ${PROJECT_SOURCE_DIR}/Depend/mockcpp/3rdparty)
 target_include_directories(ut_demo PUBLIC ${PROJECT_SOURCE_DIR}/Depend/mockcpp/include)
 target_include_directories(ut_demo PUBLIC ${PROJECT_SOURCE_DIR}/Depend/HuaweiSecureC/include)
 target_link_libraries(ut_demo demolib)
