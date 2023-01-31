@@ -50,7 +50,14 @@ RUNTIMESRCPATH=$(find ${RUNTIMEDIR} -name "${RUNTIMESRCNAME}")
 RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
 PACKAGENAME="Ascend-docker-runtime"
-VERSION="3.0.0"
+
+VERSION="v3.0.0"
+version_file="${TOP_DIR}"/service_config.ini
+if  [ -f "$version_file" ]; then
+  line=$(sed -n '4p' "$version_file" 2>&1)
+  #cut the chars after ':'
+  VERSION=${line#*:}
+fi
 
 CPUARCH=$(uname -m)
 
@@ -127,6 +134,7 @@ function copy_file_output()
 
     RUN_PKG_NAME="${PACKAGENAME}_${VERSION}_linux-${CPUARCH}.run"
     DATE=$(date -u "+%Y-%m-%d")
+    sed -i "s/REPLACE_VERSION/${VERSION}/g" run_pkg/run_main.sh
     bash ${OPENSRC}/makeself-release-2.4.2/makeself.sh --nomd5 --nocrc --help-header scripts/help.info --packaging-date ${DATE} \
     --tar-extra "--mtime=${DATE}" run_pkg "${RUN_PKG_NAME}" ascend-docker-runtime ./run_main.sh
     mv ${RUN_PKG_NAME} ${OUTPUT}

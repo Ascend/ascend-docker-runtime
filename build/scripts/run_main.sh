@@ -20,8 +20,7 @@ set -e
 ASCEND_RUNTIME_CONFIG_DIR=/etc/ascend-docker-runtime.d
 DOCKER_CONFIG_DIR=/etc/docker
 INSTALL_PATH=/usr/local/Ascend/Ascend-Docker-Runtime
-readonly PACKAGE_VERSION=3.0.0
-
+readonly PACKAGE_VERSION=REPLACE_VERSION
 
 function save_install_args() {
     if [ -f "${INSTALL_PATH}"/ascend_docker_runtime_install.info ]; then
