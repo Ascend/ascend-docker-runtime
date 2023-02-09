@@ -1,19 +1,19 @@
 # Ascend Docker Runtime.zh
--  **[组件介绍](#"组件介绍.md")**
--  **[编译Ascend Docker Runtime](#"编译Ascend-Docker-Runtime.md")**
--  **[组件安装](#"组件安装")**
--  **[更新日志](#"更新日志")**
+-  **[组件介绍](#组件介绍)**
+-  **[编译Ascend-Docker-Runtime](#编译Ascend-Docker-Runtime)**
+-  **[组件安装](#组件安装)**
+-  **[更新日志](#更新日志)**
 
-<h2 id="组件介绍.md">组件介绍</h2>
+# 组件介绍
 容器引擎插件（Ascend Docker，又叫昇腾容器）是CANN的基础组件，为所有的AI训练/推理作业提供Ascend NPU（昇腾处理器）容器化支持，使用户AI作业能够以Docker容器的方式平滑运行在昇腾设备之上，如图1-1所示。
 
 图1-1 Ascend Docker
 
 ![image](assets/20210329102949456.png)
 
-<h3 id="Ascend Docker设计简介.md">Ascend Docker设计简介</h3>
+## 设计简介
 
-Ascend Docker本质上是基于OCI标准实现的Docker Runtime，不修改Docker引擎，对Docker以插件方式提供Ascend NPU适配功能。
+Ascend Docker Runtime本质上是基于OCI标准实现的Docker Runtime，不修改Docker引擎，对Docker以插件方式提供Ascend NPU适配功能。
 如图1-2所示，Ascend Docker通过OCI接口与原生Docker对接。在原生Docker的runc启动容器过程中，会调用prestart-hook对容器进行配置管理。
 
 图1-2 Docker适配原理
@@ -26,12 +26,15 @@ Ascend Docker在prestart-hook这个钩子函数中，对容器做了以下配置
 2.在Host上配置该容器的device cgroup，确保该容器只可以使用指定的NPU，保证设备的隔离。
 3.将Host上的CANN Runtime Library挂载到容器的namespace。
 
-<h2 id="编译Ascend-Docker-Runtime.md">编译Ascend Docker Runtime</h2>
+# 编译Ascend-Docker-Runtime
 执行以下步骤进行编译
 
- 1、下载源码包，获得ascend-docker-runtime
+ 1、下载tag为sync-dev的源码包，获得ascend-docker-runtime
  
 示例：源码放在/home/test/ascend-docker-runtime目录下
+```shell
+git clone -b sync-dev https://gitee.com/ascend/ascend-docker-runtime.git
+```
 
  2、下载tag为v1.1.10的安全函数库
 ````shell
@@ -57,10 +60,10 @@ root@#:/home/test/ascend-docker-runtime/output# ll
 -rwxr-xr-x  ... Ascend-docker-runtime_3.0.0_linux-x86_64.run*
 ```
 
-<h2 id="组件安装.md">组件安装</h2>
+# 组件安装
 请参考[《MindX DL用户指南》](https://www.hiascend.com/software/mindx-dl)中的“集群调度用户指南 > 安装部署指导 > 安装集群调度组件 > 典型安装场景 > 集群调度场景”进行。
 
-<h2 id="更新日志.md">更新日志</h2>
+# 更新日志
 
 |   版本   | 发布日期 | 修改说明  |
 |:------:|:----:|:-----:|
