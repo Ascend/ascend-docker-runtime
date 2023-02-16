@@ -38,15 +38,17 @@ git clone -b sync-dev https://gitee.com/ascend/ascend-docker-runtime.git
 
  2、下载tag为v1.1.10的安全函数库
 ````shell
-cd /home/test/ascend-docker-runtime
+cd /home/test/ascend-docker-runtime/platform
 git clone -b v1.1.10 https://gitee.com/openeuler/libboundscheck.git
 ````
 
 3、下载makeself
 ```shell
 cd ../opensource
-git clone https://gitee.com/src-openeuler/makeself.git
+git clone -b openEuler-22.03-LTS https://gitee.com/src-openeuler/makeself.git
 tar -zxvf makeself/makeself-2.4.2.tar.gz
+git clone https://gitee.com/song-xiangbing/makeself-header.git
+cp makeself-header/makeself-header.sh makeself-release-2.4.2/
 ```
  4、编译
 ```shell
