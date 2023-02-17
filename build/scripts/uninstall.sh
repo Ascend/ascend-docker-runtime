@@ -16,7 +16,7 @@
 # ============================================================================
 
 set -e
-LOG_FILE="/var/log/ascend_seclog/ascend_toolbox_install.log"
+LOG_FILE="/var/log/ascend-docker-runtime/installer.log"
 echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"
 echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"  >>${LOG_FILE}
 ROOT=$(cd $(dirname $0); pwd)/..

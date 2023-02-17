@@ -27,7 +27,7 @@ function save_install_args() {
         rm "${INSTALL_PATH}"/ascend_docker_runtime_install.info
     fi
     {
-      echo -e "version=${PACKAGE_VERSION}"
+      echo -e "version=v${PACKAGE_VERSION}"
       echo -e "arch=$(uname -m)"
       echo -e "os=linux"
       echo -e "path=${INSTALL_PATH}"
@@ -109,13 +109,13 @@ function install()
     echo 'create damom.json success'
     save_install_args
     echo "[INFO]: Ascend Docker Runtime has been installed in: ${INSTALL_PATH}"
-    echo "[INFO]: The version of Ascend Docker Runtime is: ${PACKAGE_VERSION}"
+    echo "[INFO]: The version of Ascend Docker Runtime is: v${PACKAGE_VERSION}"
     echo 'please reboot docker daemon to take effect'
 }
 
 function uninstall()
 {
-    echo "[INFO]: Uninstalling ascend docker runtime ${PACKAGE_VERSION}"
+    echo "[INFO]: Uninstalling ascend docker runtime v${PACKAGE_VERSION}"
 
     if [ ! -d "${INSTALL_PATH}" ]; then
         echo 'WARNING: the specified install path does not exist, skipping'
@@ -179,7 +179,7 @@ function upgrade()
 
     echo "[INFO]: Ascend Docker Runtime has been installed in: ${INSTALL_PATH}"
     echo '[INFO]: upgrade ascend docker runtime success'
-    echo "[INFO]: The version of Ascend Docker Runtime is: ${PACKAGE_VERSION}"
+    echo "[INFO]: The version of Ascend Docker Runtime is: v${PACKAGE_VERSION}"
 }
 
 INSTALL_FLAG=n

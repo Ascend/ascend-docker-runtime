@@ -18,7 +18,6 @@
 set -ex
 
 ROOT=$(cd $(dirname $0); pwd)/..
-TOP_DIR=$ROOT/..
 
 OPENSRC=${ROOT}/opensource
 PLATFORM=${ROOT}/platform
@@ -51,12 +50,12 @@ RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
 PACKAGENAME="Ascend-docker-runtime"
 
-VERSION="v3.0.0"
-version_file="${TOP_DIR}"/service_config.ini
+VERSION="5.0.RC1"
+version_file="${ROOT}"/service_config.ini
 if  [ -f "$version_file" ]; then
-  line=$(sed -n '4p' "$version_file" 2>&1)
+  line=$(sed -n '1p' "$version_file" 2>&1)
   #cut the chars after ':'
-  VERSION=${line#*:}
+  VERSION=${line#*=}
 fi
 
 CPUARCH=$(uname -m)
