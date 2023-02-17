@@ -46,6 +46,10 @@ const (
 	dockerRuncFile      = "docker-runc"
 	runcFile            = "runc"
 	envLength           = 2
+
+	// ENV for device-plugin to identify ascend-docker-runtime
+	useAscendDocker = "ASCEND_DOCKER_RUNTIME=True"
+	devicePlugin    = "ascend-device-plugin"
 )
 
 var (
@@ -132,6 +136,21 @@ var execRunc = func() error {
 	}
 
 	return nil
+}
+
+func addEnvToDevicePlugin(spec *specs.Spec) {
+	if spec.Process.Env == nil {
+		return
+	}
+
+	for _, line := range spec.Process.Env {
+		words := strings.Split(line, "=")
+		if len(words) == envLength && strings.TrimSpace(words[0]) == "HOSTNAME" &&
+			strings.Contains(words[1], devicePlugin) {
+			spec.Process.Env = append(spec.Process.Env, useAscendDocker)
+			break
+		}
+	}
 }
 
 func addHook(spec *specs.Spec) error {
@@ -257,6 +276,8 @@ func modifySpecFile(path string) error {
 	if err = addHook(&spec); err != nil {
 		return fmt.Errorf("failed to inject hook: %v", err)
 	}
+
+	addEnvToDevicePlugin(&spec)
 
 	jsonOutput, err := json.Marshal(spec)
 	if err != nil {
