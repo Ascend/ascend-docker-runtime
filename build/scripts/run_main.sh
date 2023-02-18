@@ -122,7 +122,7 @@ function uninstall()
         exit 0
     fi
 
-    ${INSTALL_PATH}/script/uninstall.sh
+    ${INSTALL_PATH}/script/uninstall.sh ${ISULA}
     echo 'remove daemon.json setting success'
 
     [ -n "${INSTALL_PATH}" ] && rm -rf ${INSTALL_PATH}
@@ -190,6 +190,7 @@ a500=n
 a200=n
 a200isoc=n
 quiet_flag=n
+ISULA=n
 
 while true
 do
@@ -233,6 +234,21 @@ do
                 exit 1
             fi
             UPGRADE_FLAG=y
+            shift
+            ;;
+        --ce=*)
+            if [ "${ISULA}" == "y" ]; then
+              echo "warning: Repeat parameter!"
+              exit 1
+            fi
+
+            if [ "$3" == "--ce=isula" ]; then
+              DOCKER_CONFIG_DIR="/etc/isulad"
+              ISULA=y
+            else
+              echo "ERROR :Please check the parameter of --ce=<ce>"
+              exit 1
+            fi
             shift
             ;;
         --install-type=*)

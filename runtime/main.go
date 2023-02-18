@@ -268,6 +268,13 @@ func modifySpecFile(path string) error {
 		return fmt.Errorf("failed to read oci spec file %s: %v", path, err)
 	}
 
+	if err = jsonFile.Truncate(0); err != nil {
+		return fmt.Errorf("failed to truncate: %v", err)
+	}
+	if _, err = jsonFile.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to seek: %v", err)
+	}
+
 	var spec specs.Spec
 	if err = json.Unmarshal(jsonContent, &spec); err != nil {
 		return fmt.Errorf("failed to unmarshal oci spec file %s: %v", path, err)
