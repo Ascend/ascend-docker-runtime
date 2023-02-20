@@ -190,7 +190,7 @@ a500=n
 a200=n
 a200isoc=n
 quiet_flag=n
-ISULA=n
+ISULA=none
 
 while true
 do
@@ -237,14 +237,14 @@ do
             shift
             ;;
         --ce=*)
-            if [ "${ISULA}" == "y" ]; then
+            if [ "${ISULA}" == "isula" ]; then
               echo "warning: Repeat parameter!"
               exit 1
             fi
 
             if [ "$3" == "--ce=isula" ]; then
               DOCKER_CONFIG_DIR="/etc/isulad"
-              ISULA=y
+              ISULA=isula
             else
               echo "ERROR :Please check the parameter of --ce=<ce>"
               exit 1
