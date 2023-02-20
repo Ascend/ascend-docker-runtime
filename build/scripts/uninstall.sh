@@ -20,7 +20,7 @@ LOG_FILE="/var/log/ascend-docker-runtime/installer.log"
 echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"
 echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"  >>${LOG_FILE}
 ROOT=$(cd $(dirname $0); pwd)/..
-if [ "$*" == "y" ] ; then
+if [ "$*" == "isula" ] ; then
   DST='/etc/isulad/daemon.json'
   echo "[INFO]: You will recover iSula's daemon"
 else
