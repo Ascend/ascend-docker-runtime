@@ -110,7 +110,7 @@ function install()
     save_install_args
     echo "[INFO]: Ascend Docker Runtime has been installed in: ${INSTALL_PATH}"
     echo "[INFO]: The version of Ascend Docker Runtime is: v${PACKAGE_VERSION}"
-    echo 'please reboot docker daemon to take effect'
+    echo 'please reboot daemon and container engine to take effect'
 }
 
 function uninstall()

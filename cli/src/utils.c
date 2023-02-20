@@ -195,8 +195,7 @@ int MakeMountPoints(const char *path, mode_t mode)
 
 static bool ShowExceptionInfo(const char* exceptionInfo)
 {
-    (void)fprintf(stderr, exceptionInfo);
-    (void)fprintf(stderr, "\n");
+    (void)fprintf(stderr, "%s\n", exceptionInfo);
     return false;
 }
 
