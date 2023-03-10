@@ -305,7 +305,6 @@ static struct {
     const char c;
     CmdArgParser parser;
 } g_cmdArgParsers[NUM_OF_CMD_ARGS] = {
-    {'d', DevicesCmdArgParser},
     {'p', PidCmdArgParser},
     {'r', RootfsCmdArgParser},
     {'o', OptionsCmdArgParser},
@@ -343,7 +342,7 @@ static inline bool IsCmdArgsValid(const struct CmdArgs *args)
         Logger("args pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
-    return (strlen(args->devices) > 0) && (strlen(args->rootfs) > 0) && (args->pid > 0);
+    return (strlen(args->rootfs) > 0) && (args->pid > 0);
 }
 
 static int ParseDeviceIDs(size_t *idList, size_t *idListSize, char *devices)
@@ -476,8 +475,7 @@ int SetupContainer(struct CmdArgs *args)
         close(config.originNsFd);
         return -1;
     }
-    Logger("setup up cgroup", LEVEL_INFO, SCREEN_YES);
-    ret = SetupCgroup(&config);
+    
     if (ret < 0) {
         Logger("failed to set up cgroup.", LEVEL_ERROR, SCREEN_YES);
         close(config.originNsFd);
