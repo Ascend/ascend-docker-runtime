@@ -413,19 +413,6 @@ int DoMounting(const struct ParsedConfig *config)
     }
 
     int ret;
-    ret = DoDeviceMounting(config->rootfs,
-                           (IsVirtual() ? VDEVICE_NAME : DEVICE_NAME),
-                           config->devices, config->devicesNr);
-    if (ret < 0) {
-        Logger("failed to mount devices.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
-
-    ret = DoCtrlDeviceMounting(config->rootfs);
-    if (ret < 0) {
-        Logger("failed to mount ctrl devices.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
 
     if (IsOptionNoDrvSet()) {
         return 0;
