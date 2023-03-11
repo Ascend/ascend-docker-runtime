@@ -412,11 +412,6 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
         free(str);
         return -1;
     }
-    ret = GetCgroupPath(args->pid, config->cgroupPath, BUF_SIZE);
-    if (ret < 0) {
-        Logger("failed to get cgroup path.", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
 
     char originNsPath[BUF_SIZE] = {0};
     ret = GetSelfNsPath("mnt", originNsPath, BUF_SIZE);
@@ -472,12 +467,6 @@ int SetupContainer(struct CmdArgs *args)
     ret = DoMounting(&config);
     if (ret < 0) {
         Logger("failed to do mounting.", LEVEL_ERROR, SCREEN_YES);
-        close(config.originNsFd);
-        return -1;
-    }
-    
-    if (ret < 0) {
-        Logger("failed to set up cgroup.", LEVEL_ERROR, SCREEN_YES);
         close(config.originNsFd);
         return -1;
     }
