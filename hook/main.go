@@ -40,13 +40,13 @@ const (
 	operateLogPath         = "/var/log/ascend-docker-runtime/hook-operate.log"
 	ascendRuntimeOptions   = "ASCEND_RUNTIME_OPTIONS"
 	ascendRuntimeMounts    = "ASCEND_RUNTIME_MOUNTS"
+	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
 	ascendDockerCli        = "ascend-docker-cli"
 	defaultAscendDockerCli = "/usr/local/bin/ascend-docker-cli"
 	configDir              = "/etc/ascend-docker-runtime.d"
 	baseConfig             = "base"
 	configFileSuffix       = "list"
 
-	borderNum        = 2
 	kvPairSize       = 2
 	maxCommandLength = 65535
 )
@@ -325,6 +325,10 @@ func doPrestartHook() error {
 	containerConfig, err := getContainerConfig()
 	if err != nil {
 		return fmt.Errorf("failed to get container config: %v", err)
+	}
+
+	if visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices); visibleDevices == "" {
+		return nil
 	}
 
 	mountConfigs := parseMounts(getValueByKey(containerConfig.Env, ascendRuntimeMounts))
