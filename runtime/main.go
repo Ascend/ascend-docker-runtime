@@ -47,6 +47,8 @@ const (
 	davinciManager      = "davinci_manager"
 	devmmSvm            = "devmm_svm"
 	hisiHdc             = "hisi_hdc"
+	svm0                = "svm0"
+	tsAisle             = "ts_aisle"
 	maxCommandLength    = 65535
 	hookCli             = "ascend-docker-hook"
 	destroyHookCli      = "ascend-docker-destroy"
@@ -337,12 +339,43 @@ func addManagerDevice(spec *specs.Spec) error {
 		if err = addDeviceToSpec(spec, svmPath, false); err != nil {
 			return fmt.Errorf("failed to add devmm_svm to spec : %#v", err)
 		}
+	} else {
+		// do nothing when device is not exist.
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("stat devmm_svm device err: %#v", err)
+		}
 	}
 
 	hdcPath := devicePath + hisiHdc
 	if _, err := os.Stat(hdcPath); err == nil {
 		if err = addDeviceToSpec(spec, hdcPath, false); err != nil {
 			return fmt.Errorf("failed to add hisi_hdc device to spec : %#v", err)
+		}
+	} else {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("stat hisi_hdc device err: %#v", err)
+		}
+	}
+
+	svm0Path := devicePath + svm0
+	if _, err := os.Stat(svm0Path); err == nil {
+		if err = addDeviceToSpec(spec, svm0Path, false); err != nil {
+			return fmt.Errorf("failed to add svm0 device to spec : %#v", err)
+		}
+	} else {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("stat svm0 device err: %#v", err)
+		}
+	}
+
+	tsAislePath := devicePath + tsAisle
+	if _, err := os.Stat(tsAislePath); err == nil {
+		if err = addDeviceToSpec(spec, tsAislePath, false); err != nil {
+			return fmt.Errorf("failed to add tsAisle device to spec : %#v", err)
+		}
+	} else {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("stat tsAisle device err: %#v", err)
 		}
 	}
 

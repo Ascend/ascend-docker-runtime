@@ -30,6 +30,7 @@
 #define LOG_LENGTH 1024
 
 static bool g_checkWgroup = true;
+bool g_allowLink;
 
 char *FormatLogMessage(char *format, ...)
 {
@@ -252,6 +253,7 @@ static bool CheckLegality(const char* filePath, const size_t filePathLen,
     }
     struct stat fileStat;
     if ((lstat(buf, &fileStat) != 0) ||
+        (!g_allowLink && (S_ISLNK(fileStat.st_mode) != 0)) ||
         ((S_ISREG(fileStat.st_mode) == 0) && (S_ISDIR(fileStat.st_mode) == 0))) {
         return ShowExceptionInfo("filePath does not exist or is not a file/dir!");
     }
@@ -324,7 +326,7 @@ static bool CheckFileSubset(const char* filePath, const size_t filePathLen,
     if (lstat(filePath, &fileStat) != 0) {
         return ShowExceptionInfo("filePath does not exist!");
     }
-    if (S_ISLNK(fileStat.st_mode) != 0) { // 存在软链接
+    if (!g_allowLink && S_ISLNK(fileStat.st_mode) != 0) { // 存在软链接
         return ShowExceptionInfo("filePath is symbolic link!");
     }
     if (fileStat.st_size >= maxFileSzieB) { // 文件大小超限
@@ -359,7 +361,7 @@ bool GetFileSubsetAndCheck(const char *basePath, const size_t basePathLen)
             if (!CheckFileSubset(base, strlen(base), maxFileSzieMb)) {
                 return false;
             }
-        } else if (ptr->d_type == DT_LNK) { // 软链接
+        } else if (!g_allowLink && ptr->d_type == DT_LNK) { // 软链接
             return ShowExceptionInfo("FilePath has a soft link!");
         } else if (ptr->d_type == DT_DIR) { // 目录
             if (!GetFileSubsetAndCheck(base, strlen(base))) {

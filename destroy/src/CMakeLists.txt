@@ -11,6 +11,6 @@ include_directories("${PROJECT_SOURCE_DIR}/../../platform/libboundscheck/include
 include_directories("${PROJECT_SOURCE_DIR}/../../cli/src")
 aux_source_directory(. SRC)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../build/libboundscheck ${CMAKE_CURRENT_SOURCE_DIR}/../../build/libboundscheck)
-add_executable(ascend-docker-destroy ../../cli/src/logger.c ../../cli/src/utils.c ../../cli/src/basic.c ${SRC} )
+add_executable(ascend-docker-destroy ../../cli/src/logger.c ../../cli/src/utils.c ${SRC} )
 target_compile_options(ascend-docker-destroy PRIVATE -fstack-protector-all -fpie -ldl -D_FORTIFY_SOURCE=2 -O2)
 target_link_libraries(ascend-docker-destroy -ldl -pie -Wl,-s,-z,now libboundscheck)
