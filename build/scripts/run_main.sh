@@ -33,6 +33,7 @@ function save_install_args() {
       echo -e "path=${INSTALL_PATH}"
       echo -e "build=Ascend-docker-runtime_${PACKAGE_VERSION}-$(uname -m)"
       echo -e "a500=${a500}"
+      echo -e "a500a2=${a500a2}"
       echo -e "a200=${a200}"
       echo -e "a200isoc=${a200isoc}"
     } >> "${INSTALL_PATH}"/ascend_docker_runtime_install.info
@@ -85,6 +86,8 @@ function install()
         cp -f ./base.list_A200 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     elif [ "${a200isoc}" == "y" ]; then
         cp -f ./base.list_A200ISoC ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    elif [ "${a500a2}" == "y" ]; then
+        cp -f ./base.list_A500A2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     else
         cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     fi
@@ -164,6 +167,9 @@ function upgrade()
         if [ "$(grep "a500=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a500=y" ];then
             a500=y
             cp -f ./base.list_A500 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        elif [ "$(grep "a500a2=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a500a2=y" ]; then
+            a500a2=y
+            cp -f ./base.list_A500A2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
         elif [ "$(grep "a200=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a200=y" ]; then
             a200=y
             cp -f ./base.list_A200 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
@@ -189,6 +195,7 @@ UPGRADE_FLAG=n
 a500=n
 a200=n
 a200isoc=n
+a500a2=n
 quiet_flag=n
 ISULA=none
 
@@ -252,7 +259,7 @@ do
             shift
             ;;
         --install-type=*)
-            if [ "${a500}" == "y" ] || [ "${a200}" == "y" ] || [ "${a200isoc}" == "y" ]; then
+            if [ "${a500}" == "y" ] || [ "${a200}" == "y" ] || [ "${a200isoc}" == "y" ] || [ "${a500a2}" == "y" ]; then
                 echo "warning :Repeat parameter!"
                 exit 1
             fi
@@ -263,6 +270,8 @@ do
                 a200=y
             elif [ "$3" == "--install-type=A200ISoC" ]; then
                 a200isoc=y
+            elif [ "$3" == "--install-type=A500A2" ]; then
+                a500a2=y
             else
                 echo "ERROR :Please check the parameter of --install-type=<type>"
                 exit 1
