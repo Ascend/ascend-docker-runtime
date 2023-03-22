@@ -41,6 +41,7 @@ const (
 	ascendRuntimeOptions   = "ASCEND_RUNTIME_OPTIONS"
 	ascendRuntimeMounts    = "ASCEND_RUNTIME_MOUNTS"
 	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
+	ascendAllowLink        = "ASCEND_ALLOW_LINK"
 	ascendDockerCli        = "ascend-docker-cli"
 	defaultAscendDockerCli = "/usr/local/bin/ascend-docker-cli"
 	configDir              = "/etc/ascend-docker-runtime.d"
@@ -149,6 +150,17 @@ func parseRuntimeOptions(runtimeOptions string) ([]string, error) {
 	}
 
 	return parsedOptions, nil
+}
+
+func parseSoftLinkMode(allowLink string) (string, error) {
+	if allowLink == "True" {
+		return "True", nil
+	}
+	if allowLink == "" || allowLink == "False" {
+		return "False", nil
+	}
+
+	return "", fmt.Errorf("invalid soft link option")
 }
 
 func parseOciSpecFile(file string) (*specs.Spec, error) {
@@ -308,10 +320,10 @@ func readConfigsOfDir(dir string, configs []string) ([]string, []string, error) 
 }
 
 func getArgs(cliPath string, containerConfig *containerConfig, fileMountList []string,
-	dirMountList []string) []string {
+	dirMountList []string, allowLink string) []string {
 	args := append([]string{cliPath},
-
-		"--pid", fmt.Sprintf("%d", containerConfig.Pid), "--rootfs", containerConfig.Rootfs)
+		"--allow-link", allowLink, "--pid", fmt.Sprintf("%d", containerConfig.Pid),
+		"--rootfs", containerConfig.Rootfs)
 	for _, filePath := range fileMountList {
 		args = append(args, "--mount-file", filePath)
 	}
@@ -324,7 +336,11 @@ func getArgs(cliPath string, containerConfig *containerConfig, fileMountList []s
 func doPrestartHook() error {
 	containerConfig, err := getContainerConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get container config: %v", err)
+		return fmt.Errorf("failed to get container config: %#v", err)
+	}
+
+	if visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices); visibleDevices == "" {
+		return nil
 	}
 
 	if visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices); visibleDevices == "" {
@@ -335,27 +351,32 @@ func doPrestartHook() error {
 
 	fileMountList, dirMountList, err := readConfigsOfDir(configDir, mountConfigs)
 	if err != nil {
-		return fmt.Errorf("failed to read configuration from config directory: %v", err)
+		return fmt.Errorf("failed to read configuration from config directory: %#v", err)
 	}
 
 	parsedOptions, err := parseRuntimeOptions(getValueByKey(containerConfig.Env, ascendRuntimeOptions))
 	if err != nil {
-		return fmt.Errorf("failed to parse runtime options: %v", err)
+		return fmt.Errorf("failed to parse runtime options: %#v", err)
+	}
+
+	allowLink, err := parseSoftLinkMode(getValueByKey(containerConfig.Env, ascendAllowLink))
+	if err != nil {
+		return fmt.Errorf("failed to parse soft link mode: %#v", err)
 	}
 
 	currentExecPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("cannot get the path of ascend-docker-hook: %v", err)
+		return fmt.Errorf("cannot get the path of ascend-docker-hook: %#v", err)
 	}
 
 	cliPath := path.Join(path.Dir(currentExecPath), ascendDockerCliName)
 	if _, err = os.Stat(cliPath); err != nil {
-		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %v", cliPath, err)
+		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %#v", cliPath, err)
 	}
 	if _, err := mindxcheckutils.RealFileChecker(cliPath, true, false, mindxcheckutils.DefaultSize); err != nil {
 		return err
 	}
-	args := getArgs(cliPath, containerConfig, fileMountList, dirMountList)
+	args := getArgs(cliPath, containerConfig, fileMountList, dirMountList, allowLink)
 	if len(parsedOptions) > 0 {
 		args = append(args, "--options", strings.Join(parsedOptions, ","))
 	}

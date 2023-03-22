@@ -122,6 +122,7 @@ function copy_file_output()
     /bin/cp -f scripts/uninstall.sh run_pkg
     /bin/cp -f scripts/base.list run_pkg
     /bin/cp -f scripts/base.list_A500 run_pkg
+    /bin/cp -f scripts/base.list_A500A2 run_pkg
     /bin/cp -f scripts/base.list_A200 run_pkg
     /bin/cp -f scripts/base.list_A200ISoC run_pkg
 
