@@ -98,6 +98,12 @@ int dcmi_get_device_logicid_from_phyid(unsigned int phyid, unsigned int *logicid
     CALL_FUNC(dcmi_get_device_logicid_from_phyid, phyid, logicid);
 }
 
+int (*dcmi_get_product_type_func)(int card_id, int device_id, char *product_type_str, int buf_size);
+int dcmi_get_product_type(int card_id, int device_id, char *product_type_str, int buf_size)
+{
+    CALL_FUNC(dcmi_get_product_type, card_id, device_id, product_type_str, buf_size);
+}
+
 // load .so files and functions
 int dcmiInit_dl(char *dl_path)
 {
@@ -131,6 +137,8 @@ int dcmiInit_dl(char *dl_path)
     dcmi_set_destroy_vdevice_func = dlsym(dcmiHandle, "dcmi_set_destroy_vdevice");
 
     dcmi_get_device_logicid_from_phyid_func = dlsym(dcmiHandle, "dcmi_get_device_logicid_from_phyid");
+
+    dcmi_get_product_type_func = dlsym(dcmiHandle, "dcmi_get_product_type");
 
     return SUCCESS;
 }

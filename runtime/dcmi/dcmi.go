@@ -33,6 +33,8 @@ const (
 	hiAIMaxCardNum = 64
 	// hiAIMaxDeviceNum is the max number of devices in a card
 	hiAIMaxDeviceNum = 4
+	productTypeLen   = 64
+	notSupportCode   = -8255
 
 	coreNumLen = 32
 	vfgID      = 4294967295 // vfg_id表示指定虚拟设备所属的虚拟分组ID，默认自动分配，默认值为0xFFFFFFFF，转换成10进制为4294967295。
@@ -194,4 +196,19 @@ func (w *NpuWorker) FindDevice(visibleDevice int32) (int32, int32, error) {
 		}
 	}
 	return targetDeviceID, targetCardID, nil
+}
+
+// GetProductType get type of product by dcmi interface
+func (w *NpuWorker) GetProductType(cardID, deviceID int32) (string, error) {
+	cProductType := C.CString(string(make([]byte, productTypeLen)))
+	defer C.free(unsafe.Pointer(cProductType))
+	if err := C.dcmi_get_product_type(C.int(cardID), C.int(deviceID),
+		(*C.char)(cProductType), productTypeLen); err != 0 {
+		if err == notSupportCode {
+			// device which does not support querying product, such as Ascend 910A/B
+			return "not support", nil
+		}
+		return "", fmt.Errorf("get product type failed, errCode: %d", err)
+	}
+	return C.GoString(cProductType), nil
 }

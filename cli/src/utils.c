@@ -357,7 +357,7 @@ bool GetFileSubsetAndCheck(const char *basePath, const size_t basePathLen)
             return ShowExceptionInfo("Strcat failed!");
         }
         if (ptr->d_type == DT_REG) { // 文件
-            const size_t maxFileSzieMb = 10; // max 10 MB
+            const size_t maxFileSzieMb = 150; // max 150 MB
             if (!CheckFileSubset(base, strlen(base), maxFileSzieMb)) {
                 return false;
             }
