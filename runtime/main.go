@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ import (
 
 	"github.com/containerd/containerd/oci"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"huawei.com/npu-exporter/v3/common-utils/hwlog"
+	"huawei.com/npu-exporter/v5/common-utils/hwlog"
 
 	"main/dcmi"
 	"mindxcheckutils"
@@ -42,22 +43,15 @@ const (
 	runLogPath          = "/var/log/ascend-docker-runtime/runtime-run.log"
 	operateLogPath      = "/var/log/ascend-docker-runtime/runtime-operate.log"
 	hookDefaultFilePath = "/usr/local/bin/ascend-docker-hook"
-	devicePath          = "/dev/"
-	davinciName         = "davinci"
-	davinciManager      = "davinci_manager"
-	devmmSvm            = "devmm_svm"
-	hisiHdc             = "hisi_hdc"
-	svm0                = "svm0"
-	tsAisle             = "ts_aisle"
-	maxCommandLength    = 65535
-	hookCli             = "ascend-docker-hook"
-	destroyHookCli      = "ascend-docker-destroy"
-	dockerRuncFile      = "docker-runc"
-	runcFile            = "runc"
-	envLength           = 2
-	kvPairSize          = 2
-	borderNum           = 2
-	vdeviceIdlen        = 3
+
+	maxCommandLength = 65535
+	hookCli          = "ascend-docker-hook"
+	destroyHookCli   = "ascend-docker-destroy"
+	dockerRuncFile   = "docker-runc"
+	runcFile         = "runc"
+	envLength        = 2
+	kvPairSize       = 2
+	borderNum        = 2
 
 	// ENV for device-plugin to identify ascend-docker-runtime
 	useAscendDocker      = "ASCEND_DOCKER_RUNTIME=True"
@@ -71,6 +65,31 @@ var (
 	hookDefaultFile = hookDefaultFilePath
 	dockerRuncName  = dockerRuncFile
 	runcName        = runcFile
+)
+
+const (
+	// Atlas200ISoc Product name
+	Atlas200ISoc = "Atlas 200I SoC A1"
+	// Atlas200 Product name
+	Atlas200 = "Atlas 200 Model 3000"
+	// Atlas500A2 Product name
+	Atlas500A2 = "Atlas 500 A2"
+
+	devicePath     = "/dev/"
+	davinciName    = "davinci"
+	davinciManager = "davinci_manager"
+	devmmSvm       = "devmm_svm"
+	hisiHdc        = "hisi_hdc"
+	svm0           = "svm0"
+	tsAisle        = "ts_aisle"
+	upgrade        = "upgrade"
+	sys            = "sys"
+	vdec           = "vdec"
+	vpc            = "vpc"
+	pngd           = "pngd"
+	venc           = "venc"
+	dvppCmdList    = "dvpp_cmdlist"
+	logDrv         = "log_drv"
 )
 
 type args struct {
@@ -307,12 +326,16 @@ func getValueByKey(data []string, name string) string {
 func addDeviceToSpec(spec *specs.Spec, dPath string, vdevice bool) error {
 	device, err := oci.DeviceFromPath(dPath)
 	if err != nil {
-		return fmt.Errorf("failed to get device info : %#v", err)
+		return fmt.Errorf("failed to get %s info : %#v", dPath, err)
 	}
 
-	lenPath := len(dPath)
 	if vdevice {
-		vPath := devicePath + davinciName + dPath[lenPath-vdeviceIdlen:]
+		re := regexp.MustCompile("[0-9]+")
+		vDeviceNumber := re.FindAllString(dPath, -1)
+		if len(vDeviceNumber) != 1 {
+			return fmt.Errorf("error vdevice : %s", dPath)
+		}
+		vPath := devicePath + davinciName + vDeviceNumber[0]
 		device.Path = vPath
 	}
 
@@ -328,54 +351,68 @@ func addDeviceToSpec(spec *specs.Spec, dPath string, vdevice bool) error {
 	return nil
 }
 
+func addA500ManagerDevice(spec *specs.Spec) error {
+	var Atlas500ManageDevices = []string{
+		svm0,
+		tsAisle,
+		upgrade,
+		sys,
+		vdec,
+		vpc,
+		pngd,
+		venc,
+		dvppCmdList,
+		logDrv,
+	}
+
+	for _, device := range Atlas500ManageDevices {
+		dPath := devicePath + device
+		if err := addDeviceToSpec(spec, dPath, false); err != nil {
+			return fmt.Errorf("failed to add %s of A500 A2 to spec : %#v", dPath, err)
+		}
+	}
+
+	return nil
+}
+
+func addCommonManagerDevice(spec *specs.Spec) error {
+	var commonManagerDevices = []string{
+		devmmSvm,
+		hisiHdc,
+	}
+
+	for _, device := range commonManagerDevices {
+		dPath := devicePath + device
+		if err := addDeviceToSpec(spec, dPath, false); err != nil {
+			return fmt.Errorf("failed to add common manage device to spec : %#v", err)
+		}
+	}
+
+	return nil
+}
+
 func addManagerDevice(spec *specs.Spec) error {
 	managerPath := devicePath + davinciManager
 	if err := addDeviceToSpec(spec, managerPath, false); err != nil {
-		return fmt.Errorf("failed to add manager device to spec : %#v", err)
+		return fmt.Errorf("add davinci_manager to spec error: %#v", err)
 	}
 
-	svmPath := devicePath + devmmSvm
-	if _, err := os.Stat(svmPath); err == nil {
-		if err = addDeviceToSpec(spec, svmPath, false); err != nil {
-			return fmt.Errorf("failed to add devmm_svm to spec : %#v", err)
-		}
-	} else {
-		// do nothing when device is not exist.
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("stat devmm_svm device err: %#v", err)
-		}
+	productType, err := dcmi.GetProductType(&dcmi.NpuWorker{})
+	if err != nil {
+		return fmt.Errorf("parse product type error: %#v", err)
 	}
+	hwlog.RunLog.Infof("product type is %s", productType)
 
-	hdcPath := devicePath + hisiHdc
-	if _, err := os.Stat(hdcPath); err == nil {
-		if err = addDeviceToSpec(spec, hdcPath, false); err != nil {
-			return fmt.Errorf("failed to add hisi_hdc device to spec : %#v", err)
+	switch productType {
+	case Atlas500A2:
+		if err = addA500ManagerDevice(spec); err != nil {
+			return fmt.Errorf("add A500 manage device error: %#v", err)
 		}
-	} else {
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("stat hisi_hdc device err: %#v", err)
-		}
-	}
-
-	svm0Path := devicePath + svm0
-	if _, err := os.Stat(svm0Path); err == nil {
-		if err = addDeviceToSpec(spec, svm0Path, false); err != nil {
-			return fmt.Errorf("failed to add svm0 device to spec : %#v", err)
-		}
-	} else {
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("stat svm0 device err: %#v", err)
-		}
-	}
-
-	tsAislePath := devicePath + tsAisle
-	if _, err := os.Stat(tsAislePath); err == nil {
-		if err = addDeviceToSpec(spec, tsAislePath, false); err != nil {
-			return fmt.Errorf("failed to add tsAisle device to spec : %#v", err)
-		}
-	} else {
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("stat tsAisle device err: %#v", err)
+	// do nothing
+	case Atlas200ISoc, Atlas200:
+	default:
+		if err = addCommonManagerDevice(spec); err != nil {
+			return fmt.Errorf("add common manage device error: %#v", err)
 		}
 	}
 

@@ -1,5 +1,5 @@
-gitee.com/ascend/ascend-npu-exporter/v3 v3.0.0 h1:JfB5Kmce3mWEzbtAhybJozGp6+yJH+jU7D6WytEcOzs=
-gitee.com/ascend/ascend-npu-exporter/v3 v3.0.0/go.mod h1:78lAYBVM18u8mobeoKqhJP7POvbayTYBk32hnm9IkfQ=
+gitee.com/ascend/ascend-npu-exporter/v5 v5.0.0-rc1.1 h1:XXNpZemFi7/kmW7v+eXLwYumeDCDgLZtIT6AJHY8w9Q=
+gitee.com/ascend/ascend-npu-exporter/v5 v5.0.0-rc1.1/go.mod h1:fMiyWfHf3p+Wo4hu8Uy+cnD8ulQV3nzwwVzupRM8XEk=
 github.com/agiledragon/gomonkey/v2 v2.8.0 h1:u2K2nNGyk0ippzklz1CWalllEB9ptD+DtSXeCX5O000=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4HY=
