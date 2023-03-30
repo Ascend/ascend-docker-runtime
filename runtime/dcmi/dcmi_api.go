@@ -21,6 +21,8 @@ import (
 	"strings"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
+
+	"huawei.com/npu-exporter/v5/common-utils/hwlog"
 )
 
 // VDeviceInfo vdevice created info
@@ -37,6 +39,7 @@ type WorkerInterface interface {
 	FindDevice(visibleDevice int32) (int32, int32, error)
 	CreateVDevice(cardID, deviceID int32, coreNum string) (int32, error)
 	DestroyVDevice(cardID, deviceID int32, vDevID int32) error
+	GetProductType(cardID, deviceID int32) (string, error)
 }
 
 // CreateVDevice will create virtual device
@@ -98,4 +101,40 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 	}
 
 	return int32(visibleDevice), splitDevice, nil
+}
+
+// GetProductType get type of product
+func GetProductType(w WorkerInterface) (string, error) {
+	invalidType := ""
+	if err := w.Initialize(); err != nil {
+		return invalidType, fmt.Errorf("cannot init dcmi : %v", err)
+	}
+	defer w.ShutDown()
+
+	cardNum, cardList, err := GetCardList()
+	if cardNum == 0 || err != nil {
+		hwlog.RunLog.Errorf("failed to get card list, err: %#v", err)
+		return invalidType, err
+	}
+	for _, cardID := range cardList {
+		devNum, err := GetDeviceNumInCard(cardID)
+		if err != nil {
+			hwlog.RunLog.Debugf("get device num by cardID(%d) failed, error: %#v", cardID, err)
+			continue
+		}
+		if devNum == 0 {
+			hwlog.RunLog.Debugf("not found device on card %d", cardID)
+			continue
+		}
+		for devID := int32(0); devID < devNum; devID++ {
+			productType, err := w.GetProductType(cardID, devID)
+			if err != nil {
+				hwlog.RunLog.Debugf("get product type by card %d deviceID %d failed, err: %#v", cardID, devID, err)
+				continue
+			}
+			return productType, nil
+		}
+	}
+
+	return invalidType, nil
 }

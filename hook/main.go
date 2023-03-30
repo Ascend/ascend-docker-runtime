@@ -28,10 +28,9 @@ import (
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"huawei.com/npu-exporter/v5/common-utils/hwlog"
 
 	"mindxcheckutils"
-
-	"huawei.com/npu-exporter/v3/common-utils/hwlog"
 )
 
 const (

@@ -3,7 +3,7 @@ module main
 go 1.17
 
 require (
-	huawei.com/npu-exporter/v3 v3.0.0
+	huawei.com/npu-exporter/v5 v5.0.0-rc1.1
 	mindxcheckutils v1.0.0
 )
 
@@ -16,6 +16,6 @@ require (
 )
 
 replace (
-	huawei.com/npu-exporter/v3 => gitee.com/ascend/ascend-npu-exporter/v3 v3.0.0
+	huawei.com/npu-exporter/v5 => gitee.com/ascend/ascend-npu-exporter/v5 v5.0.0-rc1.1
 	mindxcheckutils => ../../../mindxcheckutils
 )
