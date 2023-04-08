@@ -125,6 +125,7 @@ function copy_file_output()
     /bin/cp -f scripts/base.list_A500A2 run_pkg
     /bin/cp -f scripts/base.list_A200 run_pkg
     /bin/cp -f scripts/base.list_A200ISoC run_pkg
+    /bin/cp -f scripts/base.list_A200IA2 run_pkg
 
     /bin/cp -rf ${ROOT}/assets run_pkg
     /bin/cp -f ${ROOT}/README.md run_pkg

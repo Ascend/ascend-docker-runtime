@@ -72,8 +72,14 @@ const (
 	Atlas200ISoc = "Atlas 200I SoC A1"
 	// Atlas200 Product name
 	Atlas200 = "Atlas 200 Model 3000"
-	// Atlas500A2 Product name
-	Atlas500A2 = "Atlas 500 A2"
+	// Ascend310 ascend 310 chip
+	Ascend310 = "Ascend310"
+	// Ascend310P ascend 310P chip
+	Ascend310P = "Ascend310P"
+	// Ascend310B ascend 310B chip
+	Ascend310B = "Ascend310B"
+	// Ascend910 ascend 910 chip
+	Ascend910 = "Ascend910"
 
 	devicePath     = "/dev/"
 	davinciName    = "davinci"
@@ -95,6 +101,23 @@ const (
 type args struct {
 	bundleDirPath string
 	cmd           string
+}
+
+// GetDeviceTypeByChipName get device type by chipName
+func GetDeviceTypeByChipName(chipName string) string {
+	if strings.Contains(chipName, "310B") {
+		return Ascend310B
+	}
+	if strings.Contains(chipName, "310P") {
+		return Ascend310P
+	}
+	if strings.Contains(chipName, "310") {
+		return Ascend310
+	}
+	if strings.Contains(chipName, "910") {
+		return Ascend910
+	}
+	return ""
 }
 
 func getArgs() (*args, error) {
@@ -351,8 +374,8 @@ func addDeviceToSpec(spec *specs.Spec, dPath string, vdevice bool) error {
 	return nil
 }
 
-func addA500ManagerDevice(spec *specs.Spec) error {
-	var Atlas500ManageDevices = []string{
+func addAscend310BManagerDevice(spec *specs.Spec) error {
+	var Ascend310BManageDevices = []string{
 		svm0,
 		tsAisle,
 		upgrade,
@@ -365,10 +388,10 @@ func addA500ManagerDevice(spec *specs.Spec) error {
 		logDrv,
 	}
 
-	for _, device := range Atlas500ManageDevices {
+	for _, device := range Ascend310BManageDevices {
 		dPath := devicePath + device
 		if err := addDeviceToSpec(spec, dPath, false); err != nil {
-			return fmt.Errorf("failed to add %s of A500 A2 to spec : %#v", dPath, err)
+			hwlog.RunLog.Warnf("failed to add %s to spec : %#v", dPath, err)
 		}
 	}
 
@@ -397,6 +420,19 @@ func addManagerDevice(spec *specs.Spec) error {
 		return fmt.Errorf("add davinci_manager to spec error: %#v", err)
 	}
 
+	chipName, err := dcmi.GetChipName()
+	if err != nil {
+		return fmt.Errorf("get chip name error: %#v", err)
+	}
+	devType := GetDeviceTypeByChipName(chipName)
+	hwlog.RunLog.Infof("device type is: %s", devType)
+	if devType == Ascend310B {
+		if err = addAscend310BManagerDevice(spec); err != nil {
+			return fmt.Errorf("add 310B manage device error: %#v", err)
+		}
+		return nil
+	}
+
 	productType, err := dcmi.GetProductType(&dcmi.NpuWorker{})
 	if err != nil {
 		return fmt.Errorf("parse product type error: %#v", err)
@@ -404,10 +440,6 @@ func addManagerDevice(spec *specs.Spec) error {
 	hwlog.RunLog.Infof("product type is %s", productType)
 
 	switch productType {
-	case Atlas500A2:
-		if err = addA500ManagerDevice(spec); err != nil {
-			return fmt.Errorf("add A500 manage device error: %#v", err)
-		}
 	// do nothing
 	case Atlas200ISoc, Atlas200:
 	default:
@@ -424,7 +456,6 @@ func addDevice(spec *specs.Spec) error {
 	if visibleDevices == "" {
 		return nil
 	}
-	hwlog.RunLog.Infof("getValueByKey visibleDevices: %#v", visibleDevices)
 
 	devices, err := parseDevices(visibleDevices)
 	if err != nil {

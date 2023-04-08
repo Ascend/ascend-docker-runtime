@@ -2,5 +2,7 @@
   --install-path                    Specify the installation path (default: /usr/local/Ascend/Ascend-Docker-Runtime)
   --uninstall                       Uninstall the installed ascend-docker-runtime tool
   --upgrade                         Upgrade the installed ascend-docker-runtime tool
-  --install-type=<type>             Only A500, A500A2, A200ISoC and A200 need to specify the installation type of Ascend-docker-runtime (eg: --install-type=A500)
+  --install-type=<type>             Only A500, A500A2, A200ISoC, A200IA2 and A200 need to specify
+                                    the installation type of Ascend-docker-runtime
+                                    (eg: --install-type=A200IA2, when your product is A200I A2 or A200I DK A2)
   --ce=<ce>                         Only iSula need to specify the container engine(eg: --ce=isula)
