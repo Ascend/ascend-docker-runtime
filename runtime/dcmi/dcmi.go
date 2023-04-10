@@ -33,6 +33,7 @@ const (
 	hiAIMaxCardNum = 64
 	// hiAIMaxDeviceNum is the max number of devices in a card
 	hiAIMaxDeviceNum = 4
+	maxChipNameLen   = 32
 	productTypeLen   = 64
 	notSupportCode   = -8255
 
@@ -40,8 +41,47 @@ const (
 	vfgID      = 4294967295 // vfg_id表示指定虚拟设备所属的虚拟分组ID，默认自动分配，默认值为0xFFFFFFFF，转换成10进制为4294967295。
 )
 
+// ChipInfo chip info
+type ChipInfo struct {
+	Type    string `json:"chip_type"`
+	Name    string `json:"chip_name"`
+	Version string `json:"chip_version"`
+}
+
 // NpuWorker Dcmi worker
 type NpuWorker struct {
+}
+
+// isValidCardID valid card id
+func isValidCardID(cardID int32) bool {
+	// for cardID, please watch the maximum value of the driver
+	return cardID >= 0 && cardID < hiAIMaxCardNum
+}
+
+// isValidDeviceID valid device id
+func isValidDeviceID(deviceID int32) bool {
+	return deviceID >= 0 && deviceID < hiAIMaxDeviceNum
+}
+
+// isValidCardIDAndDeviceID check two params both needs meet the requirement
+func isValidCardIDAndDeviceID(cardID, deviceID int32) bool {
+	return isValidCardID(cardID) && isValidDeviceID(deviceID)
+}
+
+// isValidChipInfo valid chip info is or not empty
+func isValidChipInfo(chip *ChipInfo) bool {
+	return chip.Name != "" || chip.Type != "" || chip.Version != ""
+}
+
+func convertUCharToCharArr(cgoArr [maxChipNameLen]C.uchar) []byte {
+	var charArr []byte
+	for _, v := range cgoArr {
+		if v == 0 {
+			break
+		}
+		charArr = append(charArr, byte(v))
+	}
+	return charArr
 }
 
 // Initialize dcmi lib init
@@ -211,4 +251,32 @@ func (w *NpuWorker) GetProductType(cardID, deviceID int32) (string, error) {
 		return "", fmt.Errorf("get product type failed, errCode: %d", err)
 	}
 	return C.GoString(cProductType), nil
+}
+
+// GetChipInfo get the chip info by cardID and deviceID
+func (w *NpuWorker) GetChipInfo(cardID, deviceID int32) (*ChipInfo, error) {
+	if !isValidCardIDAndDeviceID(cardID, deviceID) {
+		return nil, fmt.Errorf("cardID(%d) or deviceID(%d) is invalid", cardID, deviceID)
+	}
+	var chipInfo C.struct_dcmi_chip_info
+	if rCode := C.dcmi_get_device_chip_info(C.int(cardID), C.int(deviceID), &chipInfo); int32(rCode) != 0 {
+		return nil, fmt.Errorf("get device ChipInfo information failed, cardID(%d), deviceID(%d),"+
+			" error code: %d", cardID, deviceID, int32(rCode))
+	}
+
+	name := convertUCharToCharArr(chipInfo.chip_name)
+	cType := convertUCharToCharArr(chipInfo.chip_type)
+	ver := convertUCharToCharArr(chipInfo.chip_ver)
+
+	chip := &ChipInfo{
+		Name:    string(name),
+		Type:    string(cType),
+		Version: string(ver),
+	}
+	if !isValidChipInfo(chip) {
+		return nil, fmt.Errorf("get device ChipInfo information failed, chip info is empty,"+
+			" cardID(%d), deviceID(%d)", cardID, deviceID)
+	}
+
+	return chip, nil
 }

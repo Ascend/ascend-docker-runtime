@@ -36,6 +36,7 @@ void *dcmiHandle;
 #define SO_NOT_CORRECT  (-99996)
 #define CALL_FUNC(name, ...) if (name##_func == NULL) {return FUNCTION_NOT_FOUND;}return name##_func(__VA_ARGS__)
 #define DCMI_VDEV_FOR_RESERVE (32)
+#define MAX_CHIP_NAME_LEN (32)
 struct dcmi_create_vdev_out {
     unsigned int vdev_id;
     unsigned int pcie_bus;
@@ -49,6 +50,13 @@ struct dcmi_create_vdev_res_stru {
     unsigned int vfg_id;
     char template_name[32];
     unsigned char reserved[64];
+};
+
+struct dcmi_chip_info {
+unsigned char chip_type[MAX_CHIP_NAME_LEN];
+unsigned char chip_name[MAX_CHIP_NAME_LEN];
+unsigned char chip_ver[MAX_CHIP_NAME_LEN];
+unsigned int aicore_cnt;
 };
 
 // dcmi
@@ -104,6 +112,12 @@ int dcmi_get_product_type(int card_id, int device_id, char *product_type_str, in
     CALL_FUNC(dcmi_get_product_type, card_id, device_id, product_type_str, buf_size);
 }
 
+int (*dcmi_get_device_chip_info_func)(int card_id, int device_id, struct dcmi_chip_info *chip_info);
+int dcmi_get_device_chip_info(int card_id, int device_id, struct dcmi_chip_info *chip_info)
+{
+    CALL_FUNC(dcmi_get_device_chip_info, card_id, device_id, chip_info);
+}
+
 // load .so files and functions
 int dcmiInit_dl(char *dl_path)
 {
@@ -139,6 +153,8 @@ int dcmiInit_dl(char *dl_path)
     dcmi_get_device_logicid_from_phyid_func = dlsym(dcmiHandle, "dcmi_get_device_logicid_from_phyid");
 
     dcmi_get_product_type_func = dlsym(dcmiHandle, "dcmi_get_product_type");
+
+    dcmi_get_device_chip_info_func = dlsym(dcmiHandle, "dcmi_get_device_chip_info");
 
     return SUCCESS;
 }
