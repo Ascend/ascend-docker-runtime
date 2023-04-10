@@ -40,6 +40,7 @@ type WorkerInterface interface {
 	CreateVDevice(cardID, deviceID int32, coreNum string) (int32, error)
 	DestroyVDevice(cardID, deviceID int32, vDevID int32) error
 	GetProductType(cardID, deviceID int32) (string, error)
+	GetChipInfo(cardID, deviceID int32) (*ChipInfo, error)
 }
 
 // CreateVDevice will create virtual device
@@ -137,4 +138,49 @@ func GetProductType(w WorkerInterface) (string, error) {
 	}
 
 	return invalidType, nil
+}
+
+// GetChipName get name of chip
+func GetChipName() (string, error) {
+	dcWorker := NpuWorker{}
+	invalidName := ""
+
+	if err := dcWorker.Initialize(); err != nil {
+		return invalidName, fmt.Errorf("cannot init dcmi : %v", err)
+	}
+	defer dcWorker.ShutDown()
+
+	cardNum, cardList, err := GetCardList()
+	if err != nil {
+		hwlog.RunLog.Errorf("failed to get card list, err: %#v", err)
+		return invalidName, err
+	}
+	if cardNum == 0 {
+		return invalidName, fmt.Errorf("get chip info failed, no card found")
+	}
+
+	// get device in card, then get chip info by cardID and deviceID
+	for _, cardID := range cardList {
+		devNum, err := GetDeviceNumInCard(cardID)
+		if err != nil || devNum == 0 {
+			hwlog.RunLog.Warnf("get device num by cardID(%d) failed, error: %#v", cardID, err)
+			continue
+		}
+		for devID := int32(0); devID < devNum; devID++ {
+			chipInfo, err := dcWorker.GetChipInfo(cardID, devID)
+			if err != nil {
+				hwlog.RunLog.Warnf("get chip info failed by cardID(%d), deviceID(%d), error: %#v", cardID, devID,
+					err)
+				continue
+			}
+			if !isValidChipInfo(chipInfo) {
+				hwlog.RunLog.Warnf("invalid chip info by cardID(%d), deviceID(%d), error: %#v", cardID, devID,
+					err)
+				continue
+			}
+			return (*chipInfo).Name, nil
+		}
+	}
+
+	return invalidName, fmt.Errorf("cannot get valid chip info")
 }

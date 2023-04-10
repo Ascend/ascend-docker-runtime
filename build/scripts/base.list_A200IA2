@@ -1,0 +1,16 @@
+/etc/sys_version.conf
+/etc/hdcBasic.cfg
+/usr/lib64/libaicpu_processer.so
+/usr/lib64/libaicpu_prof.so
+/usr/lib64/libaicpu_sharder.so
+/usr/lib64/libadump.so
+/usr/lib64/libtsd_eventclient.so
+/usr/lib64/libaicpu_scheduler.so
+/usr/lib64/libdcmi.so
+/usr/lib64/libmpi_dvpp_adapter.so
+/usr/lib64/aicpu_kernels/
+/usr/local/sbin/npu-smi
+/usr/lib64/libstackcore.so
+/usr/local/Ascend/driver/lib64
+/var/slogd
+/var/dmp_daemon

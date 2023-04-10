@@ -2,7 +2,6 @@
 /usr/local/sbin/npu-smi
 /etc/sys_version.conf
 /etc/ld.so.conf.d/mind_so.conf
-/etc/slog.conf
 /etc/hdcBasic.cfg
 /var/dmp_daemon
 /var/slogd
