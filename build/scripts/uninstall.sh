@@ -20,9 +20,11 @@ LOG_FILE="/var/log/ascend-docker-runtime/installer.log"
 echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"
 echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"  >>${LOG_FILE}
 ROOT=$(cd $(dirname $0); pwd)/..
+RESERVEDEFAULT=no
 if [ "$*" == "isula" ] ; then
   DST='/etc/isulad/daemon.json'
   echo "[INFO]: You will recover iSula's daemon"
+  RESERVEDEFAULT=yes
 else
   DST='/etc/docker/daemon.json'
   echo "[INFO]: You will recover Docker's daemon"
@@ -35,7 +37,7 @@ if [ ! -f "${DST}" ]; then
     exit 0
 fi
 
-${ROOT}/ascend-docker-plugin-install-helper rm ${DST} ${SRC}
+${ROOT}/ascend-docker-plugin-install-helper rm ${DST} ${SRC} ${RESERVEDEFAULT}
 if [ "$?" != "0" ]; then
     echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "ERROR: del damon.json failed"
     echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "ERROR: del damon.json failed"  >>${LOG_FILE}

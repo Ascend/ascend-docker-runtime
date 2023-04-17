@@ -101,7 +101,7 @@ function install()
 
     SRC="${DOCKER_CONFIG_DIR}/daemon.json.${PPID}"
     DST="${DOCKER_CONFIG_DIR}/daemon.json"
-    ./ascend-docker-plugin-install-helper add ${DST} ${SRC} ${INSTALL_PATH}/ascend-docker-runtime
+    ./ascend-docker-plugin-install-helper add ${DST} ${SRC} ${INSTALL_PATH}/ascend-docker-runtime ${RESERVEDEFAULT}
     if [ "$?" != "0" ]; then
         echo 'create damon.json failed'
         exit 1
@@ -198,6 +198,7 @@ a200isoc=n
 a500a2=n
 quiet_flag=n
 ISULA=none
+RESERVEDEFAULT=no
 
 while true
 do
@@ -252,6 +253,7 @@ do
             if [ "$3" == "--ce=isula" ]; then
               DOCKER_CONFIG_DIR="/etc/isulad"
               ISULA=isula
+              RESERVEDEFAULT=yes
             else
               echo "ERROR :Please check the parameter of --ce=<ce>"
               exit 1
