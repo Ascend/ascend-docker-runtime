@@ -25,11 +25,15 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 
+	"github.com/containerd/containerd/oci"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"huawei.com/npu-exporter/v3/common-utils/hwlog"
+	"huawei.com/npu-exporter/v5/common-utils/hwlog"
 
 	"main/dcmi"
 	"mindxcheckutils"
@@ -38,18 +42,22 @@ import (
 const (
 	runLogPath          = "/var/log/ascend-docker-runtime/runtime-run.log"
 	operateLogPath      = "/var/log/ascend-docker-runtime/runtime-operate.log"
-	maxLogLength        = 1024
-	maxCommandLength    = 65535
-	hookCli             = "ascend-docker-hook"
-	destroyHookCli      = "ascend-docker-destroy"
 	hookDefaultFilePath = "/usr/local/bin/ascend-docker-hook"
-	dockerRuncFile      = "docker-runc"
-	runcFile            = "runc"
-	envLength           = 2
+
+	maxCommandLength = 65535
+	hookCli          = "ascend-docker-hook"
+	destroyHookCli   = "ascend-docker-destroy"
+	dockerRuncFile   = "docker-runc"
+	runcFile         = "runc"
+	envLength        = 2
+	kvPairSize       = 2
+	borderNum        = 2
 
 	// ENV for device-plugin to identify ascend-docker-runtime
-	useAscendDocker = "ASCEND_DOCKER_RUNTIME=True"
-	devicePlugin    = "ascend-device-plugin"
+	useAscendDocker      = "ASCEND_DOCKER_RUNTIME=True"
+	devicePlugin         = "ascend-device-plugin"
+	ascendVisibleDevices = "ASCEND_VISIBLE_DEVICES"
+	ascendRuntimeOptions = "ASCEND_RUNTIME_OPTIONS"
 )
 
 var (
@@ -59,9 +67,57 @@ var (
 	runcName        = runcFile
 )
 
+const (
+	// Atlas200ISoc Product name
+	Atlas200ISoc = "Atlas 200I SoC A1"
+	// Atlas200 Product name
+	Atlas200 = "Atlas 200 Model 3000"
+	// Ascend310 ascend 310 chip
+	Ascend310 = "Ascend310"
+	// Ascend310P ascend 310P chip
+	Ascend310P = "Ascend310P"
+	// Ascend310B ascend 310B chip
+	Ascend310B = "Ascend310B"
+	// Ascend910 ascend 910 chip
+	Ascend910 = "Ascend910"
+
+	devicePath     = "/dev/"
+	davinciName    = "davinci"
+	davinciManager = "davinci_manager"
+	devmmSvm       = "devmm_svm"
+	hisiHdc        = "hisi_hdc"
+	svm0           = "svm0"
+	tsAisle        = "ts_aisle"
+	upgrade        = "upgrade"
+	sys            = "sys"
+	vdec           = "vdec"
+	vpc            = "vpc"
+	pngd           = "pngd"
+	venc           = "venc"
+	dvppCmdList    = "dvpp_cmdlist"
+	logDrv         = "log_drv"
+)
+
 type args struct {
 	bundleDirPath string
 	cmd           string
+}
+
+// GetDeviceTypeByChipName get device type by chipName
+func GetDeviceTypeByChipName(chipName string) string {
+	if strings.Contains(chipName, "310B") {
+		return Ascend310B
+	}
+	if strings.Contains(chipName, "310P") {
+		return Ascend310P
+	}
+	if strings.Contains(chipName, "310") {
+		return Ascend310
+	}
+	if strings.Contains(chipName, "910") {
+		return Ascend910
+	}
+	return ""
 }
 
 func getArgs() (*args, error) {
@@ -212,16 +268,231 @@ func addHook(spec *specs.Spec) error {
 	return nil
 }
 
+func removeDuplication(devices []int) []int {
+	list := make([]int, 0, len(devices))
+	prev := -1
+
+	for _, device := range devices {
+		if device == prev {
+			continue
+		}
+
+		list = append(list, device)
+		prev = device
+	}
+
+	return list
+}
+
+func parseDevices(visibleDevices string) ([]int, error) {
+	devices := make([]int, 0)
+	const maxDevice = 128
+
+	for _, d := range strings.Split(visibleDevices, ",") {
+		d = strings.TrimSpace(d)
+		if strings.Contains(d, "-") {
+			borders := strings.Split(d, "-")
+			if len(borders) != borderNum {
+				return nil, fmt.Errorf("invalid device range: %s", d)
+			}
+
+			borders[0] = strings.TrimSpace(borders[0])
+			borders[1] = strings.TrimSpace(borders[1])
+
+			left, err := strconv.Atoi(borders[0])
+			if err != nil || left < 0 {
+				return nil, fmt.Errorf("invalid left boarder range parameter: %s", borders[0])
+			}
+
+			right, err := strconv.Atoi(borders[1])
+			if err != nil || right > maxDevice {
+				return nil, fmt.Errorf("invalid right boarder range parameter: %s", borders[1])
+			}
+
+			if left > right {
+				return nil, fmt.Errorf("left boarder (%d) should not be larger than the right one(%d)", left, right)
+			}
+
+			for n := left; n <= right; n++ {
+				devices = append(devices, n)
+			}
+		} else {
+			n, err := strconv.Atoi(d)
+			if err != nil {
+				return nil, fmt.Errorf("invalid single device parameter: %s", d)
+			}
+
+			devices = append(devices, n)
+		}
+	}
+
+	sort.Slice(devices, func(i, j int) bool { return i < j })
+	return removeDuplication(devices), nil
+}
+
+func getValueByKey(data []string, name string) string {
+	for _, envLine := range data {
+		words := strings.SplitN(envLine, "=", kvPairSize)
+		if len(words) != kvPairSize {
+			hwlog.RunLog.Errorf("environment error")
+			return ""
+		}
+
+		if words[0] == name {
+			return words[1]
+		}
+	}
+
+	return ""
+}
+
+func addDeviceToSpec(spec *specs.Spec, dPath string, vdevice bool) error {
+	device, err := oci.DeviceFromPath(dPath)
+	if err != nil {
+		return fmt.Errorf("failed to get %s info : %#v", dPath, err)
+	}
+
+	if vdevice {
+		re := regexp.MustCompile("[0-9]+")
+		vDeviceNumber := re.FindAllString(dPath, -1)
+		if len(vDeviceNumber) != 1 {
+			return fmt.Errorf("error vdevice : %s", dPath)
+		}
+		vPath := devicePath + davinciName + vDeviceNumber[0]
+		device.Path = vPath
+	}
+
+	spec.Linux.Devices = append(spec.Linux.Devices, *device)
+	newDeviceCgroup := specs.LinuxDeviceCgroup{
+		Allow:  true,
+		Type:   device.Type,
+		Major:  &device.Major,
+		Minor:  &device.Minor,
+		Access: "rwm",
+	}
+	spec.Linux.Resources.Devices = append(spec.Linux.Resources.Devices, newDeviceCgroup)
+	return nil
+}
+
+func addAscend310BManagerDevice(spec *specs.Spec) error {
+	var Ascend310BManageDevices = []string{
+		svm0,
+		tsAisle,
+		upgrade,
+		sys,
+		vdec,
+		vpc,
+		pngd,
+		venc,
+		dvppCmdList,
+		logDrv,
+	}
+
+	for _, device := range Ascend310BManageDevices {
+		dPath := devicePath + device
+		if err := addDeviceToSpec(spec, dPath, false); err != nil {
+			hwlog.RunLog.Warnf("failed to add %s to spec : %#v", dPath, err)
+		}
+	}
+
+	return nil
+}
+
+func addCommonManagerDevice(spec *specs.Spec) error {
+	var commonManagerDevices = []string{
+		devmmSvm,
+		hisiHdc,
+	}
+
+	for _, device := range commonManagerDevices {
+		dPath := devicePath + device
+		if err := addDeviceToSpec(spec, dPath, false); err != nil {
+			return fmt.Errorf("failed to add common manage device to spec : %#v", err)
+		}
+	}
+
+	return nil
+}
+
+func addManagerDevice(spec *specs.Spec) error {
+	managerPath := devicePath + davinciManager
+	if err := addDeviceToSpec(spec, managerPath, false); err != nil {
+		return fmt.Errorf("add davinci_manager to spec error: %#v", err)
+	}
+
+	chipName, err := dcmi.GetChipName()
+	if err != nil {
+		return fmt.Errorf("get chip name error: %#v", err)
+	}
+	devType := GetDeviceTypeByChipName(chipName)
+	hwlog.RunLog.Infof("device type is: %s", devType)
+	if devType == Ascend310B {
+		if err = addAscend310BManagerDevice(spec); err != nil {
+			return fmt.Errorf("add 310B manage device error: %#v", err)
+		}
+		return nil
+	}
+
+	productType, err := dcmi.GetProductType(&dcmi.NpuWorker{})
+	if err != nil {
+		return fmt.Errorf("parse product type error: %#v", err)
+	}
+	hwlog.RunLog.Infof("product type is %s", productType)
+
+	switch productType {
+	// do nothing
+	case Atlas200ISoc, Atlas200:
+	default:
+		if err = addCommonManagerDevice(spec); err != nil {
+			return fmt.Errorf("add common manage device error: %#v", err)
+		}
+	}
+
+	return nil
+}
+
+func addDevice(spec *specs.Spec) error {
+	visibleDevices := getValueByKey(spec.Process.Env, ascendVisibleDevices)
+	if visibleDevices == "" {
+		return nil
+	}
+
+	devices, err := parseDevices(visibleDevices)
+	if err != nil {
+		return fmt.Errorf("failed to parse device : %#v", err)
+	}
+	hwlog.RunLog.Infof("devices is: %#v", devices)
+	devciename := davinciName
+	vdevice := false
+	virtual := getValueByKey(spec.Process.Env, ascendRuntimeOptions)
+	if strings.Contains(virtual, "VIRTUAL") {
+		devciename = "v" + devciename
+		vdevice = true
+	}
+	for _, deviceId := range devices {
+		dPath := devicePath + devciename + strconv.Itoa(deviceId)
+		if err = addDeviceToSpec(spec, dPath, vdevice); err != nil {
+			return fmt.Errorf("failed to add davinci device to spec: %v", err)
+		}
+	}
+
+	if err = addManagerDevice(spec); err != nil {
+		return fmt.Errorf("failed to add Manager device to spec: %v", err)
+	}
+
+	return nil
+}
+
 func updateEnvAndPostHook(spec *specs.Spec, vdevice dcmi.VDeviceInfo) {
 	newEnv := make([]string, 0)
 	needAddVirtualFlag := true
 	for _, line := range spec.Process.Env {
 		words := strings.Split(line, "=")
-		if len(words) == envLength && strings.TrimSpace(words[0]) == "ASCEND_VISIBLE_DEVICES" {
+		if len(words) == envLength && strings.TrimSpace(words[0]) == ascendVisibleDevices {
 			newEnv = append(newEnv, fmt.Sprintf("ASCEND_VISIBLE_DEVICES=%d", vdevice.VdeviceID))
 			continue
 		}
-		if len(words) == envLength && strings.TrimSpace(words[0]) == "ASCEND_RUNTIME_OPTIONS" {
+		if len(words) == envLength && strings.TrimSpace(words[0]) == ascendRuntimeOptions {
 			needAddVirtualFlag = false
 			if strings.Contains(words[1], "VIRTUAL") {
 				newEnv = append(newEnv, line)
@@ -282,6 +553,10 @@ func modifySpecFile(path string) error {
 
 	if err = addHook(&spec); err != nil {
 		return fmt.Errorf("failed to inject hook: %v", err)
+	}
+
+	if err = addDevice(&spec); err != nil {
+		return fmt.Errorf("failed to add device to env: %v", err)
 	}
 
 	addEnvToDevicePlugin(&spec)

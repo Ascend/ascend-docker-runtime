@@ -37,8 +37,9 @@
 #define MAX_ARGC    1024
 #define MAX_ARG_LEN 1024
 
+bool g_allowLink = false;
+
 struct CmdArgs {
-    char     devices[BUF_SIZE];
     char     rootfs[BUF_SIZE];
     long      pid;
     char     options[BUF_SIZE];
@@ -47,6 +48,7 @@ struct CmdArgs {
 };
 
 static struct option g_cmdOpts[] = {
+    {"allow-link", required_argument, 0, 'l'},
     {"devices", required_argument, 0, 'd'},
     {"pid", required_argument, 0, 'p'},
     {"rootfs", required_argument, 0, 'r'},
@@ -57,33 +59,6 @@ static struct option g_cmdOpts[] = {
 };
 
 typedef bool (*CmdArgParser)(struct CmdArgs *args, const char *arg);
-
-static bool DevicesCmdArgParser(struct CmdArgs *args, const char *arg)
-{
-    if (args == NULL || arg == NULL) {
-        Logger("args, arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
-        return false;
-    }
-    if (strlen(arg) > MAX_ARG_LEN) {
-        Logger("argument value too long!", LEVEL_ERROR, SCREEN_YES);
-        return false;
-    }
-
-    for (size_t iLoop = 0; iLoop < strlen(arg); iLoop++) {
-        if ((isdigit(arg[iLoop]) == 0) && (arg[iLoop] != ',')) {
-            Logger("failed to check devices.", LEVEL_ERROR, SCREEN_YES);
-            return false;
-        }
-    }
-
-    errno_t err = strcpy_s(args->devices, BUF_SIZE, arg);
-    if (err != EOK) {
-        Logger("failed to get devices from cmd args.", LEVEL_ERROR, SCREEN_YES);
-        return false;
-    }
-
-    return true;
-}
 
 static bool PidCmdArgParser(struct CmdArgs *args, const char *arg)
 {
@@ -152,7 +127,7 @@ static bool CheckFileLegality(const char* filePath, const size_t filePathLen,
         Logger("realpath failed!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
-    if (strcmp(resolvedPath, filePath) != 0) { // 存在软链接
+    if (!g_allowLink && strcmp(resolvedPath, filePath) != 0) { // 存在软链接
         Logger("filePath has a soft link!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
@@ -210,14 +185,18 @@ static bool CheckWhiteList(const char* fileName)
     }
     bool fileExists = false;
     const char mountWhiteList[WHITE_LIST_NUM][PATH_MAX] = {{"/usr/local/Ascend/driver/lib64"},
-        {"/usr/local/Ascend/driver/include"},
-        {"/usr/local/dcmi"},
-        {"/usr/local/bin/npu-smi"},
-        {"/home/data/miniD/driver/lib64"},
-        {"/usr/local/sbin/npu-smi"},
-        {"/usr/local/Ascend/driver/tools"},
-        {"/etc/hdcBasic.cfg"},
-        {"/etc/sys_version.conf"}
+        {"/usr/local/Ascend/driver/include"}, {"/usr/local/dcmi"}, {"/usr/local/bin/npu-smi"},
+        {"/home/data/miniD/driver/lib64"}, {"/usr/local/sbin/npu-smi"},
+        {"/usr/local/Ascend/driver/tools"}, {"/etc/hdcBasic.cfg"}, {"/etc/sys_version.conf"},
+        {"/etc/ld.so.conf.d/mind_so.conf"}, {"/etc/slog.conf"}, {"/var/dmp_daemon"}, {"/var/slogd"},
+        {"/usr/lib64/libsemanage.so.2"}, {"/usr/lib64/libmmpa.so"}, {"/usr/lib64/libcrypto.so.1.1"},
+        {"/usr/lib64/libdrvdsmi.so"}, {"/usr/lib64/libdcmi.so"}, {"/usr/lib64/libstackcore.so"},
+        {"/usr/lib64/libmpi_dvpp_adapter.so"}, {"/usr/lib64/libaicpu_scheduler.so"},
+        {"/usr/lib64/libaicpu_processer.so"}, {"/usr/lib64/libaicpu_prof.so"}, {"/usr/lib64/libaicpu_sharder.so"},
+        {"/usr/lib64/libadump.so"}, {"/usr/lib64/libtsd_eventclient.so"},
+        {"/usr/lib64/aicpu_kernels"}, {"/usr/lib64/libyaml-0.so.2"}, {"/usr/lib64/libcrypto.so.1.1.1m"},
+        {"/usr/lib64/libyaml-0.so.2.0.9"}, {"/usr/lib/aarch64-linux-gnu/libyaml-0.so.2.0.6"},
+        {"/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1"}
         };
 
     for (size_t iLoop = 0; iLoop < WHITE_LIST_NUM; iLoop++) {
@@ -299,13 +278,33 @@ static bool MountDirCmdArgParser(struct CmdArgs *args, const char *arg)
     return CheckWhiteList(dst) ? true : false;
 }
 
+static bool LinkCheckCmdArgParser(const char *argv)
+{
+    if (argv == NULL) {
+        Logger("link arg pointer is null!", LEVEL_ERROR, SCREEN_YES);
+        return false;
+    }
+
+    if (strcmp(argv, "True") == 0) {
+        g_allowLink = true;
+        return true;
+    }
+    if (strcmp(argv, "False") == 0) {
+        g_allowLink = false;
+        return true;
+    }
+    
+    Logger("invalid link check value!", LEVEL_ERROR, SCREEN_YES);
+    return false;
+}
+
 #define NUM_OF_CMD_ARGS 6
 
 static struct {
     const char c;
     CmdArgParser parser;
 } g_cmdArgParsers[NUM_OF_CMD_ARGS] = {
-    {'d', DevicesCmdArgParser},
+    {'l', LinkCheckCmdArgParser},
     {'p', PidCmdArgParser},
     {'r', RootfsCmdArgParser},
     {'o', OptionsCmdArgParser},
@@ -327,7 +326,13 @@ static int ParseOneCmdArg(struct CmdArgs *args, char indicator, const char *valu
         }
     }
 
-    bool isOK = g_cmdArgParsers[i].parser(args, value);
+    bool isOK;
+    if (i == 0) {
+        isOK = LinkCheckCmdArgParser(value);
+    } else {
+        isOK = g_cmdArgParsers[i].parser(args, value);
+    }
+    
     if (!isOK) {
         char* str = FormatLogMessage("failed while parsing cmd arg, indicate char: %c, value: %s.", indicator, value);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
@@ -343,45 +348,7 @@ static inline bool IsCmdArgsValid(const struct CmdArgs *args)
         Logger("args pointer is null!", LEVEL_ERROR, SCREEN_YES);
         return false;
     }
-    return (strlen(args->devices) > 0) && (strlen(args->rootfs) > 0) && (args->pid > 0);
-}
-
-static int ParseDeviceIDs(size_t *idList, size_t *idListSize, char *devices)
-{
-    if (idList == NULL || idListSize == NULL || devices == NULL) {
-        Logger("idList, idListSize, devices pointer is null!", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
-
-    static const char *sep = ",";
-    char *token = NULL;
-    char *context = NULL;
-    size_t idx = 0;
-
-    token = strtok_s(devices, sep, &context);
-    while (token != NULL && idx < *idListSize) {
-        if (idx >= *idListSize) {
-            char* str = FormatLogMessage("too many devices(%u), support %u devices maximally", idx, *idListSize);
-            Logger(str, LEVEL_ERROR, SCREEN_YES);
-            free(str);
-            return -1;
-        }
-
-        errno = 0;
-        idList[idx] = strtoul((const char *)token, NULL, DECIMAL);
-        if (errno != 0) {
-            char* str = FormatLogMessage("failed to convert device id (%s) from cmd args", token);
-            Logger(str, LEVEL_ERROR, SCREEN_YES);
-            free(str);
-            return -1;
-        }
-
-        idx++;
-        token = strtok_s(NULL, sep, &context);
-    }
-
-    *idListSize = idx;
-    return 0;
+    return (strlen(args->rootfs) > 0) && (args->pid > 0);
 }
 
 int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
@@ -400,22 +367,11 @@ int DoPrepare(const struct CmdArgs *args, struct ParsedConfig *config)
         return -1;
     }
 
-    ret = ParseDeviceIDs(config->devices, &config->devicesNr, (char *)args->devices);
-    if (ret < 0) {
-        Logger("failed to parse device ids from cmdline argument", LEVEL_ERROR, SCREEN_YES);
-        return -1;
-    }
-
     ret = GetNsPath(args->pid, "mnt", config->containerNsPath, BUF_SIZE);
     if (ret < 0) {
         char* str = FormatLogMessage("failed to get container mnt ns path: pid(%d).", args->pid);
         Logger(str, LEVEL_ERROR, SCREEN_YES);
         free(str);
-        return -1;
-    }
-    ret = GetCgroupPath(args->pid, config->cgroupPath, BUF_SIZE);
-    if (ret < 0) {
-        Logger("failed to get cgroup path.", LEVEL_ERROR, SCREEN_YES);
         return -1;
     }
 
@@ -450,8 +406,6 @@ int SetupContainer(struct CmdArgs *args)
     int ret;
     struct ParsedConfig config;
 
-    InitParsedConfig(&config);
-
     Logger("prepare necessary config", LEVEL_INFO, SCREEN_YES);
     ret = DoPrepare(args, &config);
     if (ret < 0) {
@@ -473,13 +427,6 @@ int SetupContainer(struct CmdArgs *args)
     ret = DoMounting(&config);
     if (ret < 0) {
         Logger("failed to do mounting.", LEVEL_ERROR, SCREEN_YES);
-        close(config.originNsFd);
-        return -1;
-    }
-    Logger("setup up cgroup", LEVEL_INFO, SCREEN_YES);
-    ret = SetupCgroup(&config);
-    if (ret < 0) {
-        Logger("failed to set up cgroup.", LEVEL_ERROR, SCREEN_YES);
         close(config.originNsFd);
         return -1;
     }
@@ -512,7 +459,7 @@ int Process(int argc, char **argv)
     struct CmdArgs args = {0};
 
     Logger("runc start prestart-hook ...", LEVEL_INFO, SCREEN_YES);
-    while ((c = getopt_long(argc, argv, "d:p:r:o:f:i", g_cmdOpts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "l:p:r:o:f:i", g_cmdOpts, NULL)) != -1) {
         ret = ParseOneCmdArg(&args, (char)c, optarg);
         if (ret < 0) {
             Logger("failed to parse cmd args.", LEVEL_ERROR, SCREEN_YES);

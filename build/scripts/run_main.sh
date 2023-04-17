@@ -33,8 +33,10 @@ function save_install_args() {
       echo -e "path=${INSTALL_PATH}"
       echo -e "build=Ascend-docker-runtime_${PACKAGE_VERSION}-$(uname -m)"
       echo -e "a500=${a500}"
+      echo -e "a500a2=${a500a2}"
       echo -e "a200=${a200}"
       echo -e "a200isoc=${a200isoc}"
+      echo -e "a200ia2=${a200ia2}"
     } >> "${INSTALL_PATH}"/ascend_docker_runtime_install.info
 }
 
@@ -85,6 +87,22 @@ function install()
         cp -f ./base.list_A200 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     elif [ "${a200isoc}" == "y" ]; then
         cp -f ./base.list_A200ISoC ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    elif [ "${a500a2}" == "y" ]; then
+        cp -f ./base.list_A500A2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    elif [ "${a200ia2}" == "y" ]; then
+        cp -f ./base.list_A200IA2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        if grep -qi "ubuntu" "/etc/os-release"; then
+          echo "[info]: A200IA2 os is Ubuntu"
+          echo -e "\n/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+          echo "/usr/lib/aarch64-linux-gnu/libyaml-0.so.2.0.6" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        elif grep -qi "euler" "/etc/os-release"; then
+          echo "[info]: A200IA2 os is Euler/OpenEuler"
+          echo -e "\n/usr/lib64/libcrypto.so.1.1.1m" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+          echo "/usr/lib64/libyaml-0.so.2.0.9" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        else
+          echo "ERROR: not support this os"
+          exit
+        fi
     else
         cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     fi
@@ -98,7 +116,7 @@ function install()
 
     SRC="${DOCKER_CONFIG_DIR}/daemon.json.${PPID}"
     DST="${DOCKER_CONFIG_DIR}/daemon.json"
-    ./ascend-docker-plugin-install-helper add ${DST} ${SRC} ${INSTALL_PATH}/ascend-docker-runtime
+    ./ascend-docker-plugin-install-helper add ${DST} ${SRC} ${INSTALL_PATH}/ascend-docker-runtime ${RESERVEDEFAULT}
     if [ "$?" != "0" ]; then
         echo 'create damon.json failed'
         exit 1
@@ -164,12 +182,30 @@ function upgrade()
         if [ "$(grep "a500=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a500=y" ];then
             a500=y
             cp -f ./base.list_A500 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        elif [ "$(grep "a500a2=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a500a2=y" ]; then
+            a500a2=y
+            cp -f ./base.list_A500A2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
         elif [ "$(grep "a200=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a200=y" ]; then
             a200=y
             cp -f ./base.list_A200 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
         elif [ "x$(grep "a200isoc=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "xa200isoc=y" ]; then
             a200isoc=y
             cp -f ./base.list_A200ISoC ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        elif [ "x$(grep "a200ia2=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "xa200ia2=y" ]; then
+            a200ia2=y
+            cp -f ./base.list_A200IA2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+            if grep -qi "ubuntu" "/etc/os-release"; then
+              echo "[info]: A200IA2 os is Ubuntu"
+              echo -e "\n/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+              echo -e "/usr/lib/aarch64-linux-gnu/libyaml-0.so.2.0.6" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+            elif grep -qi "euler" "/etc/os-release"; then
+              echo "[info]: A200IA2 os is Euler/OpenEuler"
+              echo -e "\n/usr/lib64/libcrypto.so.1.1.1m" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+              echo -e "/usr/lib64/libyaml-0.so.2.0.9" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+            else
+              echo "ERROR: not support this os"
+              exit
+            fi
         else
             cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
         fi
@@ -189,8 +225,11 @@ UPGRADE_FLAG=n
 a500=n
 a200=n
 a200isoc=n
+a500a2=n
+a200ia2=n
 quiet_flag=n
 ISULA=none
+RESERVEDEFAULT=no
 
 while true
 do
@@ -245,6 +284,7 @@ do
             if [ "$3" == "--ce=isula" ]; then
               DOCKER_CONFIG_DIR="/etc/isulad"
               ISULA=isula
+              RESERVEDEFAULT=yes
             else
               echo "ERROR :Please check the parameter of --ce=<ce>"
               exit 1
@@ -252,7 +292,8 @@ do
             shift
             ;;
         --install-type=*)
-            if [ "${a500}" == "y" ] || [ "${a200}" == "y" ] || [ "${a200isoc}" == "y" ]; then
+            if [ "${a500}" == "y" ] || [ "${a200}" == "y" ] || [ "${a200isoc}" == "y" ] ||
+            [ "${a200ia2}" == "y" ] || [ "${a500a2}" == "y" ]; then
                 echo "warning :Repeat parameter!"
                 exit 1
             fi
@@ -263,6 +304,10 @@ do
                 a200=y
             elif [ "$3" == "--install-type=A200ISoC" ]; then
                 a200isoc=y
+            elif [ "$3" == "--install-type=A500A2" ]; then
+                a500a2=y
+            elif [ "$3" == "--install-type=A200IA2" ]; then
+                a200ia2=y
             else
                 echo "ERROR :Please check the parameter of --install-type=<type>"
                 exit 1

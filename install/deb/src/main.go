@@ -26,12 +26,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"huawei.com/npu-exporter/v3/common-utils/hwlog"
+	"huawei.com/npu-exporter/v5/common-utils/hwlog"
 
 	"mindxcheckutils"
 )
 
-const template = `{
+const commonTemplate = `{
         "runtimes":     {
                 "ascend":       {
                         "path": "%s",
@@ -41,19 +41,30 @@ const template = `{
         "default-runtime":      "ascend"
 }`
 
+const noDefaultTemplate = `{
+        "runtimes":     {
+                "ascend":       {
+                        "path": "%s",
+                        "runtimeArgs":  []
+                }
+        }
+}`
+
 const (
 	actionPosition      = 0
 	srcFilePosition     = 1
 	destFilePosition    = 2
 	runtimeFilePosition = 3
-	rmCommandLength     = 3
-	addCommandLength    = 4
+	rmCommandLength     = 4
+	addCommandLength    = 5
 	addCommand          = "add"
 	maxCommandLength    = 65535
 	logPath             = "/var/log/ascend-docker-runtime/installer.log"
 	rmCommand           = "rm"
 	maxFileSize         = 1024 * 1024 * 10
 )
+
+var reserveDefaultRuntime = false
 
 func main() {
 	ctx, _ := context.WithCancel(context.Background())
@@ -97,6 +108,19 @@ func initLogModule(ctx context.Context) error {
 	return nil
 }
 
+func checkParamAndGetBehavior(action string, command []string) (bool, string) {
+	correctParam, behavior := false, ""
+	if action == addCommand && len(command) == addCommandLength {
+		correctParam = true
+		behavior = "install"
+	}
+	if action == rmCommand && len(command) == rmCommandLength {
+		correctParam = true
+		behavior = "uninstall"
+	}
+	return correctParam, behavior
+}
+
 func process() (error, string) {
 	const helpMessage = "\tadd <daemon.json path> <daemon.json.result path> <ascend-docker-runtime path>\n" +
 		"\t rm <daemon.json path> <daemon.json.result path>\n" +
@@ -111,16 +135,9 @@ func process() (error, string) {
 	if len(command) == 0 {
 		return fmt.Errorf("error param"), ""
 	}
-	action, behavior := command[actionPosition], ""
-	correctParam := false
-	if action == addCommand && len(command) == addCommandLength {
-		correctParam = true
-		behavior = "install"
-	}
-	if action == rmCommand && len(command) == rmCommandLength {
-		correctParam = true
-		behavior = "uninstall"
-	}
+
+	action := command[actionPosition]
+	correctParam, behavior := checkParamAndGetBehavior(action, command)
 	if !correctParam {
 		return fmt.Errorf("error param"), ""
 	}
@@ -145,6 +162,8 @@ func process() (error, string) {
 		runtimeFilePath = command[runtimeFilePosition]
 	}
 
+	setReserveDefaultRuntime(command)
+
 	// check file permission
 	writeContent, err := createJsonString(srcFilePath, runtimeFilePath, action)
 	if err != nil {
@@ -166,7 +185,11 @@ func createJsonString(srcFilePath, runtimeFilePath, action string) ([]byte, erro
 		}
 	} else if os.IsNotExist(err) {
 		// not existed
-		writeContent = []byte(fmt.Sprintf(template, runtimeFilePath))
+		if !reserveDefaultRuntime {
+			writeContent = []byte(fmt.Sprintf(commonTemplate, runtimeFilePath))
+		} else {
+			writeContent = []byte(fmt.Sprintf(noDefaultTemplate, runtimeFilePath))
+		}
 	} else {
 		return nil, err
 	}
@@ -222,7 +245,9 @@ func modifyDaemon(srcFilePath, runtimeFilePath, action string) (map[string]inter
 		if _, ok := ascendConfig["runtimeArgs"]; !ok {
 			ascendConfig["runtimeArgs"] = []string{}
 		}
-		daemon["default-runtime"] = "ascend"
+		if !reserveDefaultRuntime {
+			daemon["default-runtime"] = "ascend"
+		}
 	} else if action == rmCommand {
 		if runtimeConfigOk {
 			delete(runtimeConfig, "ascend")
@@ -263,4 +288,11 @@ func loadOriginJson(srcFilePath string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("load daemon.json failed")
 	}
 	return daemon, nil
+}
+
+func setReserveDefaultRuntime(command []string) {
+	reserveCmdPostion := len(command) - 1
+	if command[reserveCmdPostion] == "yes" {
+		reserveDefaultRuntime = true
+	}
 }

@@ -24,32 +24,29 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"huawei.com/npu-exporter/v5/common-utils/hwlog"
 
 	"mindxcheckutils"
-
-	"huawei.com/npu-exporter/v3/common-utils/hwlog"
 )
 
 const (
 	loggingPrefix          = "ascend-docker-hook"
 	runLogPath             = "/var/log/ascend-docker-runtime/hook-run.log"
 	operateLogPath         = "/var/log/ascend-docker-runtime/hook-operate.log"
-	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
 	ascendRuntimeOptions   = "ASCEND_RUNTIME_OPTIONS"
 	ascendRuntimeMounts    = "ASCEND_RUNTIME_MOUNTS"
+	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
+	ascendAllowLink        = "ASCEND_ALLOW_LINK"
 	ascendDockerCli        = "ascend-docker-cli"
 	defaultAscendDockerCli = "/usr/local/bin/ascend-docker-cli"
 	configDir              = "/etc/ascend-docker-runtime.d"
 	baseConfig             = "base"
 	configFileSuffix       = "list"
 
-	borderNum        = 2
 	kvPairSize       = 2
 	maxCommandLength = 65535
 )
@@ -102,68 +99,6 @@ func initLogModule(ctx context.Context) error {
 	return nil
 }
 
-func removeDuplication(devices []int) []int {
-	list := make([]int, 0, len(devices))
-	prev := -1
-
-	for _, device := range devices {
-		if device == prev {
-			continue
-		}
-
-		list = append(list, device)
-		prev = device
-	}
-
-	return list
-}
-
-func parseDevices(visibleDevices string) ([]int, error) {
-	devices := make([]int, 0)
-	const maxDevice = 128
-
-	for _, d := range strings.Split(visibleDevices, ",") {
-		d = strings.TrimSpace(d)
-		if strings.Contains(d, "-") {
-			borders := strings.Split(d, "-")
-			if len(borders) != borderNum {
-				return nil, fmt.Errorf("invalid device range: %s", d)
-			}
-
-			borders[0] = strings.TrimSpace(borders[0])
-			borders[1] = strings.TrimSpace(borders[1])
-
-			left, err := strconv.Atoi(borders[0])
-			if err != nil || left < 0 {
-				return nil, fmt.Errorf("invalid left boarder range parameter: %s", borders[0])
-			}
-
-			right, err := strconv.Atoi(borders[1])
-			if err != nil || right > maxDevice {
-				return nil, fmt.Errorf("invalid right boarder range parameter: %s", borders[1])
-			}
-
-			if left > right {
-				return nil, fmt.Errorf("left boarder (%d) should not be larger than the right one(%d)", left, right)
-			}
-
-			for n := left; n <= right; n++ {
-				devices = append(devices, n)
-			}
-		} else {
-			n, err := strconv.Atoi(d)
-			if err != nil {
-				return nil, fmt.Errorf("invalid single device parameter: %s", d)
-			}
-
-			devices = append(devices, n)
-		}
-	}
-
-	sort.Slice(devices, func(i, j int) bool { return i < j })
-	return removeDuplication(devices), nil
-}
-
 func parseMounts(mounts string) []string {
 	if mounts == "" {
 		return []string{baseConfig}
@@ -214,6 +149,17 @@ func parseRuntimeOptions(runtimeOptions string) ([]string, error) {
 	}
 
 	return parsedOptions, nil
+}
+
+func parseSoftLinkMode(allowLink string) (string, error) {
+	if allowLink == "True" {
+		return "True", nil
+	}
+	if allowLink == "" || allowLink == "False" {
+		return "False", nil
+	}
+
+	return "", fmt.Errorf("invalid soft link option")
 }
 
 func parseOciSpecFile(file string) (*specs.Spec, error) {
@@ -372,11 +318,11 @@ func readConfigsOfDir(dir string, configs []string) ([]string, []string, error) 
 	return fileMountList, dirMountList, nil
 }
 
-func getArgs(cliPath string, devices []int, containerConfig *containerConfig,
-	fileMountList []string, dirMountList []string) []string {
+func getArgs(cliPath string, containerConfig *containerConfig, fileMountList []string,
+	dirMountList []string, allowLink string) []string {
 	args := append([]string{cliPath},
-		"--devices", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(devices)), ","), "[]"),
-		"--pid", fmt.Sprintf("%d", containerConfig.Pid), "--rootfs", containerConfig.Rootfs)
+		"--allow-link", allowLink, "--pid", fmt.Sprintf("%d", containerConfig.Pid),
+		"--rootfs", containerConfig.Rootfs)
 	for _, filePath := range fileMountList {
 		args = append(args, "--mount-file", filePath)
 	}
@@ -389,44 +335,47 @@ func getArgs(cliPath string, devices []int, containerConfig *containerConfig,
 func doPrestartHook() error {
 	containerConfig, err := getContainerConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get container config: %v", err)
+		return fmt.Errorf("failed to get container config: %#v", err)
 	}
 
-	visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices)
-	if visibleDevices == "" {
+	if visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices); visibleDevices == "" {
 		return nil
 	}
 
-	devices, err := parseDevices(visibleDevices)
-	if err != nil {
-		return fmt.Errorf("failed to parse device setting: %v", err)
+	if visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices); visibleDevices == "" {
+		return nil
 	}
 
 	mountConfigs := parseMounts(getValueByKey(containerConfig.Env, ascendRuntimeMounts))
 
 	fileMountList, dirMountList, err := readConfigsOfDir(configDir, mountConfigs)
 	if err != nil {
-		return fmt.Errorf("failed to read configuration from config directory: %v", err)
+		return fmt.Errorf("failed to read configuration from config directory: %#v", err)
 	}
 
 	parsedOptions, err := parseRuntimeOptions(getValueByKey(containerConfig.Env, ascendRuntimeOptions))
 	if err != nil {
-		return fmt.Errorf("failed to parse runtime options: %v", err)
+		return fmt.Errorf("failed to parse runtime options: %#v", err)
+	}
+
+	allowLink, err := parseSoftLinkMode(getValueByKey(containerConfig.Env, ascendAllowLink))
+	if err != nil {
+		return fmt.Errorf("failed to parse soft link mode: %#v", err)
 	}
 
 	currentExecPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("cannot get the path of ascend-docker-hook: %v", err)
+		return fmt.Errorf("cannot get the path of ascend-docker-hook: %#v", err)
 	}
 
 	cliPath := path.Join(path.Dir(currentExecPath), ascendDockerCliName)
 	if _, err = os.Stat(cliPath); err != nil {
-		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %v", cliPath, err)
+		return fmt.Errorf("cannot find ascend-docker-cli executable file at %s: %#v", cliPath, err)
 	}
 	if _, err := mindxcheckutils.RealFileChecker(cliPath, true, false, mindxcheckutils.DefaultSize); err != nil {
 		return err
 	}
-	args := getArgs(cliPath, devices, containerConfig, fileMountList, dirMountList)
+	args := getArgs(cliPath, containerConfig, fileMountList, dirMountList, allowLink)
 	if len(parsedOptions) > 0 {
 		args = append(args, "--options", strings.Join(parsedOptions, ","))
 	}
