@@ -31,6 +31,8 @@ const (
 	retError = -1
 	// hiAIMaxCardNum is the max number of cards
 	hiAIMaxCardNum = 64
+	// hiAIMaxCardID max card id for Ascend chip
+	hiAIMaxCardID = math.MaxInt32
 	// hiAIMaxDeviceNum is the max number of devices in a card
 	hiAIMaxDeviceNum = 4
 	maxChipNameLen   = 32
@@ -55,7 +57,7 @@ type NpuWorker struct {
 // isValidCardID valid card id
 func isValidCardID(cardID int32) bool {
 	// for cardID, please watch the maximum value of the driver
-	return cardID >= 0 && cardID < hiAIMaxCardNum
+	return cardID >= 0 && cardID < hiAIMaxCardID
 }
 
 // isValidDeviceID valid device id
