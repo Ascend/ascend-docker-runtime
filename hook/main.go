@@ -342,10 +342,6 @@ func doPrestartHook() error {
 		return nil
 	}
 
-	if visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices); visibleDevices == "" {
-		return nil
-	}
-
 	mountConfigs := parseMounts(getValueByKey(containerConfig.Env, ascendRuntimeMounts))
 
 	fileMountList, dirMountList, err := readConfigsOfDir(configDir, mountConfigs)
