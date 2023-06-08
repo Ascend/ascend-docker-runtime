@@ -71,7 +71,12 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 	allowSplit := map[string]string{
 		"vir01": "vir01", "vir02": "vir02", "vir04": "vir04", "vir08": "vir08", "vir16": "vir16",
 		"vir04_3c": "vir04_3c", "vir02_1c": "vir02_1c", "vir04_4c_dvpp": "vir04_4c_dvpp",
-		"vir04_3c_ndvpp": "vir04_3c_ndvpp",
+		"vir04_3c_ndvpp": "vir04_3c_ndvpp", "vir12_3c_30g": "vir12_3c_30g", "vir12_3c_30g_m": "vir12_3c_30g_m",
+		"vir12_3c_30g_nm": "vir12_3c_30g_nm", "vir06_1c_15g": "vir06_1c_15g", "vir03_hc_7g": "vir03_hc_7g",
+		"vir02_hc_5g": "vir02_hc_5g", "vir10_3c_14g": "vir10_3c_14g", "vir10_3c_14g_m": "vir10_3c_14g_m",
+		"vir10_3c_14g_nm": "vir10_3c_14g_nm", "vir05_1c_7g": "vir05_1c_7g", "vir04_1c_5g": "vir04_1c_5g",
+		"vir10_3c": "vir10_3c", "vir10_3c_m": "vir10_3c_m", "vir10_3c_nm": "vir10_3c_nm", "vir05_1c": "vir05_1c",
+		"vir02_hc": "vir02_hc",
 	}
 
 	for _, line := range spec.Process.Env {
