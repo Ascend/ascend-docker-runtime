@@ -397,16 +397,21 @@ func TestAddDeviceToSpec0(t *testing.T) {
 		},
 	}
 
-	err := addDeviceToSpec(&spec, devPath, false)
+	err := addDeviceToSpec(&spec, devPath, notRenameDeviceType)
 	assert.Nil(t, err)
 	assert.Contains(t, spec.Linux.Devices[0].Path, devPath)
 }
 
 func TestAddAscend310BManagerDevice(t *testing.T) {
-	statStub := gomonkey.ApplyFunc(addDeviceToSpec, func(spec *specs.Spec, dPath string, vdevice bool) error {
+	statStub := gomonkey.ApplyFunc(addDeviceToSpec, func(spec *specs.Spec, dPath string, deviceType string) error {
 		return nil
 	})
 	defer statStub.Reset()
+
+	pathStub := gomonkey.ApplyFunc(os.Stat, func(name string) (os.FileInfo, error) {
+		return nil, nil
+	})
+	defer pathStub.Reset()
 
 	spec := specs.Spec{
 		Linux: &specs.Linux{
@@ -422,7 +427,7 @@ func TestAddAscend310BManagerDevice(t *testing.T) {
 }
 
 func TestAddCommonManagerDevice(t *testing.T) {
-	statStub := gomonkey.ApplyFunc(addDeviceToSpec, func(spec *specs.Spec, dPath string, vdevice bool) error {
+	statStub := gomonkey.ApplyFunc(addDeviceToSpec, func(spec *specs.Spec, dPath string, deviceType string) error {
 		return nil
 	})
 	defer statStub.Reset()

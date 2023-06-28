@@ -7,7 +7,6 @@
 /var/slogd
 /usr/lib64/libsemanage.so.2
 /usr/lib64/libmmpa.so
-/usr/lib64/libcrypto.so.1.1
 /usr/lib64/libdrvdsmi.so
 /usr/lib64/libdcmi.so
 /usr/lib64/libstackcore.so
@@ -19,4 +18,3 @@
 /usr/lib64/libadump.so
 /usr/lib64/libtsd_eventclient.so
 /usr/lib64/aicpu_kernels
-/usr/lib64/libyaml-0.so.2
