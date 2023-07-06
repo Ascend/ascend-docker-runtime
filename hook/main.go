@@ -415,8 +415,8 @@ func main() {
 		log.Fatal("command error")
 	}
 	if err := doPrestartHook(); err != nil {
-		hwlog.RunLog.Errorf("ascend docker hook failed")
-		hwlog.OpLog.Errorf("%v ascend docker hook failed", logPrefixWords)
-		log.Fatal(fmt.Errorf("failed in runtime.doProcess "))
+		hwlog.RunLog.Errorf("ascend docker hook failed: %#v", err)
+		hwlog.OpLog.Errorf("%v ascend docker hook failed: %#v", logPrefixWords, err)
+		log.Fatal(fmt.Errorf("failed in runtime.doProcess: %#v", err))
 	}
 }

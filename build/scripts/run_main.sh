@@ -40,6 +40,21 @@ function save_install_args() {
     } >> "${INSTALL_PATH}"/ascend_docker_runtime_install.info
 }
 
+function add_so() {
+    if grep -qi "ubuntu" "/etc/os-release"; then
+      echo "[info]: os is Ubuntu"
+      echo -e "\n/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+      echo "/usr/lib/aarch64-linux-gnu/libyaml-0.so.2" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    elif grep -qi "euler" "/etc/os-release"; then
+      echo "[info]: os is Euler/OpenEuler"
+      echo -e "\n/usr/lib64/libcrypto.so.1.1" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+      echo "/usr/lib64/libyaml-0.so.2" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    else
+      echo "ERROR: not support this os"
+      exit
+    fi
+}
+
 function install()
 {
     echo 'installing ascend docker runtime'
@@ -89,20 +104,10 @@ function install()
         cp -f ./base.list_A200ISoC ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     elif [ "${a500a2}" == "y" ]; then
         cp -f ./base.list_A500A2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+        add_so
     elif [ "${a200ia2}" == "y" ]; then
         cp -f ./base.list_A200IA2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-        if grep -qi "ubuntu" "/etc/os-release"; then
-          echo "[info]: A200IA2 os is Ubuntu"
-          echo -e "\n/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-          echo "/usr/lib/aarch64-linux-gnu/libyaml-0.so.2.0.6" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-        elif grep -qi "euler" "/etc/os-release"; then
-          echo "[info]: A200IA2 os is Euler/OpenEuler"
-          echo -e "\n/usr/lib64/libcrypto.so.1.1.1m" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-          echo "/usr/lib64/libyaml-0.so.2.0.9" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-        else
-          echo "ERROR: not support this os"
-          exit
-        fi
+        add_so
     else
         cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     fi
@@ -185,6 +190,7 @@ function upgrade()
         elif [ "$(grep "a500a2=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a500a2=y" ]; then
             a500a2=y
             cp -f ./base.list_A500A2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+            add_so
         elif [ "$(grep "a200=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a200=y" ]; then
             a200=y
             cp -f ./base.list_A200 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
@@ -194,18 +200,7 @@ function upgrade()
         elif [ "x$(grep "a200ia2=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "xa200ia2=y" ]; then
             a200ia2=y
             cp -f ./base.list_A200IA2 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-            if grep -qi "ubuntu" "/etc/os-release"; then
-              echo "[info]: A200IA2 os is Ubuntu"
-              echo -e "\n/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-              echo -e "/usr/lib/aarch64-linux-gnu/libyaml-0.so.2.0.6" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-            elif grep -qi "euler" "/etc/os-release"; then
-              echo "[info]: A200IA2 os is Euler/OpenEuler"
-              echo -e "\n/usr/lib64/libcrypto.so.1.1.1m" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-              echo -e "/usr/lib64/libyaml-0.so.2.0.9" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
-            else
-              echo "ERROR: not support this os"
-              exit
-            fi
+            add_so
         else
             cp -f ./base.list ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
         fi
