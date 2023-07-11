@@ -74,7 +74,7 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 		"vir04_3c_ndvpp": "vir04_3c_ndvpp", "vir12_3c_32g": "vir12_3c_32g", "vir12_3c_32g_m": "vir12_3c_32g_m",
 		"vir12_3c_32g_nm": "vir12_3c_32g_nm", "vir06_1c_16g": "vir06_1c_16g", "vir03_hc_8g": "vir03_hc_8g",
 		"vir10_3c_16g": "vir10_3c_16g", "vir10_3c_16g_m": "vir10_3c_16g_m",
-		"vir10_3c_16g_nm": "vir10_3c_16g_nm", "vir05_1c_8g": "vir05_1c_8g", "vir04_1c_6g": "vir04_1c_6g",
+		"vir10_3c_16g_nm": "vir10_3c_16g_nm", "vir05_1c_8g": "vir05_1c_8g",
 		"vir10_3c_32g": "vir10_3c_32g", "vir10_3c_32g_m": "vir10_3c_32g_m", "vir10_3c_32g_nm": "vir10_3c_32g_nm",
 		"vir05_1c_16g": "vir05_1c_16g",
 	}
