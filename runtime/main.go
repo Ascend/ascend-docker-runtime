@@ -99,6 +99,11 @@ const (
 	venc                 = "venc"
 	dvppCmdList          = "dvpp_cmdlist"
 	logDrv               = "log_drv"
+	acodec               = "acodec"
+	ai                   = "ai"
+	ao                   = "ao"
+	vo                   = "vo"
+	hdmi                 = "hdmi"
 )
 
 type args struct {
@@ -392,6 +397,11 @@ func addAscend310BManagerDevice(spec *specs.Spec) error {
 		venc,
 		dvppCmdList,
 		logDrv,
+		acodec,
+		ai,
+		ao,
+		vo,
+		hdmi,
 	}
 
 	for _, device := range Ascend310BManageDevices {
