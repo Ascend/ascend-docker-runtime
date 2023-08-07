@@ -17,8 +17,7 @@
 
 set -e
 LOG_FILE="/var/log/ascend-docker-runtime/installer.log"
-echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"
-echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall"  >>${LOG_FILE}
+echo "[INFO]: Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall" | tee >> ${LOG_FILE}
 ROOT=$(cd $(dirname $0); pwd)/..
 RESERVEDEFAULT=no
 if [ "$*" == "isula" ] ; then
@@ -37,10 +36,9 @@ if [ ! -f "${DST}" ]; then
     exit 0
 fi
 
-${ROOT}/ascend-docker-plugin-install-helper rm ${DST} ${SRC} ${RESERVEDEFAULT}
+${ROOT}/ascend-docker-plugin-install-helper rm ${DST} ${SRC} ${RESERVEDEFAULT} >> ${LOG_FILE} 2>&1
 if [ "$?" != "0" ]; then
-    echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "ERROR: del damon.json failed"
-    echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "ERROR: del damon.json failed"  >>${LOG_FILE}
+    echo "[ERROR]: Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) " del damon.json failed, please check ${LOG_FILE} for detail"
     exit 1
 fi
 
@@ -52,8 +50,6 @@ INSTALL_ROOT_PATH=$(dirname $(dirname ${ROOT}))
 if test -d ${INSTALL_ROOT_PATH}
 then
     rm -rf ${INSTALL_ROOT_PATH}
-    echo "Ascend-Docker-Runtime $(date +%Y%m%d-%H:%M:%S) delete ${INSTALL_ROOT_PATH} succesfull"
-    echo "Ascend-Docker-Runtime $(date +%Y%m%d-%H:%M:%S) delete ${INSTALL_ROOT_PATH} succesfull"  >>${LOG_FILE}
+    echo "[INFO]: Ascend-Docker-Runtime $(date +%Y%m%d-%H:%M:%S) delete ${INSTALL_ROOT_PATH} succesfull"
 fi
-echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "uninstall successfully"
-echo "Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "uninstall successfully"  >>${LOG_FILE}
+echo "[INFO]: Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "uninstall successfully"
