@@ -17,10 +17,48 @@
 
 set -e
 
+args=($@)
+start_arg="${args[0]}"
+start_script=${start_arg#*--}
+
 ASCEND_RUNTIME_CONFIG_DIR=/etc/ascend-docker-runtime.d
 DOCKER_CONFIG_DIR=/etc/docker
 INSTALL_PATH=/usr/local/Ascend/Ascend-Docker-Runtime
+INSTALL_LOG_PATH=/var/log/ascend-docker-runtime/installer.log
 readonly PACKAGE_VERSION=REPLACE_VERSION
+
+function print_version {
+    echo "Ascend-docker-runtime version: ${PACKAGE_VERSION}"
+}
+
+function print_help {
+    echo "Error input
+Usage: ./Ascend-docker-runtime_${PACKAGE_VERSION}_linux-$(uname -m).run [options]
+Options:
+  --help | -h                   Print this message
+  --check                       Checks integrity and version dependency of the archive
+  --install                     Install into this system
+  --install-path                Specify the installation path (default: /usr/local/Ascend/Ascend-Docker-Runtime)
+  --uninstall                   Uninstall the installed ascend-docker-runtime tool
+  --upgrade                     Upgrade the installed ascend-docker-runtime tool
+  --install-type=<type>         Only A500, A500A2, A200ISoC, A200IA2 and A200 need to specify
+                                the installation type of Ascend-docker-runtime
+                                (eg: --install-type=A200IA2, when your product is A200I A2 or A200I DK A2)
+  --ce=<ce>                     Only iSula need to specify the container engine(eg: --ce=isula)
+                                MUST use with --install or --uninstall
+  --version                     Query Ascend-docker-runtime version
+"
+}
+
+function check_platform {
+  plat="$(uname -m)"
+  if [[ $start_script =~ $plat ]]; then
+    echo "[INFO]: platform($plat) matched!"
+  else
+    echo "[ERROR]: platform($plat) mismatch for $start_script, please check it"
+    exit 1
+  fi
+}
 
 function save_install_args() {
     if [ -f "${INSTALL_PATH}"/ascend_docker_runtime_install.info ]; then
@@ -50,20 +88,21 @@ function add_so() {
       echo -e "\n/usr/lib64/libcrypto.so.1.1" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
       echo "/usr/lib64/libyaml-0.so.2" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     else
-      echo "ERROR: not support this os"
+      echo "[ERROR]: not support this os"
       exit
     fi
 }
 
 function install()
 {
-    echo 'installing ascend docker runtime'
+    echo "[INFO]: installing ascend docker runtime"
+    check_platform
 
     if [ ! -d "${INSTALL_PATH}" ]; then
         mkdir -p ${INSTALL_PATH}
     fi
     if [ -L "${INSTALL_PATH}" ]; then
-        echo "ERROR: ${INSTALL_PATH} is symbolic link."
+        echo "[ERROR]: ${INSTALL_PATH} is symbolic link."
         exit 1
     fi
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
@@ -78,7 +117,7 @@ function install()
     chmod 550 ${INSTALL_PATH}/ascend-docker-destroy
 
     if [ -L "${INSTALL_PATH}/script" ]; then
-        echo "ERROR: ${INSTALL_PATH}/script is symbolic link."
+        echo "[ERROR]: ${INSTALL_PATH}/script is symbolic link."
         exit 1
     fi
     cp -rf ./assets ${INSTALL_PATH}/assets
@@ -91,7 +130,7 @@ function install()
         rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
     fi
     if [ -L "${ASCEND_RUNTIME_CONFIG_DIR}" ]; then
-        echo "ERROR: ${ASCEND_RUNTIME_CONFIG_DIR} is symbolic link."
+        echo "[ERROR]: ${ASCEND_RUNTIME_CONFIG_DIR} is symbolic link."
         exit 1
     fi
     mkdir -p ${ASCEND_RUNTIME_CONFIG_DIR}
@@ -113,7 +152,7 @@ function install()
     fi
     chmod 440 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
 
-    echo 'install executable files success'
+    echo "[INFO]: install executable files success"
 
     if [ ! -d "${DOCKER_CONFIG_DIR}" ]; then
         mkdir -p ${DOCKER_CONFIG_DIR}
@@ -121,54 +160,53 @@ function install()
 
     SRC="${DOCKER_CONFIG_DIR}/daemon.json.${PPID}"
     DST="${DOCKER_CONFIG_DIR}/daemon.json"
-    ./ascend-docker-plugin-install-helper add ${DST} ${SRC} ${INSTALL_PATH}/ascend-docker-runtime ${RESERVEDEFAULT}
+    ./ascend-docker-plugin-install-helper add ${DST} ${SRC} ${INSTALL_PATH}/ascend-docker-runtime ${RESERVEDEFAULT} >> ${INSTALL_LOG_PATH} 2>&1
     if [ "$?" != "0" ]; then
-        echo 'create damon.json failed'
+        echo "[ERROR]: create damon.json failed, you could check ${INSTALL_LOG_PATH} for detail"
         exit 1
     fi
 
     mv ${SRC} ${DST}
     chmod 600 ${DST}
-    echo 'create damom.json success'
+    echo '[INFO]: create damom.json success'
     save_install_args
     echo "[INFO]: Ascend Docker Runtime has been installed in: ${INSTALL_PATH}"
-    echo "[INFO]: The version of Ascend Docker Runtime is: v${PACKAGE_VERSION}"
-    echo 'please reboot daemon and container engine to take effect'
+    echo "[INFO]: The version of Ascend Docker Runtime is: ${PACKAGE_VERSION}"
+    echo '[INFO]: please reboot daemon and container engine to take effect'
 }
 
 function uninstall()
 {
-    echo "[INFO]: Uninstalling ascend docker runtime v${PACKAGE_VERSION}"
+    echo "[INFO]: Uninstalling ascend docker runtime ${PACKAGE_VERSION}"
 
     if [ ! -d "${INSTALL_PATH}" ]; then
-        echo 'WARNING: the specified install path does not exist, skipping'
+        echo "[WARNING]: the specified install path does not exist, skipping"
         exit 0
     fi
 
     ${INSTALL_PATH}/script/uninstall.sh ${ISULA}
-    echo 'remove daemon.json setting success'
+    echo "[INFO]: remove daemon.json setting success"
 
     [ -n "${INSTALL_PATH}" ] && rm -rf ${INSTALL_PATH}
-    echo 'remove executable files success'
-
-    echo 'del damom.json success'
+    echo "[INFO]: remove executable files success"
 }
 
 function upgrade()
 {
-    echo 'upgrading ascend docker runtime'
+    echo "[INFO]: upgrading ascend docker runtime"
+    check_platform
 
     if [ ! -d "${INSTALL_PATH}" ]; then
-        echo 'ERROR: the specified install path does not exist, stopping upgrading'
+        echo "[ERROR]: the specified install path does not exist, stopping upgrading"
         exit 1
     fi
 
     if [ ! -d "${ASCEND_RUNTIME_CONFIG_DIR}" ]; then
-        echo 'ERROR: the configuration directory does not exist'
+        echo "[ERROR]: the configuration directory does not exist"
         exit 1
     fi
     if [ -L "${INSTALL_PATH}" ]; then
-        echo "ERROR: ${INSTALL_PATH} is symbolic link."
+        echo "[ERROR]: ${INSTALL_PATH} is symbolic link."
         exit 1
     fi
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
@@ -225,38 +263,39 @@ a200ia2=n
 quiet_flag=n
 ISULA=none
 RESERVEDEFAULT=no
+need_help=y
 
 while true
 do
     case "$3" in
         --check)
+          need_help=n
           exit 0
-          ;;
-        --quiet)
-          quiet_flag=y
-          shift
           ;;
         --install)
             if [ "${INSTALL_FLAG}" == "y" ]; then
-                echo "warning :Repeat parameter!"
+                echo "[ERROR]: Repeat parameter!"
                 exit 1
             fi
+            need_help=n
             INSTALL_FLAG=y
             shift
             ;;
         --uninstall)
             if [ "${UNINSTALL_FLAG}" == "y" ]; then
-                echo "warning :Repeat parameter!"
+                echo "[ERROR]: Repeat parameter!"
                 exit 1
             fi
+            need_help=n
             UNINSTALL_FLAG=y
             shift
             ;;
         --install-path=*)
             if [ "${INSTALL_PATH_FLAG}" == "y" ]; then
-                echo "warning :Repeat parameter!"
+                echo "[ERROR]: Repeat parameter!"
                 exit 1
             fi
+            need_help=n
             INSTALL_PATH_FLAG=y
             INSTALL_PATH=$(echo $3 | cut -d"=" -f2)
             INSTALL_PATH=$(echo ${INSTALL_PATH}/Ascend-Docker-Runtime | sed "s/\/*$//g")
@@ -264,24 +303,25 @@ do
             ;;
         --upgrade)
             if [ "${UPGRADE_FLAG}" == "y" ]; then
-                echo "warning :Repeat parameter!"
+                echo "[ERROR]: Repeat parameter!"
                 exit 1
             fi
+            need_help=n
             UPGRADE_FLAG=y
             shift
             ;;
         --ce=*)
             if [ "${ISULA}" == "isula" ]; then
-              echo "warning: Repeat parameter!"
+              echo "[ERROR]: Repeat parameter!"
               exit 1
             fi
-
+            need_help=n
             if [ "$3" == "--ce=isula" ]; then
               DOCKER_CONFIG_DIR="/etc/isulad"
               ISULA=isula
               RESERVEDEFAULT=yes
             else
-              echo "ERROR :Please check the parameter of --ce=<ce>"
+              echo "[ERROR]: Please check the parameter of --ce=<ce>"
               exit 1
             fi
             shift
@@ -289,9 +329,10 @@ do
         --install-type=*)
             if [ "${a500}" == "y" ] || [ "${a200}" == "y" ] || [ "${a200isoc}" == "y" ] ||
             [ "${a200ia2}" == "y" ] || [ "${a500a2}" == "y" ]; then
-                echo "warning :Repeat parameter!"
+                echo "[ERROR]: Repeat parameter!"
                 exit 1
             fi
+            need_help=n
 
             if [ "$3" == "--install-type=A500" ]; then
                 a500=y
@@ -304,14 +345,21 @@ do
             elif [ "$3" == "--install-type=A200IA2" ]; then
                 a200ia2=y
             else
-                echo "ERROR :Please check the parameter of --install-type=<type>"
+                echo "[ERROR]: Please check the parameter of --install-type=<type>"
                 exit 1
             fi
             shift
             ;;
+        --version)
+            need_help=n
+            print_version
+            exit 0
+            shift
+            ;;
         *)
             if [ "x$3" != "x" ]; then
-                echo "warning :Unsupported parameters: $3"
+                echo "[ERROR]: Unsupported parameters: $3"
+                print_help
                 exit 1
             fi
             break
@@ -330,7 +378,7 @@ if [ "${INSTALL_PATH_FLAG}" == "y" ] && \
    [ "${INSTALL_FLAG}" == "n" ] && \
    [ "${UNINSTALL_FLAG}" == "n" ] && \
    [ "${UPGRADE_FLAG}" == "n" ]; then
-      echo "Error:only input <install_path> command. When use --install-path you also need intput --install or --uninstall or --upgrade or --devel"
+      echo "Error:only input <install_path> command. When use --install-path you also need intput --install or --uninstall or --upgrade"
       exit 1
 fi
 
@@ -362,4 +410,9 @@ fi
 if [ "${UPGRADE_FLAG}" == "y" ]; then
     upgrade
     exit 0
+fi
+
+if [ "${need_help}" == "y" ]; then
+  print_help
+  exit 0
 fi

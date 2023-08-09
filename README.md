@@ -29,11 +29,11 @@ Ascend Docker在prestart-hook这个钩子函数中，对容器做了以下配置
 # 编译Ascend-Docker-Runtime
 执行以下步骤进行编译
 
- 1、下载tag为sync-dev的源码包，获得ascend-docker-runtime
+ 1、下载master分支下的源码包，获得ascend-docker-runtime
  
 示例：源码放在/home/test/ascend-docker-runtime目录下
 ```shell
-git clone -b sync-dev https://gitee.com/ascend/ascend-docker-runtime.git
+git clone https://gitee.com/ascend/ascend-docker-runtime.git
 ```
 
  2、下载tag为v1.1.10的安全函数库
@@ -59,11 +59,11 @@ bash build.sh
 ```shell
 root@#:/home/test/ascend-docker-runtime/output# ll
 ...
--rwxr-xr-x  ... Ascend-docker-runtime_3.0.0_linux-x86_64.run*
+-rwxr-xr-x  ... Ascend-docker-runtime_x.x.x_linux-x86_64.run*
 ```
 
 # 组件安装
-请参考[《MindX DL用户指南》](https://www.hiascend.com/software/mindx-dl)中的“集群调度用户指南 > 安装部署指导 > 安装集群调度组件 > 典型安装场景 > 集群调度场景”进行。
+请参考[《MindX DL用户指南》--Ascend Docker Runtime用户指南](https://www.hiascend.com/document/detail/zh/mindx-dl/50rc2/dockerruntime/dockerruntimeug/dlruntime_ug_005.html)中“安装Ascend Docker Runtime”章节进行。
 
 # 更新日志
 
