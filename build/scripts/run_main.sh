@@ -37,8 +37,12 @@ Usage: ./Ascend-docker-runtime_${PACKAGE_VERSION}_linux-$(uname -m).run [options
 Options:
   --help | -h                   Print this message
   --check                       Checks integrity and version dependency of the archive
+  --info|--list|--quiet|--tar|
+  --nox11|--noexec|--extract    These parameters are meaningless for Ascend-docker-runtime and
+                                will be discarded in the future
   --install                     Install into this system
-  --install-path                Specify the installation path (default: /usr/local/Ascend/Ascend-Docker-Runtime)
+  --install-path                Specify the installation path (default: /usr/local/Ascend/Ascend-Docker-Runtime),
+                                which must be absolute path
   --uninstall                   Uninstall the installed ascend-docker-runtime tool
   --upgrade                     Upgrade the installed ascend-docker-runtime tool
   --install-type=<type>         Only A500, A500A2, A200ISoC, A200IA2 and A200 need to specify
