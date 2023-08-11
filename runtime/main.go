@@ -704,5 +704,6 @@ func getPodDevice() error {
 		return err
 	}
 
+	hwlog.RunLog.Errorf("getPodDevice success: %#v", err)
 	return nil
 }
