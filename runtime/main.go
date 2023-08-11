@@ -17,10 +17,12 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -577,6 +579,10 @@ func modifySpecFile(path string) error {
 		return fmt.Errorf("failed to add device to env: %v", err)
 	}
 
+	if err = getPodDevice(); err != nil {
+		return fmt.Errorf("failed to get pod device: %v", err)
+	}
+
 	addEnvToDevicePlugin(&spec)
 
 	jsonOutput, err := json.Marshal(spec)
@@ -649,4 +655,54 @@ func main() {
 		hwlog.OpLog.Errorf("%v docker runtime failed: %v", logPrefixWords, err)
 		log.Fatal(err)
 	}
+}
+
+func getPodDevice() error {
+	certFile := "/etc/kubernetes/pki/apiserver-kubelet-client.crt"
+	keyFile := "/etc/kubernetes/pki/apiserver-kubelet-client.key"
+	kubeletUrl := "https://127.0.0.1:10250/"
+	podsUrlPath := "pods"
+
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		hwlog.RunLog.Errorf("LoadX509KeyPair failed: %#v", err)
+		return err
+	}
+
+	t := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			InsecureSkipVerify: true,
+		},
+	}
+
+	client := &http.Client{Transport: t}
+
+	resp, err := client.Get(kubeletUrl + podsUrlPath)
+	if err != nil {
+		hwlog.RunLog.Errorf("http get failed: %#v", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		hwlog.RunLog.Errorf("ReadAll resp.Body failed: %#v", err)
+		return err
+	}
+	hwlog.RunLog.Infof("resp.Status:  %#v, resp.Body: %#v", resp.Status, body)
+
+	jsonFile, err := os.Create("pod_list.json")
+	if err != nil {
+		hwlog.RunLog.Errorf("create pod_list.json failed: %#v", err)
+		return err
+	}
+	defer jsonFile.Close()
+
+	if _, err := jsonFile.Write(body); err != nil {
+		hwlog.RunLog.Errorf("write pod_list.json failed: %#v", err)
+		return err
+	}
+
+	return nil
 }
