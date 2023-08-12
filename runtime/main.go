@@ -506,6 +506,7 @@ func addDevice(spec *specs.Spec) error {
 
 	// 如果没有匹配到pod或annotation，则通过环境变量挂载设备
 	if annotationDevices == "" {
+		hwlog.RunLog.Info("add devices from env variable")
 		if err = addDeviceFromEnv(spec); err != nil {
 			return fmt.Errorf("failed to add device to env: %#v", err)
 		}
