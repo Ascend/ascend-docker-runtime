@@ -670,6 +670,7 @@ func getPodDevice() error {
 	}
 
 	t := &http.Transport{
+		Proxy: nil,
 		TLSClientConfig: &tls.Config{
 			Certificates:       []tls.Certificate{cert},
 			InsecureSkipVerify: true,
