@@ -518,7 +518,7 @@ func addDevice(spec *specs.Spec) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse device: %#v", err)
 	}
-	hwlog.RunLog.Infof("devices is: %#v", devices)
+	hwlog.RunLog.Infof("annotation devices is: %#v", devices)
 	deviceName := davinciName
 	for _, deviceId := range devices {
 		dPath := devicePath + deviceName + strconv.Itoa(deviceId)
