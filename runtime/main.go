@@ -501,7 +501,8 @@ func addDevice(spec *specs.Spec) error {
 	// 获取对应pod annotation中的设备信息
 	annotationDevices, err := getDeviceFromPod(spec)
 	if err != nil && err != notMatchError {
-		return fmt.Errorf("failed to get pod device: %#v", err)
+		hwlog.RunLog.Errorf("getDeviceFromPod failed: %#v", err)
+		//return fmt.Errorf("failed to get pod device: %#v", err)
 	}
 
 	// 如果没有匹配到pod或annotation，则通过环境变量挂载设备
