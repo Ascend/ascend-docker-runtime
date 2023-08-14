@@ -164,11 +164,8 @@ function install()
 
     SRC="${DOCKER_CONFIG_DIR}/daemon.json.${PPID}"
     DST="${DOCKER_CONFIG_DIR}/daemon.json"
-    ./ascend-docker-plugin-install-helper add ${DST} ${SRC} ${INSTALL_PATH}/ascend-docker-runtime ${RESERVEDEFAULT} >> ${INSTALL_LOG_PATH} 2>&1
-    if [ "$?" != "0" ]; then
-        echo "[ERROR]: create damon.json failed, you could check ${INSTALL_LOG_PATH} for detail"
-        exit 1
-    fi
+    # exit when return code is not 0, if use 'set -e'
+    ./ascend-docker-plugin-install-helper add ${DST} ${SRC} ${INSTALL_PATH}/ascend-docker-runtime ${RESERVEDEFAULT} > /dev/null
 
     mv ${SRC} ${DST}
     chmod 600 ${DST}

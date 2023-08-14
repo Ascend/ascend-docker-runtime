@@ -79,8 +79,8 @@ func main() {
 
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
-		hwlog.OpLog.Infof("%v run failed", logPrefixWords)
-		log.Fatal("command error")
+		hwlog.OpLog.Errorf("%v check command failed, maybe command contains illegal char", logPrefixWords)
+		log.Fatalf("command error, please check %s for detail", logPath)
 	}
 
 	err, behavior := process()
