@@ -36,11 +36,8 @@ if [ ! -f "${DST}" ]; then
     exit 0
 fi
 
-${ROOT}/ascend-docker-plugin-install-helper rm ${DST} ${SRC} ${RESERVEDEFAULT} >> ${LOG_FILE} 2>&1
-if [ "$?" != "0" ]; then
-    echo "[ERROR]: Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) " del damon.json failed, please check ${LOG_FILE} for detail"
-    exit 1
-fi
+# exit when return code is not 0, if use 'set -e'
+${ROOT}/ascend-docker-plugin-install-helper rm ${DST} ${SRC} ${RESERVEDEFAULT} > /dev/null
 
 mv ${SRC} ${DST}
 
