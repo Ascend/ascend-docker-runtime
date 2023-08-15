@@ -755,19 +755,6 @@ func getDeviceFromPod(spec *specs.Spec) (string, error) {
 	}
 	hwlog.RunLog.Infof("get pod list success, resp.Status: %#v", resp.Status)
 
-	// 把数据保存到pod_list.json里，便于分析，交付时可删除这段代码
-	jsonFile, err := os.Create("pod_list.json")
-	if err != nil {
-		hwlog.RunLog.Errorf("create pod_list.json failed: %#v", err)
-		return "", err
-	}
-	defer jsonFile.Close()
-
-	if _, err := jsonFile.Write(body); err != nil {
-		hwlog.RunLog.Errorf("write pod_list.json failed: %#v", err)
-		return "", err
-	}
-
 	// 遍历pod list，找到此容器
 	var podList v1.PodList
 	if err := json.Unmarshal(body, &podList); err != nil {
