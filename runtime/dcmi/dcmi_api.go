@@ -76,7 +76,10 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 		"vir10_3c_16g": "vir10_3c_16g", "vir10_3c_16g_m": "vir10_3c_16g_m",
 		"vir10_3c_16g_nm": "vir10_3c_16g_nm", "vir05_1c_8g": "vir05_1c_8g",
 		"vir10_3c_32g": "vir10_3c_32g", "vir10_3c_32g_m": "vir10_3c_32g_m", "vir10_3c_32g_nm": "vir10_3c_32g_nm",
-		"vir05_1c_16g": "vir05_1c_16g",
+		"vir05_1c_16g": "vir05_1c_16g", "vir12_4c_32g": "vir12_4c_32g", "vir12_4c_32g_m": "vir12_4c_32g_m",
+		"vir06_2c_16g":"vir06_2c_16g", "vir03_1c_8g": "vir03_1c_8g", "vir10_4c_16g": "vir10_4c_16g",
+		"vir10_4c_16g_m": "vir10_4c_16g_m", "vir05_2c_8g": "vir05_2c_8g", "vir10_4c_32g": "vir10_4c_32g",
+		"vir10_4c_32g_m": "vir10_4c_32g_m", "vir05_2c_16g": "vir05_2c_16g",
 	}
 
 	for _, line := range spec.Process.Env {
