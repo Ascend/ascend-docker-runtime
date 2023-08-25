@@ -70,16 +70,12 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 	splitDevice, needSplit, visibleDeviceLine := "", false, ""
 	allowSplit := map[string]string{
 		"vir01": "vir01", "vir02": "vir02", "vir04": "vir04", "vir08": "vir08", "vir16": "vir16",
-		"vir04_3c": "vir04_3c", "vir02_1c": "vir02_1c", "vir04_4c_dvpp": "vir04_4c_dvpp",
-		"vir04_3c_ndvpp": "vir04_3c_ndvpp", "vir12_3c_32g": "vir12_3c_32g", "vir12_3c_32g_m": "vir12_3c_32g_m",
-		"vir12_3c_32g_nm": "vir12_3c_32g_nm", "vir06_1c_16g": "vir06_1c_16g", "vir03_hc_8g": "vir03_hc_8g",
-		"vir10_3c_16g": "vir10_3c_16g", "vir10_3c_16g_m": "vir10_3c_16g_m",
-		"vir10_3c_16g_nm": "vir10_3c_16g_nm", "vir05_1c_8g": "vir05_1c_8g",
-		"vir10_3c_32g": "vir10_3c_32g", "vir10_3c_32g_m": "vir10_3c_32g_m", "vir10_3c_32g_nm": "vir10_3c_32g_nm",
-		"vir05_1c_16g": "vir05_1c_16g", "vir12_4c_32g": "vir12_4c_32g", "vir12_4c_32g_m": "vir12_4c_32g_m",
-		"vir06_2c_16g":"vir06_2c_16g", "vir03_1c_8g": "vir03_1c_8g", "vir10_4c_16g": "vir10_4c_16g",
-		"vir10_4c_16g_m": "vir10_4c_16g_m", "vir05_2c_8g": "vir05_2c_8g", "vir10_4c_32g": "vir10_4c_32g",
-		"vir10_4c_32g_m": "vir10_4c_32g_m", "vir05_2c_16g": "vir05_2c_16g",
+		"vir02_1c": "vir02_1c",  "vir03_1c_8g": "vir03_1c_8g", "vir04_3c": "vir04_3c",
+		"vir04_4c_dvpp": "vir04_4c_dvpp", "vir04_3c_ndvpp": "vir04_3c_ndvpp",
+		"vir05_1c_8g": "vir05_1c_8g", "vir05_1c_16g": "vir05_1c_16g",
+		"vir06_1c_16g": "vir06_1c_16g", "vir10_3c_16g": "vir10_3c_16g", 
+		"vir10_3c_16g_nm": "vir10_3c_16g_nm", "vir10_3c_32g": "vir10_3c_32g", 
+		"vir10_4c_16g_m": "vir10_4c_16g_m", "vir12_3c_32g": "vir12_3c_32g",
 	}
 
 	for _, line := range spec.Process.Env {
