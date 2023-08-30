@@ -61,7 +61,8 @@ func CreateVDevice(w WorkerInterface, spec *specs.Spec) (VDeviceInfo, error) {
 
 	vdeviceID, err := w.CreateVDevice(targetCardID, targetDeviceID, splitDevice)
 	if err != nil || vdeviceID < 0 {
-		return invalidVDevice, fmt.Errorf("cannot create vd or vdevice is wrong: %v %v", vdeviceID, err)
+		hwlog.RunLog.Errorf("cannot create vd or vdevice is wrong: %v %v", vdeviceID, err)
+		return invalidVDevice, err
 	}
 	return VDeviceInfo{CardID: targetCardID, DeviceID: targetDeviceID, VdeviceID: int32(vdeviceID)}, nil
 }
@@ -70,11 +71,11 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 	splitDevice, needSplit, visibleDeviceLine := "", false, ""
 	allowSplit := map[string]string{
 		"vir01": "vir01", "vir02": "vir02", "vir04": "vir04", "vir08": "vir08", "vir16": "vir16",
-		"vir02_1c": "vir02_1c",  "vir03_1c_8g": "vir03_1c_8g", "vir04_3c": "vir04_3c",
+		"vir02_1c": "vir02_1c", "vir03_1c_8g": "vir03_1c_8g", "vir04_3c": "vir04_3c",
 		"vir04_4c_dvpp": "vir04_4c_dvpp", "vir04_3c_ndvpp": "vir04_3c_ndvpp",
 		"vir05_1c_8g": "vir05_1c_8g", "vir05_1c_16g": "vir05_1c_16g",
-		"vir06_1c_16g": "vir06_1c_16g", "vir10_3c_16g": "vir10_3c_16g", 
-		"vir10_3c_16g_nm": "vir10_3c_16g_nm", "vir10_3c_32g": "vir10_3c_32g", 
+		"vir06_1c_16g": "vir06_1c_16g", "vir10_3c_16g": "vir10_3c_16g",
+		"vir10_3c_16g_nm": "vir10_3c_16g_nm", "vir10_3c_32g": "vir10_3c_32g",
 		"vir10_4c_16g_m": "vir10_4c_16g_m", "vir12_3c_32g": "vir12_3c_32g",
 	}
 
@@ -101,8 +102,8 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 	}
 	visibleDevice, err := strconv.Atoi(visibleDeviceLine)
 	if err != nil || visibleDevice < 0 || visibleDevice >= hiAIMaxCardNum*hiAIMaxDeviceNum {
-		return -1, "", fmt.Errorf("cannot parse param : %v %s", err, visibleDeviceLine)
-
+		hwlog.RunLog.Errorf("cannot parse param : %v %s", err, visibleDeviceLine)
+		return -1, "", err
 	}
 
 	return int32(visibleDevice), splitDevice, nil
