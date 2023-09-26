@@ -570,7 +570,8 @@ func modifySpecFile(path string) error {
 	}
 
 	if err = addHook(&spec); err != nil {
-		return fmt.Errorf("failed to inject hook: %v", err)
+		hwlog.RunLog.Errorf("failed to inject hook, err: %v", err)
+		return fmt.Errorf("failed to inject hook")
 	}
 
 	if err = addDevice(&spec); err != nil {
