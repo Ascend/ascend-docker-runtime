@@ -15,9 +15,43 @@
 # limitations under the License.
 # ============================================================================
 
-set -e
-LOG_FILE="/var/log/ascend-docker-runtime/installer.log"
-echo "[INFO]: Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "start uninstall" | tee >> ${LOG_FILE}
+
+readonly INSTALL_LOG_DIR=/var/log/ascend-docker-runtime
+readonly INSTALL_LOG_PATH=${INSTALL_LOG_DIR}/installer.log
+readonly INSTALL_LOG_PATH_BAK=${INSTALL_LOG_DIR}/installer_bak.log
+readonly LOG_SIZE_THRESHOLD=$((20*1024*1024))
+
+function check_log {
+    if [[ ! -d ${INSTALL_LOG_DIR} ]]; then
+        mkdir -p -m 750 ${INSTALL_LOG_DIR}
+    fi
+    
+    if [[ ! -f ${INSTALL_LOG_PATH} ]]; then
+        touch ${INSTALL_LOG_PATH}
+        chmod 640 ${INSTALL_LOG_PATH}
+        return
+    fi
+
+    local log_size="$(ls -l ${INSTALL_LOG_PATH} | awk '{ print $5 }')"
+    if [[ ${log_size} -ge ${LOG_SIZE_THRESHOLD} ]]; then
+        mv -f ${INSTALL_LOG_PATH} ${INSTALL_LOG_PATH_BAK}
+        chmod 400 ${INSTALL_LOG_PATH_BAK}
+        > ${INSTALL_LOG_PATH}
+        chmod 640 ${INSTALL_LOG_PATH}
+    fi
+}
+
+function log {
+    local ip="${SSH_CLIENT%% *}"
+    if [ "${ip}" = "" ]; then
+        ip="localhost"
+    fi
+    echo "$1 $2"
+    echo "$1 [$(date +'%Y/%m/%d %H:%M:%S')] [uid: ${UID}] [${ip}] [Ascend-Docker-Runtime] $2" >> ${INSTALL_LOG_PATH}
+}
+
+check_log
+
 ROOT=$(cd $(dirname $0); pwd)/..
 RESERVEDEFAULT=no
 if [ "$*" == "isula" ] ; then
@@ -33,11 +67,16 @@ SRC="${DST}.${PPID}"
 ASCEND_RUNTIME_CONFIG_DIR=/etc/ascend-docker-runtime.d
 
 if [ ! -f "${DST}" ]; then
+    log "[WARNING]" "uninstall skipping, ${DST} does not exist"
     exit 0
 fi
 
 # exit when return code is not 0, if use 'set -e'
 ${ROOT}/ascend-docker-plugin-install-helper rm ${DST} ${SRC} ${RESERVEDEFAULT} > /dev/null
+if [[ $? != 0 ]]; then
+    log "[ERROR]" "uninstall failed, '${ROOT}/ascend-docker-plugin-install-helper rm ${DST} ${SRC} ${RESERVEDEFAULT}' return non-zero"
+    exit 1
+fi
 
 mv ${SRC} ${DST}
 
@@ -47,6 +86,6 @@ INSTALL_ROOT_PATH=$(dirname $(dirname ${ROOT}))
 if test -d ${INSTALL_ROOT_PATH}
 then
     rm -rf ${INSTALL_ROOT_PATH}
-    echo "[INFO]: Ascend-Docker-Runtime $(date +%Y%m%d-%H:%M:%S) delete ${INSTALL_ROOT_PATH} succesfull"
+    echo "[INFO]: delete ${INSTALL_ROOT_PATH} successful"
 fi
-echo "[INFO]: Ascend-Docker-Runtime" $(date +%Y%m%d-%H:%M:%S) "uninstall successfully"
+log "[INFO]" "uninstall.sh exec success"

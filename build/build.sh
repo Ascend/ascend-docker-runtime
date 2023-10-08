@@ -50,7 +50,7 @@ RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
 PACKAGENAME="Ascend-docker-runtime"
 
-VERSION="5.0.RC1"
+VERSION="5.0.RC3"
 version_file="${ROOT}"/service_config.ini
 if  [ -f "$version_file" ]; then
   line=$(sed -n '1p' "$version_file" 2>&1)
