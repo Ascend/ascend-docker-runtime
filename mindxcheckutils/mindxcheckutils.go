@@ -223,7 +223,7 @@ func StringChecker(text string, minLength, maxLength int, whiteList string) bool
 }
 
 // ChangeRuntimeLogMode change log mode
-func ChangeRuntimeLogMode(runLog, operLog string) error {
+func ChangeRuntimeLogMode(runLog string) error {
 	runLogDirLen := len(runLogDir)
 	var logMode os.FileMode
 	counter := 0
@@ -236,8 +236,7 @@ func ChangeRuntimeLogMode(runLog, operLog string) error {
 			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", fileOrPath, err)
 			return err
 		}
-		hasLogPrefix := strings.HasPrefix(fileOrPath[runLogDirLen:],
-			runLog) || strings.HasPrefix(fileOrPath[runLogDirLen:], operLog)
+		hasLogPrefix := strings.HasPrefix(fileOrPath[runLogDirLen:], runLog)
 		if !hasLogPrefix {
 			return nil
 		}

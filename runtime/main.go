@@ -41,7 +41,6 @@ import (
 
 const (
 	runLogPath          = "/var/log/ascend-docker-runtime/runtime-run.log"
-	operateLogPath      = "/var/log/ascend-docker-runtime/runtime-operate.log"
 	hookDefaultFilePath = "/usr/local/bin/ascend-docker-hook"
 
 	maxCommandLength = 65535
@@ -160,18 +159,6 @@ func initLogModule(ctx context.Context) error {
 		fmt.Printf("hwlog init failed, error is %v", err)
 		return err
 	}
-	operateLogConfig := hwlog.LogConfig{
-		LogFileName: operateLogPath,
-		LogLevel:    0,
-		MaxBackups:  backups,
-		MaxAge:      logMaxAge,
-		OnlyToFile:  true,
-		FileMaxSize: 2,
-	}
-	if err := hwlog.InitOperateLogger(&operateLogConfig, ctx); err != nil {
-		fmt.Printf("hwlog init failed, error is %v", err)
-		return err
-	}
 	return nil
 }
 
@@ -191,8 +178,8 @@ var execRunc = func() error {
 		return err
 	}
 
-	hwlog.OpLog.Infof("ascend docker runtime success, will start runc")
-	if err := mindxcheckutils.ChangeRuntimeLogMode("runtime-run-", "runtime-operate-"); err != nil {
+	hwlog.RunLog.Info("ascend docker runtime success, will start runc")
+	if err := mindxcheckutils.ChangeRuntimeLogMode("runtime-run-"); err != nil {
 		return err
 	}
 	if err = syscall.Exec(runcPath, append([]string{runcPath}, os.Args[1:]...), os.Environ()); err != nil {
@@ -342,7 +329,7 @@ func getValueByKey(data []string, name string) string {
 	for _, envLine := range data {
 		words := strings.SplitN(envLine, "=", kvPairSize)
 		if len(words) != kvPairSize {
-			hwlog.RunLog.Errorf("environment error")
+			hwlog.RunLog.Error("environment error")
 			return ""
 		}
 
@@ -633,21 +620,18 @@ func main() {
 		log.Fatal(err)
 	}
 	defer func() {
-		if err = mindxcheckutils.ChangeRuntimeLogMode("runtime-run-", "runtime-operate-"); err != nil {
+		if err = mindxcheckutils.ChangeRuntimeLogMode("runtime-run-"); err != nil {
 			fmt.Println("defer changeFileMode function failed")
 		}
 	}()
-	hwlog.RunLog.Infof("ascend docker runtime starting")
-	hwlog.OpLog.Infof("%v ascend docker runtime starting, try to setup container", logPrefixWords)
+	hwlog.RunLog.Infof("%v ascend docker runtime starting, try to setup container", logPrefixWords)
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
 		hwlog.RunLog.Errorf("%v ascend docker runtime args check failed", logPrefixWords)
-		hwlog.OpLog.Errorf("%v ascend docker runtime args check failed", logPrefixWords)
 		log.Fatal("command error")
 	}
 	if err = doProcess(); err != nil {
 		hwlog.RunLog.Errorf("%v docker runtime failed: %v", logPrefixWords, err)
-		hwlog.OpLog.Errorf("%v docker runtime failed: %v", logPrefixWords, err)
 		log.Fatal(err)
 	}
 }
