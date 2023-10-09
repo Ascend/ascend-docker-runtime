@@ -79,6 +79,7 @@ if [[ $? != 0 ]]; then
 fi
 
 mv ${SRC} ${DST}
+log "[INFO]" "${DST} modify success"
 
 [ -n "${ASCEND_RUNTIME_CONFIG_DIR}" ] && rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
 INSTALL_ROOT_PATH=$(dirname $(dirname ${ROOT}))
