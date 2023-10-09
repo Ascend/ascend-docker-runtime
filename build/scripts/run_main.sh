@@ -215,8 +215,8 @@ function install()
     fi
 
     mv ${SRC} ${DST}
+    log "[INFO]" "${DST} modify success"
     chmod 600 ${DST}
-    echo '[INFO]: create damom.json success'
     save_install_args
     echo "[INFO]: Ascend Docker Runtime has been installed in: ${INSTALL_PATH}"
     echo "[INFO]: The version of Ascend Docker Runtime is: ${PACKAGE_VERSION}"
