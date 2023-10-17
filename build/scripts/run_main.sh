@@ -111,6 +111,7 @@ function save_install_args() {
       echo -e "a200isoc=${a200isoc}"
       echo -e "a200ia2=${a200ia2}"
     } >> "${INSTALL_PATH}"/ascend_docker_runtime_install.info
+    chmod 640 ${INSTALL_PATH}/ascend_docker_runtime_install.info
 }
 
 function add_so() {
@@ -138,7 +139,7 @@ function install()
     fi
 
     if [ ! -d "${INSTALL_PATH}" ]; then
-        mkdir -p ${INSTALL_PATH}
+        mkdir -p -m 750 ${INSTALL_PATH}
     fi
     if [ -L "${INSTALL_PATH}" ]; then
         log "[ERROR]" "install failed, ${INSTALL_PATH} is symbolic link."
@@ -159,9 +160,12 @@ function install()
         log "[ERROR]" "install failed, ${INSTALL_PATH}/script is symbolic link."
         exit 1
     fi
-    cp -rf ./assets ${INSTALL_PATH}/assets
+    mkdir -p -m 750 ${INSTALL_PATH}/assets
+    cp -f ./assets/* ${INSTALL_PATH}/assets
+    chmod 640 ${INSTALL_PATH}/assets/20230118566.png ${INSTALL_PATH}/assets/20210329102949456.png
     cp -f ./README.md ${INSTALL_PATH}/README.md
-    mkdir -p ${INSTALL_PATH}/script
+    chmod 640 ${INSTALL_PATH}/README.md
+    mkdir -p -m 550 ${INSTALL_PATH}/script
     cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
     chmod 500 ${INSTALL_PATH}/script/uninstall.sh
 
@@ -172,8 +176,7 @@ function install()
         log "[ERROR]" "install failed, ${ASCEND_RUNTIME_CONFIG_DIR} is symbolic link."
         exit 1
     fi
-    mkdir -p ${ASCEND_RUNTIME_CONFIG_DIR}
-    chmod 750 ${ASCEND_RUNTIME_CONFIG_DIR}
+    mkdir -p -m 750 ${ASCEND_RUNTIME_CONFIG_DIR}
     if [ "${a500}" == "y" ]; then
         cp -f ./base.list_A500 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     elif [ "${a200}" == "y" ]; then
@@ -202,7 +205,7 @@ function install()
     echo "[INFO]: install executable files success"
 
     if [ ! -d "${DOCKER_CONFIG_DIR}" ]; then
-        mkdir -p ${DOCKER_CONFIG_DIR}
+        mkdir -p -m 750 ${DOCKER_CONFIG_DIR}
     fi
 
     SRC="${DOCKER_CONFIG_DIR}/daemon.json.${PPID}"
@@ -214,7 +217,7 @@ function install()
         exit 1
     fi
 
-    mv ${SRC} ${DST}
+    mv -f ${SRC} ${DST}
     log "[INFO]" "${DST} modify success"
     chmod 600 ${DST}
     save_install_args

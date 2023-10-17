@@ -78,7 +78,7 @@ if [[ $? != 0 ]]; then
     exit 1
 fi
 
-mv ${SRC} ${DST}
+mv -f ${SRC} ${DST}
 log "[INFO]" "${DST} modify success"
 
 [ -n "${ASCEND_RUNTIME_CONFIG_DIR}" ] && rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
