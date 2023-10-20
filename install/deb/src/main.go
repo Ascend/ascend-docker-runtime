@@ -161,6 +161,9 @@ func process() (error, string) {
 	runtimeFilePath := ""
 	if len(command) == addCommandLength {
 		runtimeFilePath = command[runtimeFilePosition]
+		if _, err := mindxcheckutils.RealFileChecker(runtimeFilePath, true, false, mindxcheckutils.DefaultSize); err != nil {
+			return err, behavior
+		}
 	}
 
 	setReserveDefaultRuntime(command)
