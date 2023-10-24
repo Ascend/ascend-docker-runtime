@@ -29,11 +29,19 @@ readonly INSTALL_LOG_PATH_BAK=${INSTALL_LOG_DIR}/installer_bak.log
 readonly LOG_SIZE_THRESHOLD=$((20*1024*1024))
 readonly PACKAGE_VERSION=REPLACE_VERSION
 
+umask 027
+
 function check_log {
     if [[ ! -d ${INSTALL_LOG_DIR} ]]; then
         mkdir -p -m 750 ${INSTALL_LOG_DIR}
     fi
-    
+
+    check_sub_path ${INSTALL_LOG_DIR}
+    if [[ $? != 0 ]]; then
+        echo "[ERROR]: ${INSTALL_LOG_DIR} is invalid"
+        exit 1
+    fi
+
     if [[ ! -f ${INSTALL_LOG_PATH} ]]; then
         touch ${INSTALL_LOG_PATH}
         chmod 640 ${INSTALL_LOG_PATH}
@@ -56,6 +64,62 @@ function log {
     fi
     echo "$1 $2"
     echo "$1 [$(date +'%Y/%m/%d %H:%M:%S')] [uid: ${UID}] [${ip}] [Ascend-Docker-Runtime] $2" >> ${INSTALL_LOG_PATH}
+}
+
+function check_path {
+    local path="$1"
+    if [[ ${#path} -gt 1024 ]] || [[ ${#path} -le 0 ]]; then
+        echo "[ERROR]: parameter is invalid, length not in 1~1024"
+        return 1
+    fi
+    if [[ -n $(echo "${path}" | grep -Ev '^[a-zA-Z0-9./_-]*$') ]]; then
+        echo "[ERROR]: parameter is invalid, char not all in 'a-zA-Z0-9./_-'"
+        return 1
+    fi
+    path=$(realpath -m -s "${path}")
+    while [[ ! -e "${path}" ]]; do
+        path=$(dirname "${path}")
+    done
+    while true; do
+        if [[ "${path}" == "/" ]]; then
+            break
+        fi
+        check_path_permission "${path}"
+        if [[ $? != 0 ]]; then
+            return 1
+        fi
+        path=$(dirname "${path}")
+    done
+}
+
+function check_sub_path {
+    local path="$1"
+    while [[ ! -e "${path}" ]]; do
+        return 1
+    done
+    for file in $(find "${path}"); do
+        check_path_permission "${file}"
+        if [[ $? != 0 ]]; then
+            return 1
+        fi
+    done
+}
+
+function check_path_permission {
+    local path="$1"
+    if [[ -L "${path}" ]]; then
+        echo "[ERROR]: ${path} is soft link"
+        return 1
+    fi
+    if [[ $(stat -c %u "${path}") != 0 ]] || [[ "$(stat -c %g ${path})" != 0 ]]; then
+        echo "[ERROR]: user or group of ${path} is not root"
+        return 1
+    fi
+    local permission=$(stat -c %A "${path}")
+    if [[ $(echo "${permission}" | cut -c6) == w ]] || [[ $(echo "${permission}" | cut -c9) == w ]]; then
+        echo "[ERROR]:  group or other of ${path} has write permisson"
+        return 1
+    fi
 }
 
 function print_version {
@@ -96,9 +160,6 @@ function check_platform {
 }
 
 function save_install_args() {
-    if [ -f "${INSTALL_PATH}"/ascend_docker_runtime_install.info ]; then
-        rm "${INSTALL_PATH}"/ascend_docker_runtime_install.info
-    fi
     {
       echo -e "version=v${PACKAGE_VERSION}"
       echo -e "arch=$(uname -m)"
@@ -110,11 +171,16 @@ function save_install_args() {
       echo -e "a200=${a200}"
       echo -e "a200isoc=${a200isoc}"
       echo -e "a200ia2=${a200ia2}"
-    } >> "${INSTALL_PATH}"/ascend_docker_runtime_install.info
+    } > "${INSTALL_PATH}"/ascend_docker_runtime_install.info
     chmod 640 ${INSTALL_PATH}/ascend_docker_runtime_install.info
 }
 
 function add_so() {
+    check_path "/etc/os-release"
+    if [[ $? != 0 ]]; then
+        echo "[ERROR]: /etc/os-release is invalid"
+        return 1
+    fi
     if grep -qi "ubuntu" "/etc/os-release"; then
       echo "[info]: os is Ubuntu"
       echo -e "\n/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1" >> ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
@@ -138,45 +204,48 @@ function install()
         exit 1
     fi
 
-    if [ ! -d "${INSTALL_PATH}" ]; then
-        mkdir -p -m 750 ${INSTALL_PATH}
-    fi
-    if [ -L "${INSTALL_PATH}" ]; then
-        log "[ERROR]" "install failed, ${INSTALL_PATH} is symbolic link."
+    check_path "${INSTALL_PATH}"
+    if [[ $? != 0 ]]; then
+        log "[ERROR]" "install failed, ${INSTALL_PATH} is invalid"
         exit 1
     fi
+    [[ ! -d "${INSTALL_PATH}" ]] && mkdir -p -m 750 "${INSTALL_PATH}"
+    [[ ! -d "${INSTALL_PATH}/assets" ]] && mkdir -p -m 750 "${INSTALL_PATH}/assets"
+    [[ ! -d "${INSTALL_PATH}/script" ]] && mkdir -p -m 750 "${INSTALL_PATH}/script"
+
+    check_sub_path "${INSTALL_PATH}"
+    if [[ $? != 0 ]]; then
+        log "[ERROR]" "install failed, ${INSTALL_PATH} or ${INSTALL_PATH}/assets or ${INSTALL_PATH}/script is invalid"
+        exit 1
+    fi
+
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
     cp -f ./ascend-docker-plugin-install-helper ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     cp -f ./ascend-docker-destroy ${INSTALL_PATH}/ascend-docker-destroy
+    cp -f ./README.md ${INSTALL_PATH}/README.md
     chmod 550 ${INSTALL_PATH}/ascend-docker-runtime
     chmod 550 ${INSTALL_PATH}/ascend-docker-hook
     chmod 550 ${INSTALL_PATH}/ascend-docker-cli
     chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     chmod 550 ${INSTALL_PATH}/ascend-docker-destroy
-
-    if [ -L "${INSTALL_PATH}/script" ]; then
-        log "[ERROR]" "install failed, ${INSTALL_PATH}/script is symbolic link."
-        exit 1
-    fi
-    mkdir -p -m 750 ${INSTALL_PATH}/assets
-    cp -f ./assets/* ${INSTALL_PATH}/assets
-    chmod 640 ${INSTALL_PATH}/assets/20230118566.png ${INSTALL_PATH}/assets/20210329102949456.png
-    cp -f ./README.md ${INSTALL_PATH}/README.md
     chmod 640 ${INSTALL_PATH}/README.md
-    mkdir -p -m 550 ${INSTALL_PATH}/script
+
+    cp -f ./assets/20230118566.png ${INSTALL_PATH}/assets/20230118566.png
+    cp -f ./assets/20210329102949456.png ${INSTALL_PATH}/assets/20210329102949456.png
+    chmod 640 ${INSTALL_PATH}/assets/20230118566.png ${INSTALL_PATH}/assets/20210329102949456.png
+
     cp -f ./uninstall.sh ${INSTALL_PATH}/script/uninstall.sh
     chmod 500 ${INSTALL_PATH}/script/uninstall.sh
 
-    if [ -d "${ASCEND_RUNTIME_CONFIG_DIR}" ]; then
-        rm -rf ${ASCEND_RUNTIME_CONFIG_DIR}
-    fi
-    if [ -L "${ASCEND_RUNTIME_CONFIG_DIR}" ]; then
-        log "[ERROR]" "install failed, ${ASCEND_RUNTIME_CONFIG_DIR} is symbolic link."
+    check_path ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    if [[ $? != 0 ]]; then
+        log "[ERROR]" "install failed, ${ASCEND_RUNTIME_CONFIG_DIR}/base.list is invalid"
         exit 1
     fi
-    mkdir -p -m 750 ${ASCEND_RUNTIME_CONFIG_DIR}
+    [[ ! -d ${ASCEND_RUNTIME_CONFIG_DIR} ]] && mkdir -p -m 750 ${ASCEND_RUNTIME_CONFIG_DIR}
+
     if [ "${a500}" == "y" ]; then
         cp -f ./base.list_A500 ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
     elif [ "${a200}" == "y" ]; then
@@ -204,9 +273,12 @@ function install()
 
     echo "[INFO]: install executable files success"
 
-    if [ ! -d "${DOCKER_CONFIG_DIR}" ]; then
-        mkdir -p -m 750 ${DOCKER_CONFIG_DIR}
+    check_path ${DOCKER_CONFIG_DIR}/daemon.json
+    if [[ $? != 0 ]]; then
+        log "[ERROR]" "install failed, ${DOCKER_CONFIG_DIR}/daemon.json is invalid"
+        exit 1
     fi
+    [[ ! -d ${DOCKER_CONFIG_DIR} ]] && mkdir -p -m 750 ${DOCKER_CONFIG_DIR}
 
     SRC="${DOCKER_CONFIG_DIR}/daemon.json.${PPID}"
     DST="${DOCKER_CONFIG_DIR}/daemon.json"
@@ -220,6 +292,7 @@ function install()
     mv -f ${SRC} ${DST}
     log "[INFO]" "${DST} modify success"
     chmod 600 ${DST}
+
     save_install_args
     echo "[INFO]: Ascend Docker Runtime has been installed in: ${INSTALL_PATH}"
     echo "[INFO]: The version of Ascend Docker Runtime is: ${PACKAGE_VERSION}"
@@ -236,13 +309,18 @@ function uninstall()
         exit 0
     fi
 
-    ${INSTALL_PATH}/script/uninstall.sh ${ISULA}
+    check_path "${INSTALL_PATH}"
+    if [[ $? != 0 ]]; then
+        log "[ERROR]" "uninstall failed, ${INSTALL_PATH} or ${INSTALL_PATH}/script is invalid"
+        exit 1
+    fi
+
+    "${INSTALL_PATH}"/script/uninstall.sh ${ISULA}
     if [[ $? != 0 ]]; then
         log "[ERROR]" "uninstall failed, '${INSTALL_PATH}/script/uninstall.sh ${ISULA}' return non-zero"
         exit 1
     fi
 
-    [ -n "${INSTALL_PATH}" ] && rm -rf ${INSTALL_PATH}
     log "[INFO]" "Ascend Docker Runtime uninstall success"
 }
 
@@ -251,7 +329,7 @@ function upgrade()
     echo "[INFO]: upgrading ascend docker runtime"
     check_platform
     if [[ $? != 0 ]]; then
-        log "[ERROR]" "install failed, run package and os not matched in arch"
+        log "[ERROR]" "upgrade failed, run package and os not matched in arch"
         exit 1
     fi
 
@@ -264,10 +342,13 @@ function upgrade()
         log "[ERROR]" "upgrade failed, the configuration directory does not exist"
         exit 1
     fi
-    if [ -L "${INSTALL_PATH}" ]; then
-        log "[ERROR]" "upgrade failed, ${INSTALL_PATH} is symbolic link."
+
+    check_path "${INSTALL_PATH}" && check_sub_path "${INSTALL_PATH}"
+    if [[ $? != 0 ]]; then
+        log "[ERROR]" "upgrade failed, ${INSTALL_PATH} or ${INSTALL_PATH}/script is invalid"
         exit 1
     fi
+
     cp -f ./ascend-docker-runtime ${INSTALL_PATH}/ascend-docker-runtime
     cp -f ./ascend-docker-hook ${INSTALL_PATH}/ascend-docker-hook
     cp -f ./ascend-docker-cli ${INSTALL_PATH}/ascend-docker-cli
@@ -280,6 +361,13 @@ function upgrade()
     chmod 550 ${INSTALL_PATH}/ascend-docker-plugin-install-helper
     chmod 550 ${INSTALL_PATH}/ascend-docker-destroy
     chmod 500 ${INSTALL_PATH}/script/uninstall.sh
+
+    check_path ${ASCEND_RUNTIME_CONFIG_DIR}/base.list
+    if [[ $? != 0 ]]; then
+        log "[ERROR]" "upgrade failed, ${ASCEND_RUNTIME_CONFIG_DIR}/base.list is invalid"
+        exit 1
+    fi
+
     if [ -f "${INSTALL_PATH}"/ascend_docker_runtime_install.info ]; then
         if [ "$(grep "a500=y" "${INSTALL_PATH}"/ascend_docker_runtime_install.info)" == "a500=y" ];then
             a500=y
@@ -333,6 +421,12 @@ RESERVEDEFAULT=no
 need_help=y
 
 check_log
+
+# must run with root permission
+if [ "${UID}" != "0" ]; then
+    log "[ERROR]" "failed, please run with root permission"
+    exit 1
+fi
 
 while true
 do
@@ -432,12 +526,6 @@ do
     esac
 done
 
-# install path must be absolute path
-if [[ ! "${INSTALL_PATH}" =~ ^/.* ]]; then
-      log "[ERROR]" "failed, Please follow the installation address after the --install-path=<Absolute path>"
-      exit 1
-fi
-
 # it is not allowed to input only install-path
 if [ "${INSTALL_PATH_FLAG}" == "y" ] && \
    [ "${INSTALL_FLAG}" == "n" ] && \
@@ -445,12 +533,6 @@ if [ "${INSTALL_PATH_FLAG}" == "y" ] && \
    [ "${UPGRADE_FLAG}" == "n" ]; then
       log "[ERROR]" "failed, only input <install_path> command. When use --install-path you also need intput --install or --uninstall or --upgrade"
       exit 1
-fi
-
-# must run with root permission
-if [ "${UID}" != "0" ]; then
-    log "[ERROR]" "failed, please run with root permission"
-    exit 1
 fi
 
 if [ "${INSTALL_FLAG}" == "y" ]; then
