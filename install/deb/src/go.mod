@@ -1,6 +1,6 @@
 module main
 
-go 1.17
+go 1.18
 
 require (
 	huawei.com/npu-exporter/v5 v5.0.0-RC1
@@ -9,13 +9,10 @@ require (
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
-	github.com/gopherjs/gopherjs v1.17.2 // indirect
-	github.com/jtolds/gls v4.20.0+incompatible // indirect
-	github.com/smartystreets/assertions v1.13.0 // indirect
-	golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 )
 
 replace (
-	huawei.com/npu-exporter/v5 => gitee.com/ascend/ascend-npu-exporter/v5 v5.0.0-RC1
+	huawei.com/npu-exporter/v5 => gitee.com/ascend/ascend-npu-exporter/v5 v5.0.0-RC4.b002
 	mindxcheckutils => ../../../mindxcheckutils
 )
