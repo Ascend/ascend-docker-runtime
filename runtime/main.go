@@ -378,6 +378,7 @@ func getValueByKey(data []string, name string) string {
 
 func getValueByDeviceKey(data []string) string {
 	res := ""
+	isKeyExist := false
 	for _, envLine := range data {
 		words := strings.SplitN(envLine, "=", kvPairSize)
 		if len(words) != kvPairSize {
@@ -390,7 +391,11 @@ func getValueByDeviceKey(data []string) string {
 			if strings.Contains(res, ascend) {
 				return res
 			}
+			isKeyExist = true
 		}
+	}
+	if isKeyExist && res == "" {
+		hwlog.RunLog.Error("ASCEND_VISIBLE_DEVICES env variable is empty, will not mount any ascend device")
 	}
 
 	return res
