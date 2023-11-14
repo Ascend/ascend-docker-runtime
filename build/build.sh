@@ -50,7 +50,7 @@ RUNTIMESRCDIR=${RUNTIMESRCPATH%/${RUNTIMESRCNAME}}
 
 PACKAGENAME="Ascend-docker-runtime"
 
-VERSION="5.0.RC1"
+VERSION="5.0.RC3"
 version_file="${ROOT}"/service_config.ini
 if  [ -f "$version_file" ]; then
   line=$(sed -n '1p' "$version_file" 2>&1)
@@ -119,19 +119,22 @@ function copy_file_output()
     mkdir run_pkg
 
     /bin/cp -f {${RUNTIMESRCDIR},${HOOKSRCDIR},${BUILD}/build/helper,${BUILD}/build/cli,${BUILD}/build/destroy}/build/ascend-docker*  run_pkg
+    /bin/cp -f scripts/run_main.sh run_pkg
     /bin/cp -f scripts/uninstall.sh run_pkg
+    chmod 550 run_pkg/*
+
     /bin/cp -f scripts/base.list run_pkg
     /bin/cp -f scripts/base.list_A500 run_pkg
     /bin/cp -f scripts/base.list_A500A2 run_pkg
     /bin/cp -f scripts/base.list_A200 run_pkg
     /bin/cp -f scripts/base.list_A200ISoC run_pkg
     /bin/cp -f scripts/base.list_A200IA2 run_pkg
+    /bin/cp -f ${ROOT}/README.md run_pkg
+    chmod 640 run_pkg/base.list* run_pkg/README.md
 
     /bin/cp -rf ${ROOT}/assets run_pkg
-    /bin/cp -f ${ROOT}/README.md run_pkg
-    /bin/cp -f scripts/run_main.sh run_pkg
-
-    chmod 550 run_pkg/run_main.sh
+    chmod 750 run_pkg/assets
+    chmod 640 run_pkg/assets/*
 
     RUN_PKG_NAME="${PACKAGENAME}_${VERSION}_linux-${CPUARCH}.run"
     DATE=$(date -u "+%Y-%m-%d")
@@ -139,6 +142,7 @@ function copy_file_output()
     bash ${OPENSRC}/makeself-release-2.4.2/makeself.sh --nomd5 --nocrc --help-header scripts/help.info --packaging-date ${DATE} \
     --tar-extra "--mtime=${DATE}" run_pkg "${RUN_PKG_NAME}" ascend-docker-runtime ./run_main.sh
     mv ${RUN_PKG_NAME} ${OUTPUT}
+    chmod 550 ${OUTPUT}/${RUN_PKG_NAME}
 }
 
 function clean()

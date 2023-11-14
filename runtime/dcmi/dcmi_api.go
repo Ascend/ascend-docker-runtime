@@ -17,7 +17,6 @@ package dcmi
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -44,34 +43,46 @@ type WorkerInterface interface {
 }
 
 // CreateVDevice will create virtual device
-func CreateVDevice(w WorkerInterface, spec *specs.Spec) (VDeviceInfo, error) {
-	visibleDevice, splitDevice, err := extractVpuParam(spec)
+func CreateVDevice(w WorkerInterface, spec *specs.Spec, devices []int) (VDeviceInfo, error) {
 	invalidVDevice := VDeviceInfo{CardID: -1, DeviceID: -1, VdeviceID: -1}
-	if err != nil || visibleDevice < 0 {
+	splitDevice, err := extractVpuParam(spec)
+	if err != nil {
 		return invalidVDevice, err
 	}
+	if splitDevice == "" {
+		return invalidVDevice, nil
+	}
+	if len(devices) != 1 || devices[0] < 0 || devices[0] >= hiAIMaxCardNum*hiAIMaxDeviceNum {
+		hwlog.RunLog.Errorf("invalid devices: %v", devices)
+		return invalidVDevice, fmt.Errorf("invalid devices: %v", devices)
+	}
+
 	if err := w.Initialize(); err != nil {
 		return invalidVDevice, fmt.Errorf("cannot init dcmi : %v", err)
 	}
 	defer w.ShutDown()
-	targetDeviceID, targetCardID, err := w.FindDevice(visibleDevice)
+	targetDeviceID, targetCardID, err := w.FindDevice(int32(devices[0]))
 	if err != nil {
 		return invalidVDevice, err
 	}
 
 	vdeviceID, err := w.CreateVDevice(targetCardID, targetDeviceID, splitDevice)
 	if err != nil || vdeviceID < 0 {
-		return invalidVDevice, fmt.Errorf("cannot create vd or vdevice is wrong: %v %v", vdeviceID, err)
+		hwlog.RunLog.Errorf("cannot create vd or vdevice is wrong: %v %v", vdeviceID, err)
+		return invalidVDevice, err
 	}
-	return VDeviceInfo{CardID: targetCardID, DeviceID: targetDeviceID, VdeviceID: int32(vdeviceID)}, nil
+	return VDeviceInfo{CardID: targetCardID, DeviceID: targetDeviceID, VdeviceID: vdeviceID}, nil
 }
 
-func extractVpuParam(spec *specs.Spec) (int32, string, error) {
-	splitDevice, needSplit, visibleDeviceLine := "", false, ""
+func extractVpuParam(spec *specs.Spec) (string, error) {
 	allowSplit := map[string]string{
 		"vir01": "vir01", "vir02": "vir02", "vir04": "vir04", "vir08": "vir08", "vir16": "vir16",
-		"vir04_3c": "vir04_3c", "vir02_1c": "vir02_1c", "vir04_4c_dvpp": "vir04_4c_dvpp",
-		"vir04_3c_ndvpp": "vir04_3c_ndvpp",
+		"vir02_1c": "vir02_1c", "vir03_1c_8g": "vir03_1c_8g", "vir04_3c": "vir04_3c",
+		"vir04_4c_dvpp": "vir04_4c_dvpp", "vir04_3c_ndvpp": "vir04_3c_ndvpp",
+		"vir05_1c_8g": "vir05_1c_8g", "vir05_1c_16g": "vir05_1c_16g",
+		"vir06_1c_16g": "vir06_1c_16g", "vir10_3c_16g": "vir10_3c_16g",
+		"vir10_3c_16g_nm": "vir10_3c_16g_nm", "vir10_3c_32g": "vir10_3c_32g",
+		"vir10_4c_16g_m": "vir10_4c_16g_m", "vir12_3c_32g": "vir12_3c_32g",
 	}
 
 	for _, line := range spec.Process.Env {
@@ -80,28 +91,14 @@ func extractVpuParam(spec *specs.Spec) (int32, string, error) {
 		if len(words) != LENGTH {
 			continue
 		}
-		if strings.TrimSpace(words[0]) == "ASCEND_VISIBLE_DEVICES" {
-			visibleDeviceLine = words[1]
-		}
 		if strings.TrimSpace(words[0]) == "ASCEND_VNPU_SPECS" {
-			if split, ok := allowSplit[words[1]]; split != "" && ok {
-				splitDevice = split
-				needSplit = true
-			} else {
-				return -1, "", fmt.Errorf("cannot parse param : %v", words[1])
+			if split, ok := allowSplit[words[1]]; ok && split != "" {
+				return split, nil
 			}
+			return "", fmt.Errorf("cannot parse param : %v", words[1])
 		}
 	}
-	if !needSplit {
-		return -1, "", nil
-	}
-	visibleDevice, err := strconv.Atoi(visibleDeviceLine)
-	if err != nil || visibleDevice < 0 || visibleDevice >= hiAIMaxCardNum*hiAIMaxDeviceNum {
-		return -1, "", fmt.Errorf("cannot parse param : %v %s", err, visibleDeviceLine)
-
-	}
-
-	return int32(visibleDevice), splitDevice, nil
+	return "", nil
 }
 
 // GetProductType get type of product

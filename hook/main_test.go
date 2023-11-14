@@ -19,23 +19,12 @@ import (
 	"github.com/prashantv/gostub"
 	"os"
 	"os/exec"
-	"reflect"
 	"testing"
 )
 
 const (
 	pidSample = 123
 )
-
-func TestRemoveDuplication(t *testing.T) {
-	originList := []int{1, 2, 2, 4, 5, 5, 5, 6, 8, 8}
-	targetList := []int{1, 2, 4, 5, 6, 8}
-	resultList := removeDuplication(originList)
-
-	if !reflect.DeepEqual(resultList, targetList) {
-		t.Fail()
-	}
-}
 
 func TestDoPrestartHookCase1(t *testing.T) {
 	if err := doPrestartHook(); err != nil {
@@ -73,7 +62,10 @@ func TestDoPrestartHookCase4(t *testing.T) {
 	conCfg := containerConfig{
 		Pid:    pidSample,
 		Rootfs: ".",
-		Env:    []string{"ASCEND_VISIBLE_DEVICES=0-3,5,7"},
+		Env: []string{
+			"ASCEND_VISIBLE_DEVICES=0",
+			"ASCEND_RUNTIME_OPTIONS=VIRTUAL,NODRV",
+		},
 	}
 	stub := gostub.StubFunc(&getContainerConfig, &conCfg, nil)
 	defer stub.Reset()
@@ -136,63 +128,6 @@ func TestGetValueByKeyCase3(t *testing.T) {
 	expectVal := ""
 	actualVal := getValueByKey(data, word)
 	if actualVal != expectVal {
-		t.Fail()
-	}
-}
-
-func TestParseDevicesCase1(t *testing.T) {
-	visibleDevices := "0-3,5,7"
-	expectVal := []int{0, 1, 2, 3, 5, 7}
-	actualVal, err := parseDevices(visibleDevices)
-	if err != nil || !reflect.DeepEqual(expectVal, actualVal) {
-		t.Fail()
-	}
-}
-
-func TestParseDevicesCase2(t *testing.T) {
-	visibleDevices := "0-3-4,5,7"
-	_, err := parseDevices(visibleDevices)
-	if err != nil {
-		t.Fail()
-	}
-}
-
-func TestParseDevicesCase3(t *testing.T) {
-	visibleDevices := "0l-3,5,7"
-	_, err := parseDevices(visibleDevices)
-	if err == nil {
-		t.Fail()
-	}
-}
-
-func TestParseDevicesCase4(t *testing.T) {
-	visibleDevices := "0-3o,5,7"
-	_, err := parseDevices(visibleDevices)
-	if err == nil {
-		t.Fail()
-	}
-}
-
-func TestParseDevicesCase5(t *testing.T) {
-	visibleDevices := "4-3,5,7"
-	_, err := parseDevices(visibleDevices)
-	if err == nil {
-		t.Fail()
-	}
-}
-
-func TestParseDevicesCase6(t *testing.T) {
-	visibleDevices := "3o,5,7"
-	_, err := parseDevices(visibleDevices)
-	if err == nil {
-		t.Fail()
-	}
-}
-
-func TestParseDevicesCase7(t *testing.T) {
-	visibleDevices := "0=3,5,7"
-	_, err := parseDevices(visibleDevices)
-	if err == nil {
 		t.Fail()
 	}
 }

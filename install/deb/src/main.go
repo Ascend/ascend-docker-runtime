@@ -59,7 +59,7 @@ const (
 	addCommandLength    = 5
 	addCommand          = "add"
 	maxCommandLength    = 65535
-	logPath             = "/var/log/ascend-docker-runtime/installer.log"
+	logPath             = "/var/log/ascend-docker-runtime/install-helper-run.log"
 	rmCommand           = "rm"
 	maxFileSize         = 1024 * 1024 * 10
 )
@@ -75,20 +75,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	hwlog.OpLog.Infof("%v start running script", logPrefixWords)
+	hwlog.RunLog.Infof("%v start running script", logPrefixWords)
 
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
-		hwlog.OpLog.Infof("%v run failed", logPrefixWords)
-		log.Fatal("command error")
+		hwlog.RunLog.Errorf("%v check command failed, maybe command contains illegal char", logPrefixWords)
+		log.Fatalf("command error, please check %s for detail", logPath)
 	}
 
 	err, behavior := process()
 	if err != nil {
-		hwlog.OpLog.Errorf("%v run script failed: %v", logPrefixWords, err)
+		hwlog.RunLog.Errorf("%v run script failed: %v", logPrefixWords, err)
 		log.Fatal(fmt.Errorf("error in installation"))
 	}
-	hwlog.OpLog.Infof("%v run %v success", logPrefixWords, behavior)
+	hwlog.RunLog.Infof("%v run %v success", logPrefixWords, behavior)
 }
 
 func initLogModule(ctx context.Context) error {
@@ -99,9 +99,10 @@ func initLogModule(ctx context.Context) error {
 		LogLevel:    0,
 		MaxBackups:  backups,
 		MaxAge:      logMaxAge,
+		OnlyToFile:  true,
 		FileMaxSize: 2,
 	}
-	if err := hwlog.InitOperateLogger(&logConfig, ctx); err != nil {
+	if err := hwlog.InitRunLogger(&logConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
 		return err
 	}
@@ -160,6 +161,9 @@ func process() (error, string) {
 	runtimeFilePath := ""
 	if len(command) == addCommandLength {
 		runtimeFilePath = command[runtimeFilePosition]
+		if _, err := mindxcheckutils.RealFileChecker(runtimeFilePath, true, false, mindxcheckutils.DefaultSize); err != nil {
+			return err, behavior
+		}
 	}
 
 	setReserveDefaultRuntime(command)

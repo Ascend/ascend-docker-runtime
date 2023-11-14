@@ -36,7 +36,6 @@ import (
 const (
 	loggingPrefix          = "ascend-docker-hook"
 	runLogPath             = "/var/log/ascend-docker-runtime/hook-run.log"
-	operateLogPath         = "/var/log/ascend-docker-runtime/hook-operate.log"
 	ascendRuntimeOptions   = "ASCEND_RUNTIME_OPTIONS"
 	ascendRuntimeMounts    = "ASCEND_RUNTIME_MOUNTS"
 	ascendVisibleDevices   = "ASCEND_VISIBLE_DEVICES"
@@ -81,18 +80,6 @@ func initLogModule(ctx context.Context) error {
 		FileMaxSize: 2,
 	}
 	if err := hwlog.InitRunLogger(&runLogConfig, ctx); err != nil {
-		fmt.Printf("hwlog init failed, error is %v", err)
-		return err
-	}
-	operateLogConfig := hwlog.LogConfig{
-		LogFileName: operateLogPath,
-		LogLevel:    0,
-		MaxBackups:  backups,
-		MaxAge:      logMaxAge,
-		OnlyToFile:  true,
-		FileMaxSize: 2,
-	}
-	if err := hwlog.InitOperateLogger(&operateLogConfig, ctx); err != nil {
 		fmt.Printf("hwlog init failed, error is %v", err)
 		return err
 	}
@@ -342,10 +329,6 @@ func doPrestartHook() error {
 		return nil
 	}
 
-	if visibleDevices := getValueByKey(containerConfig.Env, ascendVisibleDevices); visibleDevices == "" {
-		return nil
-	}
-
 	mountConfigs := parseMounts(getValueByKey(containerConfig.Env, ascendRuntimeMounts))
 
 	fileMountList, dirMountList, err := readConfigsOfDir(configDir, mountConfigs)
@@ -379,8 +362,8 @@ func doPrestartHook() error {
 	if len(parsedOptions) > 0 {
 		args = append(args, "--options", strings.Join(parsedOptions, ","))
 	}
-	hwlog.OpLog.Infof("ascend docker hook success, will start cli")
-	if err := mindxcheckutils.ChangeRuntimeLogMode("hook-run-", "hook-operate-"); err != nil {
+	hwlog.RunLog.Info("ascend docker hook success, will start cli")
+	if err := mindxcheckutils.ChangeRuntimeLogMode("hook-run-"); err != nil {
 		return err
 	}
 	if err := doExec(cliPath, args, os.Environ()); err != nil {
@@ -406,21 +389,18 @@ func main() {
 		log.Fatal(err)
 	}
 	defer func() {
-		if err := mindxcheckutils.ChangeRuntimeLogMode("hook-run-", "hook-operate-"); err != nil {
+		if err := mindxcheckutils.ChangeRuntimeLogMode("hook-run-"); err != nil {
 			fmt.Println("defer changeFileMode function failed")
 		}
 	}()
-	hwlog.OpLog.Infof("%v ascend docker hook starting, try to setup container", logPrefixWords)
-	hwlog.RunLog.Infof("ascend docker hook starting")
+	hwlog.RunLog.Infof("%v ascend docker hook starting, try to setup container", logPrefixWords)
 	if !mindxcheckutils.StringChecker(strings.Join(os.Args, " "), 0,
 		maxCommandLength, mindxcheckutils.DefaultWhiteList+" ") {
-		hwlog.RunLog.Errorf("ascend docker hook failed")
-		hwlog.OpLog.Errorf("%v ascend docker hook failed", logPrefixWords)
+		hwlog.RunLog.Errorf("%v ascend docker hook failed", logPrefixWords)
 		log.Fatal("command error")
 	}
 	if err := doPrestartHook(); err != nil {
-		hwlog.RunLog.Errorf("ascend docker hook failed")
-		hwlog.OpLog.Errorf("%v ascend docker hook failed", logPrefixWords)
-		log.Fatal(fmt.Errorf("failed in runtime.doProcess "))
+		hwlog.RunLog.Errorf("%v ascend docker hook failed: %#v", logPrefixWords, err)
+		log.Fatal(fmt.Errorf("failed in runtime.doProcess: %#v", err))
 	}
 }
